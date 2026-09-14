@@ -1,0 +1,9 @@
+{
+  "name": "มัธยม",
+  "short_name": "มัธยม",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#161320",
+  "theme_color": "#161320"
+}

@@ -1,0 +1,99 @@
+[
+  {
+    "id": "classroom",
+    "name": "ห้องเรียน",
+    "periods": [
+      "morning",
+      "noon"
+    ],
+    "icon": "▦"
+  },
+  {
+    "id": "library",
+    "name": "ห้องสมุด",
+    "periods": [
+      "noon",
+      "after"
+    ],
+    "icon": "▤",
+    "action": {
+      "label": "อ่านหนังสือ",
+      "stat": "mind",
+      "gain": 3,
+      "energy": -6
+    }
+  },
+  {
+    "id": "backfield",
+    "name": "สนามหลังตึก",
+    "periods": [
+      "noon",
+      "after"
+    ],
+    "icon": "▨",
+    "action": {
+      "label": "นั่งเล่นกับพวกหลังห้อง",
+      "stat": "nerve",
+      "gain": 3,
+      "energy": -4
+    }
+  },
+  {
+    "id": "musicroom",
+    "name": "ห้องดนตรี",
+    "periods": [
+      "after",
+      "night"
+    ],
+    "icon": "♪",
+    "action": {
+      "label": "ซ้อมดนตรี",
+      "stat": "charm",
+      "gain": 3,
+      "energy": -6
+    }
+  },
+  {
+    "id": "canteen",
+    "name": "โรงอาหาร",
+    "periods": [
+      "noon"
+    ],
+    "icon": "◍",
+    "action": {
+      "label": "เลี้ยงข้าวเพื่อน",
+      "stat": "kind",
+      "gain": 2,
+      "energy": 2
+    }
+  },
+  {
+    "id": "arcade",
+    "name": "ร้านเกมหน้าปากซอย",
+    "periods": [
+      "after",
+      "night"
+    ],
+    "icon": "◈",
+    "action": {
+      "label": "ตีเกม",
+      "stat": "heart",
+      "gain": 2,
+      "energy": -4
+    }
+  },
+  {
+    "id": "home",
+    "name": "บ้าน",
+    "periods": [
+      "night"
+    ],
+    "icon": "⌂",
+    "action": {
+      "label": "ทบทวนบทเรียน",
+      "stat": "mind",
+      "gain": 2,
+      "energy": -8
+    }
+  }
+]

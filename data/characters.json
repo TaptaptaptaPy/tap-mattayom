@@ -1,0 +1,55 @@
+[
+  {
+    "id": "ploy",
+    "name": "พลอย",
+    "year": "ม.5",
+    "tag": "หัวหน้าห้อง",
+    "color": "#e4a0b7",
+    "where": {
+      "morning": "classroom",
+      "noon": "library",
+      "after": "library"
+    },
+    "likes": [
+      "mind",
+      "kind"
+    ],
+    "story": "ploy",
+    "blurb": "เก็บทุกอย่างไว้ในตาราง รวมถึงเรื่องที่ไม่ควรเก็บ"
+  },
+  {
+    "id": "kanin",
+    "name": "กนิน",
+    "year": "ม.5",
+    "tag": "หลังห้อง",
+    "color": "#7fb2e8",
+    "where": {
+      "noon": "backfield",
+      "after": "backfield",
+      "night": "arcade"
+    },
+    "likes": [
+      "nerve",
+      "heart"
+    ],
+    "story": "kanin",
+    "blurb": "โดนหมายหัวมาตั้งแต่ ม.4 แต่ไม่เคยมีใครถามว่าทำไม"
+  },
+  {
+    "id": "minta",
+    "name": "มินตรา",
+    "year": "ม.6",
+    "tag": "รุ่นพี่ชมรมดนตรี",
+    "color": "#c8a6e8",
+    "where": {
+      "after": "musicroom",
+      "night": "musicroom"
+    },
+    "likes": [
+      "charm",
+      "heart"
+    ],
+    "story": "minta",
+    "blurb": "ซ้อมอยู่คนเดียวทุกเย็น ไม่เคยบอกว่าซ้อมเพื่ออะไร"
+  }
+]
