@@ -28,6 +28,8 @@ export interface ClubOutcome { message: string; members: string[]; }
 export function doClubActivity(s: GameState, times: number, mult = 1): ClubOutcome | null {
   const c = clubToday(s);
   if (!c) return null;
+  // นับการซ้อมที่นี่ที่เดียว — ฐานของผลงานในวันงานใหญ่ (ดู src/sim/milestone.ts)
+  s.clubDays++;
   const got = applyStat(s, c.stat as StatId, c.gain * mult, times);
   s.energy = Math.max(0, s.energy + c.energy);
   if ("study" in c && typeof c.study === "number") s.study += c.study;

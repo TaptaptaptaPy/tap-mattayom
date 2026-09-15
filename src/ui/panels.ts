@@ -6,6 +6,7 @@ import { behaviourLabel } from "../sim/discipline";
 import { standingLabel } from "../sim/bonds";
 import { SUBJECTS, gradeOf, gpa } from "../sim/grades";
 import type { BoardRow } from "../sim/state";
+import type { MilestoneResult } from "../sim/milestone";
 import { EVENTS } from "../sim/calendar";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
@@ -241,6 +242,20 @@ export function pushPanel(body: string, cost: string, onYes: () => void, onNo: (
     <div class="sub">${body}</div>
     <button class="nextchap" id="bPush">ฝืน</button>`, onNo);
   p.querySelector<HTMLButtonElement>("#bPush")!.onclick = onYes;
+}
+
+/** ผลของวันงานใหญ่ — ต้องบอกให้ชัดว่าที่ได้เท่านี้เพราะซ้อมมาเท่านี้
+ *  ไม่งั้นผู้เล่นจะอ่านว่า "มินิเกมทำได้ไม่ดี" ทั้งที่เรื่องจริงคือทั้งเทอมไม่ค่อยไป */
+export function milestonePanel(r: MilestoneResult, onClose: () => void) {
+  const pct = Math.min(100, (r.attended / r.needed) * 100);
+  let h = `<h2>${r.name}<small>${r.tierName}</small></h2>
+    <div class="sheet"><div class="row"><b>ซ้อมมา</b>
+      <i style="width:${pct}%"></i>
+      <span class="gr">${r.attended}/${r.needed} ครั้ง</span></div></div>`;
+  for (const line of r.lines) h += `<div class="row"><span>${line}</span></div>`;
+  if (r.tier === 0)
+    h += `<p class="dimline">สมัครไว้แต่แทบไม่ได้ไป วันนี้คือวันที่ทั้งโรงเรียนได้เห็นพร้อมกัน</p>`;
+  open(h, onClose);
 }
 
 export function noticePanel(title: string, body: string, onClose: () => void) {

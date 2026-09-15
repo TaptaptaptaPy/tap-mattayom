@@ -24,6 +24,7 @@ import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keep
 import { claim } from "../sim/claims";
 import { postBoard, tutor, myBoardRank } from "../sim/board";
 import { isSick } from "../sim/push";
+import { milestoneToday, runMilestone } from "../sim/milestone";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -63,6 +64,8 @@ interface Run {
   boardRank: number; tutored: number; slipped: number;
   /** ฝืนทั้งที่หมดแรงกี่ครั้ง · หลับในคาบกี่ครั้ง · ล้มป่วยกี่วัน */
   pushes: number; dozes: number; sickDays: number;
+  /** ไปซ้อมชมรมกี่ครั้ง และวันงานใหญ่ได้ระดับไหน (-1 = ไม่ได้อยู่ชมรมที่มีงาน) */
+  clubDays: number; milestoneTier: number; bigCount: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -125,7 +128,9 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
   let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
-  let lied = 0, tutored = 0, pushes = 0, dozes = 0, sickDays = 0;
+  let lied = 0, tutored = 0, pushes = 0, dozes = 0, sickDays = 0, milestoneTier = -1;
+  // ต้องจำไว้ตอนวันงาน ไม่ใช่ไปอ่านตอนจบ — ขึ้นปีหนึ่งแล้ว s.clubDays ถูกล้างเป็น 0
+  let milestoneAttended = 0, bigCount = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -173,6 +178,11 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
         postBoard(s, ev.exam);
       }
       if (ev.pickClub && !s.club) joinClub(s, clubFor(strat));
+      // วันงานใหญ่ของชมรม — ทั้งเทอมที่ไปซ้อมมาถูกคิดบัญชีตรงนี้
+      const big = milestoneToday(s);
+      if (big) { const r = runMilestone(s, mg())!;
+                 if (milestoneTier < 0) { milestoneTier = r.tier; milestoneAttended = r.attended; }
+                 bigCount++; }
       if (ev.assignProject && !s.project) assignProject(s, s.chapter);
     }
 
@@ -303,6 +313,7 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
     lied, caughtLying: s.history.filter((h) => h.includes("พูดไม่ตรงกัน")).length,
     boardRank: myBoardRank(s), tutored, pushes, dozes, sickDays,
+    clubDays: milestoneAttended, milestoneTier, bigCount,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
@@ -476,6 +487,7 @@ const totalTutored = sum(allRuns.map((r) => r.tutored));
 const totalPushes = sum(allRuns.map((r) => r.pushes));
 const totalDozes = sum(allRuns.map((r) => r.dozes));
 const totalSick = sum(allRuns.map((r) => r.sickDays));
+const withBig = allRuns.filter((r) => r.milestoneTier >= 0);
 const totalSlipped = sum(allRuns.map((r) => r.slipped));
 const totalCaughtLying = sum(allRuns.map((r) => r.caughtLying));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
@@ -524,6 +536,16 @@ if (always.score >= never.score)
 console.log(`  ราคาที่วัดได้: ฝืนสุดตัวเสียคะแนนปลายทาง ${r0(never.score - always.score)}` +
             ` และเสียไปทั้งวัน ${always.sick} วันจากการล้มป่วย`);
 
+const tierCount = [0, 1, 2, 3].map((t) => withBig.filter((r) => r.milestoneTier === t).length);
+console.log(`งานใหญ่ของชมรม: ได้ไปงาน ${withBig.length}/${allRuns.length} รอบ` +
+            ` · ซ้อมเฉลี่ย ${r0(mean(withBig.map((r) => r.clubDays)))} ครั้ง` +
+            ` · ระดับที่ได้ ${tierCount.join("/")} · งานเกิดรวม ${sum(allRuns.map((r) => r.bigCount))} ครั้ง`);
+if (!withBig.length)
+  console.log("  ← ไม่มีรอบไหนได้ไปงานใหญ่เลย วันที่ clubs.json สัญญาไว้ยังไม่เกิดจริง");
+else if (tierCount[0] === withBig.length)
+  console.log("  ← ทุกรอบตกระดับล่างสุด เกณฑ์การซ้อมสูงเกินไปจนไม่มีทางทำได้");
+else if (tierCount[3] === withBig.length)
+  console.log("  ← ทุกรอบได้ระดับสูงสุด งานใหญ่ไม่ได้วัดอะไรเลย");
 console.log(`ฝืนต่อทั้งที่หมดแรง: ฝืนรวม ${totalPushes} ครั้ง · หลับในคาบ ${totalDozes} ครั้ง` +
             ` · ล้มป่วยเสียทั้งวัน ${totalSick} วัน`);
 if (totalPushes === 0)

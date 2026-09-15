@@ -17,7 +17,8 @@ import { epilogues, selfEpilogue } from "./sim/epilogue";
 import { behaviourLabel } from "./sim/discipline";
 import { buy, use, gift } from "./sim/shop";
 import { escapeCatch } from "./sim/discipline";
-import { openMinigame } from "./ui/minigame";
+import { openMinigame, type MgKind } from "./ui/minigame";
+import { milestoneToday, runMilestone } from "./sim/milestone";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
          keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
@@ -590,6 +591,24 @@ function handleEvent(e: TermEvent): boolean {
     if (e.wholeDay || e.holiday) skipToNextDay();
     afterStep();
   };
+  // วันงานใหญ่ของชมรม — วันเดียวกับเหตุการณ์ที่ปฏิทินมีอยู่แล้ว
+  // ทั้งเทอมที่ไปซ้อมมาถูกคิดบัญชีตรงนี้ ไม่ใช่มินิเกมอย่างเดียว
+  const big = milestoneToday(s);
+  if (big) {
+    void (async () => {
+      const kind: MgKind = big.id === "music" ? "rhythm" : big.id === "sport" ? "relay"
+                         : big.id === "academic" ? "quiz" : "dodge";
+      const res = await openMinigame(kind, 2);
+      const r = runMilestone(s, res.score)!;
+      sfx.exam();
+      P.milestonePanel(r, () => {
+        P.closePanel();
+        if (e.ink) { playInk(e.ink, null, e.name, "#cfc8e8", finish); return; }
+        finish();
+      });
+    })();
+    return true;
+  }
   if (e.id === "sports_day") {
     void (async () => {
       const club = clubOf(s);

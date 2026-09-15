@@ -65,6 +65,9 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
   // และคำพูดค้างจากเทอมก่อนต้องล้าง ไม่งั้นมันจะไม่มีวันหมดอายุ (วันถูกรีเซ็ตเป็น 0)
   s.tutored = {};
   s.claims = {};
+  // ชมรมของมหาลัยเป็นคนละชมรม การซ้อมของ ม.ปลาย ไม่นับให้
+  s.clubDays = 0;
+  s.milestoneDone = false;
 
   remember(s, `เข้าเรียนปีหนึ่ง · ${schoolEnding.tier}`);
 }

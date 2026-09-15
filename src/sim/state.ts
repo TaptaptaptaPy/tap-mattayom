@@ -102,6 +102,10 @@ export interface GameState {
   board: Record<string, BoardRow[]>;
   /** เราติวให้ใครไปกี่ครั้ง */
   tutored: Record<string, number>;
+  /** ไปซ้อมชมรมมาแล้วกี่ครั้งทั้งเทอม — ฐานของผลงานในวันงานใหญ่ */
+  clubDays: number;
+  /** งานใหญ่ของชมรมผ่านไปแล้วหรือยัง เทอมละครั้งเดียว */
+  milestoneDone: boolean;
   /** เมื่อคืนมีคนยืนรอเก้อกี่คน — ฝั่ง UI เอาไปทำเสียงและข้อความแล้วล้างทิ้ง
    *  ไม่ใช่สถานะถาวรของโลก แต่ต้องข้ามกำแพง sim→UI มาให้ได้ */
   stoodUp: number;
@@ -118,7 +122,8 @@ export interface GameState {
 // 10: เพิ่มสอบซ่อมและงานกลุ่ม (retakes · project)
 // 14: เพิ่มคำพูดที่ไม่ตรงกัน (claims)
 // 15: เพิ่มกระดานประกาศผลและการติวให้เพื่อน (board · tutored)
-export const SAVE_VERSION = 15;
+// 16: เพิ่มงานใหญ่ของชมรม (clubDays · milestoneDone)
+export const SAVE_VERSION = 16;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -138,7 +143,7 @@ export function newState(): GameState {
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plans: [],
-    lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {},
+    lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {}, clubDays: 0, milestoneDone: false,
   };
 }
 
