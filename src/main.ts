@@ -29,6 +29,7 @@ import { changeAffinity, changeTrust, trustFromFlag, shiftStanding, takeSide,
          standingLabel } from "./sim/bonds";
 import { takeNews, visited } from "./sim/offscreen";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
+import { Bgm } from "./core/bgm";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
 import { playScene, showHint } from "./ui/scene";
@@ -402,7 +403,7 @@ function hooks() {
   return {
     onStat: (id: StatId, n: number) => { s.stats[id] += n; },
     onAffinity: (cid: string, n: number) => changeAffinity(s, cid, n),
-    onTrust: (cid: string, n: number) => changeTrust(s, cid, n),
+    onTrust: (cid: string, n: number) => { changeTrust(s, cid, n); if (n > 0) sfx.trust(); else if (n < 0) sfx.broke(); },
     // ธงบางอันแปลว่าเราทำสิ่งที่ยากหรือซื่อสัตย์ ตารางใน game.json แปลงเป็นความเชื่อใจให้เอง
     onFlag: (name: string) => { s.flags[name] = true; trustFromFlag(s, name); },
     onHint: (text: string) => showHint(text),
@@ -577,7 +578,9 @@ function next() {
 
 function afterStep() {
   // เรื่องที่เกิดขึ้นลับหลังต้องถูกบอก ไม่งั้นมันไม่ต่างจากไม่มีระบบนี้เลย
-  for (const line of takeNews(s)) flash(line, "bad");
+  const news = takeNews(s);
+  if (news.length) sfx.news();
+  for (const line of news) flash(line, "bad");
   rollChat();
   save();
   const e = isTermOver(s) ? null : eventNow(s);
@@ -598,6 +601,29 @@ function metaOf() {
   return { day: s.dayIndex + 1, period: game.periods[s.periodIndex].name,
            club: clubOf(s)?.name ?? null, money: Math.round(s.money) };
 }
+/** เพลงเปลี่ยนตามช่วงเวลา และเปลี่ยนอีกทีถ้ามีอะไรค้างอยู่
+ *  เพลงกลางวันกับเพลงตอนที่เรากำลังจะโดนเรียก ฟังไม่เหมือนกัน */
+const bgm = new Bgm("/assets/audio", ["day", "dusk"]);
+function bgmFor(st: GameState): string {
+  const p = periodId(st);
+  return p === "after" || p === "night" ? "dusk" : "day";
+}
+
+/** เกมนี้ไม่มีลูปเกม มันเดินตามการกดของผู้เล่น
+ *  แต่การไล่ระดับเสียงต้องการเฟรม จึงมีลูปเล็กๆ ที่ทำแค่เรื่องเสียงอย่างเดียว */
+let bgmLast = performance.now();
+function bgmTick(now: number) {
+  const dt = Math.min(0.1, (now - bgmLast) / 1000);
+  bgmLast = now;
+  bgm.want(bgmFor(s));
+  bgm.update(dt);
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+
+// เบราว์เซอร์บล็อกเสียงจนกว่าจะมีการกดจริง — ดักที่ระดับเอกสารเพราะเกมนี้กดได้หลายที่
+document.addEventListener("pointerdown", () => { unlockAudio(); bgm.unlock(); }, { once: false });
+
 const save = () => writeSlot("auto", s, metaOf());
 
 function openMenu() {
@@ -623,13 +649,13 @@ function openMenu() {
   });
 }
 
-document.addEventListener("pointerdown", () => unlockAudio(), { once: true });
 const soundIcon = () => (isMuted() ? "๏" : "♪");
 $("bSound").textContent = soundIcon();
 $("bSound").title = "เปิด/ปิดเสียง";
 $("bSound").onclick = () => {
   unlockAudio();
   setMuted(!isMuted());
+  bgm.setMuted(isMuted());
   $("bSound").textContent = soundIcon();
 };
 $("bChat").onclick = () => openChatList();
