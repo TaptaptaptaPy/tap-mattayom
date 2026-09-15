@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
-    "lint:ink": "tsx src/test/inkcheck.ts"
+    "lint:ink": "tsx src/test/inkcheck.ts",
+    "story": "tsx src/test/storywalk.ts",
+    "balance": "tsx src/test/balance.ts"
   },
   "dependencies": {
     "inkjs": "^2.4.0"

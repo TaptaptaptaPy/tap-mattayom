@@ -1,39 +1,70 @@
 import "./style.css";
 import game from "../data/game.json";
 import chars from "../data/characters.json";
-import { newState, statRank, affinityRank, type GameState, type StatId } from "./sim/state";
-import { dateLabel, advance, isLocked, isTermOver } from "./sim/calendar";
-import { availableLocations, doAction } from "./sim/actions";
+import { newState, statRank, affinityRank, remember, type GameState, type StatId } from "./sim/state";
+import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
+         nextEvent, type TermEvent } from "./sim/calendar";
+import { availableLocations, doAction, doRest, attendClass, skipClass } from "./sim/actions";
+import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
+import { takeExam } from "./sim/exam";
+import { computeEnding } from "./sim/ending";
+import { behaviourLabel } from "./sim/discipline";
+import { buy, use, gift } from "./sim/shop";
 import { openScene } from "./story/bridge";
-import { playScene } from "./ui/scene";
-import { save, load } from "./core/save";
+import { playScene, showHint } from "./ui/scene";
+import * as P from "./ui/panels";
+import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotId } from "./core/save";
 
-let s: GameState = load<GameState>() ?? newState();
+migrateOld();
+let s: GameState = readSlot("auto")?.state ?? newState();
 const $ = (id: string) => document.getElementById(id)!;
 
+// ───────────────────────── แถบบน ─────────────────────────
+
 function renderTop() {
-  $("date").textContent = dateLabel(s) + (isLocked(s) ? " · คาบเรียน" : "");
-  $("stats").innerHTML = game.stats.map((st) => {
+  const club = clubOf(s);
+  $("date").innerHTML = `${dateLabel(s)}${isLocked(s) ? " · คาบเรียน" : ""}` +
+    `<small> · เหลืออีก ${daysLeft(s)} วัน</small>`;
+
+  const energyPct = (s.energy / game.energy.max) * 100;
+  const low = s.energy < game.energy.lowThreshold;
+  let h = game.stats.map((st) => {
     const v = s.stats[st.id as StatId];
     return `<span class="chip" title="${st.desc}">${st.name}
       <b>${game.statRankNames[statRank(v)]}</b></span>`;
-  }).join("") + `<span class="chip energy">แรง <b>${s.energy}</b></span>`;
+  }).join("");
+  h += `<span class="chip energy${low ? " low" : ""}" title="แรงที่เหลือวันนี้">แรง
+      <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
+  h += `<span class="chip" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
+  h += `<span class="chip" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
+  if (club) h += `<span class="chip" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
+  $("stats").innerHTML = h;
 }
+
+// ───────────────────────── กระดานเลือกที่ไป ─────────────────────────
 
 function renderBoard() {
   const board = $("board");
   board.innerHTML = "";
   if (isTermOver(s)) {
-    board.innerHTML = '<div class="end">จบเทอมแล้ว — TODO: เขียนฉากปิดเทอม</div>';
+    const e = s.ending ?? computeEnding(s);
+    board.innerHTML = `<div class="end"><b>${e.tier}</b>
+      <small>คะแนนรวมทั้งเทอม ${e.score}</small>
+      <button id="bSeeEnd">ดูสรุปเทอม</button></div>`;
+    $("bSeeEnd").onclick = () => P.endingPanel(e, P.closePanel);
     return;
   }
+
+  if (isLocked(s)) { renderClassroom(board); return; }
+
   for (const loc of availableLocations(s)) {
     const card = document.createElement("div");
-    card.className = "loc";
+    card.className = "loc" + (loc.blocked ? " blocked" : "");
     card.innerHTML = `<div class="ico">${loc.icon}</div><div class="nm">${loc.name}</div>`;
 
     const acts = document.createElement("div");
     acts.className = "acts";
+
     for (const p of loc.present) {
       const b = document.createElement("button");
       b.className = "who";
@@ -43,51 +74,247 @@ function renderBoard() {
       b.onclick = () => talkTo(p.id);
       acts.appendChild(b);
     }
+
+    if (loc.club) {
+      const b = document.createElement("button");
+      b.className = "act club";
+      b.textContent = loc.club.label;
+      b.onclick = () => {
+        const r = doClubActivity(s, s.doneToday[loc.id] ?? 0);
+        if (r) { flash(r.message); s.doneToday[loc.id] = (s.doneToday[loc.id] ?? 0) + 1; }
+        next();
+      };
+      acts.appendChild(b);
+    }
+
     if (loc.action) {
+      const a = loc.action;
       const b = document.createElement("button");
       b.className = "act";
-      b.textContent = loc.action.label;
-      b.onclick = () => { flash(doAction(s, loc) ?? ""); next(); };
+      const times = s.doneToday[loc.id] ?? 0;
+      b.innerHTML = `${a.label}<em>${a.energy < 0 ? `แรง ${a.energy}` : `แรง +${a.energy}`}` +
+        `${a.cost ? ` · ${a.cost} บาท` : ""}${times ? " · ทำแล้ววันนี้" : ""}</em>`;
+      b.disabled = !!loc.blocked;
+      b.onclick = () => {
+        const r = doAction(s, loc);
+        if (r) { flash(r.message); if (r.caught) flash(r.caught, "bad"); }
+        next();
+      };
       acts.appendChild(b);
+    }
+
+    if (loc.rest) {
+      const b = document.createElement("button");
+      b.className = "act rest";
+      b.innerHTML = `${loc.rest.label}<em>แรง +${loc.rest.energy}</em>`;
+      b.onclick = () => { flash(doRest(s, loc) ?? ""); next(); };
+      acts.appendChild(b);
+    }
+
+    if (loc.blocked) {
+      const w = document.createElement("div");
+      w.className = "warn";
+      w.textContent = loc.blocked;
+      acts.appendChild(w);
     }
     card.appendChild(acts);
     board.appendChild(card);
   }
 }
 
-function talkTo(charId: string) {
-  const c = chars.find((x) => x.id === charId)!;
-  const story = openScene(c.story, s, charId, {
-    onStat: (id, n) => { s.stats[id] += n; },
-    onAffinity: (cid, n) => { s.affinity[cid] = (s.affinity[cid] ?? 0) + n; },
-    onFlag: (name) => { s.flags[name] = true; },
-  });
-  s.metToday[charId] = true;
-  playScene(story, c.name, c.color, () => { next(); });
-}
+function renderClassroom(board: HTMLElement) {
+  const card = document.createElement("div");
+  card.className = "loc wide";
+  const flagRaised = s.doneToday["_assembly"] > 0;
+  card.innerHTML = `<div class="ico">⚑</div>
+    <div class="nm">เข้าแถวหน้าเสาธง แล้วเข้าเรียน</div>`;
+  const acts = document.createElement("div");
+  acts.className = "acts";
 
-function next() {
-  advance(s);
-  save(s);
-  renderTop(); renderBoard(); renderBottom();
+  const b1 = document.createElement("button");
+  b1.className = "act";
+  b1.innerHTML = flagRaised ? "เข้าเรียนต่อ<em>ปัญญา +</em>" : "เข้าแถว แล้วเข้าเรียน<em>ปัญญา + · ความพร้อมสอบ +</em>";
+  b1.onclick = () => {
+    if (!flagRaised) {
+      s.doneToday["_assembly"] = 1;
+      playInk("assembly", null, "หน้าเสาธง", "#cfc8e8", () => { flash(attendClass(s)); next(); });
+    } else { flash(attendClass(s)); next(); }
+  };
+  acts.appendChild(b1);
+
+  const b2 = document.createElement("button");
+  b2.className = "act risky";
+  b2.innerHTML = "โดดคาบ<em>ความซ่า + · เสี่ยงโดนจับ</em>";
+  b2.onclick = () => {
+    const r = skipClass(s);
+    flash(r.message);
+    if (r.caught) flash(r.caught, "bad");
+    next();
+  };
+  acts.appendChild(b2);
+
+  const atClass = chars.filter((c) =>
+    (c.where as Record<string, string | undefined>)["morning"] === "classroom" && !s.metToday[c.id]);
+  for (const p of atClass) {
+    const b = document.createElement("button");
+    b.className = "who";
+    b.style.borderColor = p.color;
+    b.innerHTML = `<span style="color:${p.color}">${p.name}</span><em>ระดับ ${affinityRank(s.affinity[p.id] ?? 0)}</em>`;
+    b.onclick = () => talkTo(p.id);
+    acts.appendChild(b);
+  }
+  card.appendChild(acts);
+  board.appendChild(card);
 }
 
 function renderBottom() {
-  $("bottom").innerHTML = "";
+  const el = $("bottom");
+  el.innerHTML = "";
+  if (isTermOver(s)) return;
   const skip = document.createElement("button");
   skip.className = "wide";
-  skip.textContent = isLocked(s) ? "ตั้งใจเรียน (ผ่านคาบไป)" : "ไม่ทำอะไร";
-  skip.onclick = () => { if (isLocked(s)) s.stats.mind += 1; next(); };
-  $("bottom").appendChild(skip);
+  const club = clubToday(s);
+  skip.textContent = isLocked(s) ? "ผ่านคาบไปเฉยๆ"
+    : club && !isSchoolDay(s) ? "อยู่บ้านเฉยๆ" : "ไม่ทำอะไร";
+  skip.onclick = () => next();
+  el.appendChild(skip);
 }
 
-function flash(msg: string) {
+// ───────────────────────── บทสนทนา ─────────────────────────
+
+function hooks() {
+  return {
+    onStat: (id: StatId, n: number) => { s.stats[id] += n; },
+    onAffinity: (cid: string, n: number) => { s.affinity[cid] = (s.affinity[cid] ?? 0) + n; },
+    onFlag: (name: string) => { s.flags[name] = true; },
+    onHint: (text: string) => showHint(text),
+    onMoney: (amount: number) => { s.money = Math.max(0, s.money + amount); },
+  };
+}
+
+function talkTo(charId: string) {
+  const c = chars.find((x) => x.id === charId)!;
+  const story = openScene(c.story, s, charId, hooks());
+  s.metToday[charId] = true;
+  remember(s, `คุยกับ${c.name}`);
+  playScene(story, c.name, c.color, () => next());
+}
+
+function playInk(name: string, charId: string | null, speaker: string, color: string, onEnd: () => void) {
+  const story = openScene(name, s, charId, hooks());
+  playScene(story, speaker, color, onEnd);
+}
+
+// ───────────────────────── เหตุการณ์ตามปฏิทิน ─────────────────────────
+
+/** ข้ามไปเช้าวันถัดไป — ใช้กับกิจกรรมที่กินทั้งวัน เช่น กีฬาสี เข้าค่าย */
+function skipToNextDay() {
+  const guard = game.periods.length + 1;
+  for (let i = 0; i < guard && s.periodIndex !== 0; i++) advance(s);
+  if (s.periodIndex === 0 && s.dayIndex === s.dayIndex) advance(s);
+  while (s.periodIndex !== 0) advance(s);
+}
+
+function handleEvent(e: TermEvent): boolean {
+  s.seenEvents[e.id] = true;
+  remember(s, e.name);
+
+  if (e.exam) {
+    const r = takeExam(s, e.exam);
+    P.examPanel(r, () => { P.closePanel(); skipToNextDay(); afterStep(); });
+    return true;
+  }
+  if (e.holiday && !e.ink) {
+    P.noticePanel(e.name, "วันนี้โรงเรียนหยุด", () => { P.closePanel(); afterStep(); });
+    return true;
+  }
+  const finish = () => {
+    if (e.pickClub && !s.club) { P.clubPickPanel((id) => { joinClub(s, id); P.closePanel(); afterStep(); }); return; }
+    if (e.ending) { const en = computeEnding(s); P.endingPanel(en, () => { P.closePanel(); afterStep(); }); return; }
+    if (e.wholeDay || e.holiday) skipToNextDay();
+    afterStep();
+  };
+  if (e.ink) { playInk(e.ink, null, e.name, "#cfc8e8", finish); return true; }
+  finish();
+  return true;
+}
+
+// ───────────────────────── ลูปหลัก ─────────────────────────
+
+function next() {
+  advance(s);
+  afterStep();
+}
+
+function afterStep() {
+  save();
+  const e = isTermOver(s) ? null : eventNow(s);
+  if (e && handleEvent(e)) { renderTop(); return; }
+  render();
+}
+
+function render() {
+  renderTop();
+  renderBoard();
+  renderBottom();
+}
+
+// ───────────────────────── เซฟ / เมนู ─────────────────────────
+
+function metaOf() {
+  return { day: s.dayIndex + 1, period: game.periods[s.periodIndex].name,
+           club: clubOf(s)?.name ?? null, money: Math.round(s.money) };
+}
+const save = () => writeSlot("auto", s, metaOf());
+
+function openMenu() {
+  P.menuPanel(s, {
+    slots: SLOTS.map((id) => {
+      const m = slotMeta(id);
+      return {
+        id, label: id === "auto" ? "อัตโนมัติ" : `ช่อง ${id}`, has: !!m,
+        desc: m ? `วันที่ ${m.day} · ${m.period}${m.club ? " · " + m.club : ""} · ${m.money} บาท` : "ว่าง",
+      };
+    }),
+    onSave: (id) => { writeSlot(id as SlotId, s, metaOf()); openMenu(); flash(`บันทึกลงช่อง ${id} แล้ว`); },
+    onLoad: (id) => {
+      const r = readSlot(id as SlotId);
+      if (!r) { flash("ช่องนี้ว่าง หรือเซฟมาจากเกมคนละรุ่น", "bad"); return; }
+      s = r.state; P.closePanel(); render(); flash("โหลดแล้ว");
+    },
+    onWipe: (id) => { clearSlot(id as SlotId); openMenu(); },
+    onNew: () => {
+      if (!confirm("เริ่มเทอมใหม่? ความคืบหน้าที่ยังไม่บันทึกจะหายไป")) return;
+      s = newState(); P.closePanel(); save(); afterStep();
+    },
+  });
+}
+
+$("bChars").onclick = () => P.characterPanel(s);
+$("bCal").onclick = () => P.calendarPanel(s);
+$("bMenu").onclick = () => openMenu();
+$("bBag").onclick = () => openBag();
+
+function openBag() {
+  P.bagPanel(s, {
+    onBuy: (id) => { flash(buy(s, id)); save(); renderTop(); openBag(); },
+    onUse: (id) => { flash(use(s, id)); save(); renderTop(); openBag(); },
+    onGift: (id, cid) => { flash(gift(s, id, cid)); save(); openBag(); },
+  });
+}
+
+function flash(msg: string, kind: "ok" | "bad" = "ok") {
   if (!msg) return;
   const el = document.createElement("div");
-  el.className = "toast";
+  el.className = "toast " + kind;
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2200);
+  setTimeout(() => el.classList.add("out"), 2000);
+  setTimeout(() => el.remove(), 2600);
 }
 
-renderTop(); renderBoard(); renderBottom();
+// เปิดเกมมา ถ้ามีเหตุการณ์ค้างอยู่ตรงช่วงเวลานี้ ให้เล่นก่อน
+const startEvent = isTermOver(s) ? null : eventNow(s);
+if (startEvent) { renderTop(); handleEvent(startEvent); }
+else render();
+if (nextEvent(s)) { /* ปฏิทินพร้อมใช้ */ }

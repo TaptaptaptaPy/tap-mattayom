@@ -1,99 +1,45 @@
 [
   {
-    "id": "classroom",
-    "name": "ห้องเรียน",
-    "periods": [
-      "morning",
-      "noon"
-    ],
-    "icon": "▦"
+    "id": "classroom", "name": "ห้องเรียน", "periods": ["morning", "noon"], "icon": "▦",
+    "school": true,
+    "action": { "label": "ติวกับเพื่อนหลังห้อง", "stat": "mind", "gain": 3, "energy": -8, "study": 3 }
   },
   {
-    "id": "library",
-    "name": "ห้องสมุด",
-    "periods": [
-      "noon",
-      "after"
-    ],
-    "icon": "▤",
-    "action": {
-      "label": "อ่านหนังสือ",
-      "stat": "mind",
-      "gain": 3,
-      "energy": -6
-    }
+    "id": "library", "name": "ห้องสมุด", "periods": ["noon", "after"], "icon": "▤",
+    "school": true,
+    "action": { "label": "อ่านหนังสือ", "stat": "mind", "gain": 4, "energy": -12, "study": 6 }
   },
   {
-    "id": "backfield",
-    "name": "สนามหลังตึก",
-    "periods": [
-      "noon",
-      "after"
-    ],
-    "icon": "▨",
-    "action": {
-      "label": "นั่งเล่นกับพวกหลังห้อง",
-      "stat": "nerve",
-      "gain": 3,
-      "energy": -4
-    }
+    "id": "backfield", "name": "สนามหลังตึก", "periods": ["noon", "after"], "icon": "▨",
+    "school": true, "risky": true, "catchBase": 0.22,
+    "action": { "label": "นั่งเล่นกับพวกหลังห้อง", "stat": "nerve", "gain": 4, "energy": -6 }
   },
   {
-    "id": "musicroom",
-    "name": "ห้องดนตรี",
-    "periods": [
-      "after",
-      "night"
-    ],
-    "icon": "♪",
-    "action": {
-      "label": "ซ้อมดนตรี",
-      "stat": "charm",
-      "gain": 3,
-      "energy": -6
-    }
+    "id": "musicroom", "name": "ห้องดนตรี", "periods": ["after", "night"], "icon": "♪",
+    "school": true,
+    "action": { "label": "ซ้อมดนตรี", "stat": "charm", "gain": 4, "energy": -11 }
   },
   {
-    "id": "canteen",
-    "name": "โรงอาหาร",
-    "periods": [
-      "noon"
-    ],
-    "icon": "◍",
-    "action": {
-      "label": "เลี้ยงข้าวเพื่อน",
-      "stat": "kind",
-      "gain": 2,
-      "energy": 2
-    }
+    "id": "canteen", "name": "โรงอาหาร", "periods": ["noon"], "icon": "◍",
+    "school": true,
+    "action": { "label": "เลี้ยงข้าวเพื่อน", "stat": "kind", "gain": 3, "energy": 6, "cost": 60 }
   },
   {
-    "id": "arcade",
-    "name": "ร้านเกมหน้าปากซอย",
-    "periods": [
-      "after",
-      "night"
-    ],
-    "icon": "◈",
-    "action": {
-      "label": "ตีเกม",
-      "stat": "heart",
-      "gain": 2,
-      "energy": -4
-    }
+    "id": "arcade", "name": "ร้านเกมหน้าปากซอย", "periods": ["after", "night"], "icon": "◈",
+    "risky": true, "catchBase": 0.16,
+    "action": { "label": "ตีเกม", "stat": "heart", "gain": 3, "energy": -7, "cost": 40 }
   },
   {
-    "id": "home",
-    "name": "บ้าน",
-    "periods": [
-      "night"
-    ],
-    "icon": "⌂",
-    "action": {
-      "label": "ทบทวนบทเรียน",
-      "stat": "mind",
-      "gain": 2,
-      "energy": -8
-    }
+    "id": "tutorschool", "name": "โรงเรียนกวดวิชา", "periods": ["after", "night"], "icon": "◉",
+    "action": { "label": "ลงเรียนพิเศษหนึ่งคาบ", "stat": "mind", "gain": 3, "energy": -16, "study": 14, "cost": 320 }
+  },
+  {
+    "id": "temple", "name": "วัดท้ายซอย", "periods": ["noon", "after"], "icon": "卍",
+    "action": { "label": "ช่วยงานวัด", "stat": "kind", "gain": 4, "energy": -9 }
+  },
+  {
+    "id": "home", "name": "บ้าน", "periods": ["after", "night"], "icon": "⌂",
+    "action": { "label": "ทบทวนบทเรียน", "stat": "mind", "gain": 2, "energy": -9, "study": 5 },
+    "rest": { "label": "นอนกลางวัน / พักผ่อน", "energy": 26 }
   }
 ]

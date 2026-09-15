@@ -1,13 +1,18 @@
 import { Compiler } from "inkjs/full";
 import type { Story } from "inkjs/types";
-import type { GameState, StatId } from "../sim/state";
+import { affinityRank, statRank, type GameState, type StatId } from "../sim/state";
+import { clubOf } from "../sim/club";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
 // ถ้าวันหนึ่งบทเยอะจนคอมไพล์ช้า ค่อยเปลี่ยนไป precompile เป็น .json
 const inkFiles = import.meta.glob("../../story/*.ink", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
-function sourceOf(name: string): string {
+export const storyNames = () =>
+  Object.keys(inkFiles).map((k) => k.split("/").pop()!.replace(/\.ink$/, ""))
+    .filter((n) => !n.startsWith("_"));
+
+export function sourceOf(name: string): string {
   const key = Object.keys(inkFiles).find((k) => k.endsWith(`/${name}.ink`));
   if (!key) throw new Error(`ไม่พบบท: story/${name}.ink`);
   // inkjs ไม่รู้จัก INCLUDE ตอนคอมไพล์จากสตริง จึงต้องแทนที่เอง
@@ -21,10 +26,26 @@ export interface SceneHooks {
   onStat: (id: StatId, amount: number) => void;
   onAffinity: (charId: string, amount: number) => void;
   onFlag: (name: string) => void;
+  onHint: (text: string) => void;
+  onMoney: (amount: number) => void;
+}
+
+/** ตัวแปรทุกตัวที่บทอ่านได้ — ประกาศคู่กันไว้ใน story/_shared.ink
+ *  กติกา: ink อ่านค่าเหล่านี้เพื่อตั้งเงื่อนไขเท่านั้น การ "เปลี่ยน" ค่าต้องผ่าน external function */
+export function injectVars(story: Story, s: GameState, charId: string | null) {
+  for (const [k, v] of Object.entries(s.stats)) story.variablesState[k] = Math.round(v);
+  story.variablesState["affinity"] = charId ? Math.round(s.affinity[charId] ?? 0) : 0;
+  story.variablesState["rank"] = charId ? affinityRank(s.affinity[charId] ?? 0) : 0;
+  story.variablesState["day"] = s.dayIndex + 1;
+  story.variablesState["money"] = Math.round(s.money);
+  story.variablesState["behaviour"] = Math.round(s.behaviour);
+  story.variablesState["caught"] = s.caught;
+  story.variablesState["club"] = clubOf(s)?.id ?? "";
+  story.variablesState["mindRank"] = statRank(s.stats.mind);
 }
 
 /** สร้าง story พร้อมฉีดสถานะปัจจุบันเข้าไป และต่อสะพานกลับมาที่ TS */
-export function openScene(storyName: string, s: GameState, charId: string, hooks: SceneHooks): Story {
+export function openScene(storyName: string, s: GameState, charId: string | null, hooks: SceneHooks): Story {
   const story = new Compiler(sourceOf(storyName)).Compile();
 
   story.BindExternalFunction("gainStat", (id: string, amount: number) => {
@@ -33,13 +54,12 @@ export function openScene(storyName: string, s: GameState, charId: string, hooks
   story.BindExternalFunction("gainAffinity", (cid: string, amount: number) => {
     hooks.onAffinity(cid, amount); return null;
   });
-  story.BindExternalFunction("setFlag", (name: string) => {
-    hooks.onFlag(name); return null;
-  });
+  story.BindExternalFunction("setFlag", (name: string) => { hooks.onFlag(name); return null; });
+  // บทบอกเองได้ว่า "ตรงนี้มีทางที่ยังเปิดไม่ได้" ผู้เล่นจะได้รู้ว่าพลาดอะไรไป
+  story.BindExternalFunction("setHint", (text: string) => { hooks.onHint(text); return null; });
+  story.BindExternalFunction("spend", (amount: number) => { hooks.onMoney(-amount); return null; });
+  story.BindExternalFunction("hasFlag", (name: string) => (s.flags[name] ? 1 : 0));
 
-  // ฉีดค่าจากเกมเข้าไปใน ink เพื่อให้เงื่อนไขในบทใช้งานได้
-  for (const [k, v] of Object.entries(s.stats)) story.variablesState[k] = v;
-  story.variablesState["affinity"] = s.affinity[charId] ?? 0;
-  story.variablesState["day"] = s.dayIndex + 1;
+  injectVars(story, s, charId);
   return story;
 }

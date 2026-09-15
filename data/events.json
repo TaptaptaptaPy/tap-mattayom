@@ -1,0 +1,19 @@
+[
+  {
+    "_comment": "ปฏิทินเหตุการณ์ของเทอม — day นับจากวันเปิดเทอม (0 = จันทร์ 18 พ.ค. 2026)",
+    "id": "_note",
+    "skip": true
+  },
+  { "id": "opening", "day": 0, "period": "morning", "name": "วันเปิดเทอม", "ink": "ev_opening" },
+  { "id": "club_pick", "day": 3, "period": "after", "name": "วันสมัครชมรม", "ink": "ev_club", "pickClub": true },
+  { "id": "wai_kru", "day": 10, "period": "morning", "name": "วันไหว้ครู", "ink": "ev_wai_kru" },
+  { "id": "midterm", "day": 49, "period": "morning", "name": "สอบกลางภาค", "exam": "midterm" },
+  { "id": "field_trip", "day": 63, "period": "morning", "name": "ทัศนศึกษา", "ink": "ev_field_trip", "wholeDay": true },
+  { "id": "king_day", "day": 71, "period": "morning", "name": "วันเฉลิมพระชนมพรรษา", "holiday": true, "ink": "ev_holiday" },
+  { "id": "sports_day", "day": 77, "period": "morning", "name": "กีฬาสี", "ink": "ev_sports_day", "wholeDay": true },
+  { "id": "mothers_day", "day": 85, "period": "morning", "name": "พิธีวันแม่", "ink": "ev_mothers_day" },
+  { "id": "mothers_holiday", "day": 86, "period": "morning", "name": "วันแม่แห่งชาติ", "holiday": true },
+  { "id": "scout_camp", "day": 95, "period": "morning", "name": "เข้าค่ายลูกเสือ", "ink": "ev_scout_camp", "wholeDay": true },
+  { "id": "final", "day": 112, "period": "morning", "name": "สอบปลายภาค", "exam": "final" },
+  { "id": "farewell", "day": 119, "period": "morning", "name": "ปัจฉิมนิเทศ", "ink": "ev_farewell", "ending": true }
+]

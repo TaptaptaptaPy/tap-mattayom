@@ -1,16 +1,26 @@
 // ประกาศร่วมของทุกบท
 // กฎเหล็ก: ไฟล์นี้ห้ามมี knot (===) หรือ function เด็ดขาด
 // เพราะเนื้อหาถูกแทรกไว้ "ด้านบน" ของไฟล์บท ถ้ามี knot ทุกอย่างที่ตามมาจะตกเข้าไปอยู่ในนั้น
+// อีกข้อ: ชื่อ knot และชื่อตัวแปรต้องเป็นอังกฤษ ภาษาไทยคอมไพล์ไม่ผ่าน (ตัวข้อความไทยได้ปกติ)
 
 VAR heart = 0
 VAR mind = 0
 VAR charm = 0
-VAR nerve = 0
 VAR kind = 0
+VAR nerve = 0
 VAR affinity = 0
+VAR rank = 0
 VAR day = 1
+VAR money = 0
+VAR behaviour = 100
+VAR caught = 0
+VAR club = ""
+VAR mindRank = 0
 
 // สะพานไปฝั่ง TypeScript — ดู src/story/bridge.ts
 EXTERNAL gainStat(id, amount)
 EXTERNAL gainAffinity(charId, amount)
 EXTERNAL setFlag(name)
+EXTERNAL setHint(text)
+EXTERNAL spend(amount)
+EXTERNAL hasFlag(name)

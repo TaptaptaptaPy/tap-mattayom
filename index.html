@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#161320" />
 <link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-180.png" />
+<link rel="icon" type="image/png" href="/icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;600;700&family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet" />
@@ -15,15 +17,25 @@
 <body>
 <div id="app">
   <header id="top">
-    <div id="date"></div>
+    <div id="dateRow">
+      <div id="date"></div>
+      <div id="topBtns">
+        <button class="tbtn" id="bChars">คนรู้จัก</button>
+        <button class="tbtn" id="bBag">กระเป๋า</button>
+        <button class="tbtn" id="bCal">ปฏิทิน</button>
+        <button class="tbtn" id="bMenu">เมนู</button>
+      </div>
+    </div>
     <div id="stats"></div>
   </header>
   <main id="board"></main>
   <section id="scene" class="hidden">
     <div id="speaker"></div>
     <div id="line"></div>
+    <div id="hint"></div>
     <div id="choices"></div>
   </section>
+  <div id="panel" class="hidden"></div>
   <footer id="bottom"></footer>
 </div>
 <script type="module" src="/src/main.ts"></script>

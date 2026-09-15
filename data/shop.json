@@ -1,0 +1,16 @@
+[
+  { "id": "nom", "name": "นมเย็นหน้าโรงเรียน", "price": 35, "icon": "🥛", "energy": 18,
+    "desc": "แก้ง่วงคาบบ่ายได้จริง" },
+  { "id": "kanom", "name": "ขนมครกเจ้าประจำ", "price": 50, "icon": "🍮", "energy": 26,
+    "desc": "กินแล้วอิ่มถึงเย็น", "gift": true, "giftValue": 2 },
+  { "id": "sheet", "name": "ชีทสรุปรุ่นพี่", "price": 180, "icon": "📄", "study": 12,
+    "desc": "ทางลัดที่ครูไม่ชอบ แต่ได้ผล" },
+  { "id": "pen", "name": "ปากกาหมึกดี", "price": 120, "icon": "🖊", "gift": true, "giftValue": 3,
+    "likes": ["mind"], "desc": "ของฝากที่คนเรียนเก่งชอบ" },
+  { "id": "bracelet", "name": "กำไลข้อมือสาน", "price": 260, "icon": "🧿", "gift": true, "giftValue": 5,
+    "likes": ["charm", "heart"], "desc": "ทำมือ ให้ใครก็รู้ว่าตั้งใจ" },
+  { "id": "cassette", "name": "เทปรวมเพลงอัดเอง", "price": 300, "icon": "📼", "gift": true, "giftValue": 6,
+    "likes": ["charm"], "desc": "ต้องนั่งอัดทีละเพลง คนรับรู้" },
+  { "id": "energydrink", "name": "เครื่องดื่มชูกำลัง", "price": 90, "icon": "⚡", "energy": 44,
+    "desc": "ได้แรงเยอะ แต่คืนนั้นนอนไม่หลับ", "sleepPenalty": 14 }
+]

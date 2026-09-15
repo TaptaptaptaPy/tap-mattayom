@@ -13,7 +13,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
 .chip{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
 .chip b{color:var(--ink);font-weight:600;margin-left:4px}
 .chip.energy b{color:var(--accent)}
-#board{flex:1;padding:12px 0;display:grid;gap:10px}
+#board{flex:1;padding:12px 0;display:grid;gap:10px;align-content:start}
 .loc{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:var(--bg2)}
 .loc .ico{font-size:18px;color:var(--dim)}
 .loc .nm{font-family:"Bai Jamjuree",sans-serif;font-weight:600;font-size:16px;margin-top:2px}
@@ -37,3 +37,89 @@ button{font-family:inherit;cursor:pointer}
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#2b2540;
   border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;z-index:20}
 .hidden{display:none!important}
+
+/* ───────── ส่วนที่เพิ่มมาพร้อมปฏิทิน ชมรม ร้านค้า สอบ และฝ่ายปกครอง ───────── */
+
+#dateRow{display:flex;align-items:flex-start;gap:8px}
+#date{flex:1;min-width:0}
+#date small{font-family:"Noto Sans Thai",sans-serif;font-weight:400;font-size:12px;color:var(--dim);white-space:nowrap}
+#topBtns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.tbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:999px;
+  padding:5px 10px;font-size:11.5px;white-space:nowrap}
+.tbtn:active{background:rgba(242,238,247,.08);color:var(--ink)}
+
+.chip{position:relative;overflow:hidden}
+.chip.energy i{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);opacity:.7}
+.chip.energy.low{border-color:#8a5a5a;color:#e0a0a0}
+.chip.energy.low b{color:#e88}
+
+.loc.wide{grid-column:1/-1}
+.loc.blocked{opacity:.55}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.act em{font-style:normal;font-size:10.5px;color:var(--dim)}
+.act.club{border-color:#8a7fc4}
+.act.rest{border-color:#6f8f7a}
+.act.risky{border-color:#a5706f}
+.act:disabled{opacity:.4}
+.warn{font-size:11.5px;color:#d69a9a;width:100%}
+
+#hint{font-size:12px;color:var(--dim);margin:6px 0 2px;min-height:16px}
+
+.end{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--bg2);
+  display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.end b{font-family:"Bai Jamjuree",sans-serif;font-size:19px}
+.end small{color:var(--dim)}
+.end button{background:none;border:1px solid var(--line);color:var(--ink);
+  border-radius:12px;padding:9px 14px;font-size:13.5px;margin-top:6px}
+
+/* แผงเต็มจอ: คนรู้จัก กระเป๋า ปฏิทิน เมนู ผลสอบ สรุปเทอม */
+#panel{position:fixed;inset:0;z-index:10;background:rgba(12,10,18,.86);
+  display:flex;align-items:flex-end;justify-content:center;overflow-y:auto}
+.pwrap{width:100%;max-width:640px;background:var(--bg);border:1px solid var(--line);
+  border-radius:20px 20px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));
+  max-height:92vh;overflow-y:auto}
+.pwrap h2{font-family:"Bai Jamjuree",sans-serif;font-size:19px;margin:0 0 10px}
+.pwrap h2 small{font-weight:400;font-size:13px;color:var(--dim);margin-left:6px}
+.pwrap h3{font-family:"Bai Jamjuree",sans-serif;font-size:14px;margin:16px 0 6px;color:var(--dim)}
+.pwrap hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.pclose{width:100%;margin-top:16px;background:none;border:1px solid var(--line);
+  color:var(--ink);border-radius:12px;padding:11px;font-size:14px}
+.big{font-family:"Bai Jamjuree",sans-serif;font-size:32px;font-weight:700;margin:6px 0 12px;line-height:1.2}
+.big small{font-size:15px;font-weight:400;color:var(--dim)}
+
+.card{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--bg2)}
+.card.clickable{cursor:pointer}
+.card.clickable:active{background:rgba(242,238,247,.06)}
+.chead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.chead b{font-family:"Bai Jamjuree",sans-serif;font-size:15px}
+.chead small{color:var(--dim);font-size:11.5px}
+.cblurb{font-size:12.5px;color:var(--dim);margin:5px 0 8px;line-height:1.5}
+.gate{font-size:12px;color:#c8b06a;margin-top:7px;line-height:1.5}
+
+.kv{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12.5px}
+.kv span{flex:1;color:var(--dim)}
+.kv b{font-weight:600}
+.minibar{width:70px;height:6px;border-radius:3px;background:rgba(242,238,247,.1);overflow:hidden}
+.minibar i{display:block;height:100%}
+.sub{font-size:12px;color:var(--dim);line-height:1.6;margin:4px 0}
+
+.row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:13px}
+.row>span:first-child{flex:1;display:flex;flex-direction:column;gap:2px}
+.row small{color:var(--dim);font-size:11px}
+.row.past{opacity:.45}
+.row.today b{color:var(--accent)}
+.row button{background:none;border:1px solid var(--line);color:var(--ink);
+  border-radius:10px;padding:7px 11px;font-size:12px;white-space:nowrap}
+.row button:disabled{opacity:.35}
+.row button.danger{border-color:#7a4a4a;color:#d99}
+.giftrow{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+
+.toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);
+  background:var(--bg2);border:1px solid var(--line);border-radius:999px;
+  padding:9px 16px;font-size:13px;z-index:11;max-width:90vw;text-align:center;
+  transition:opacity .55s ease,transform .55s ease}
+.toast.bad{border-color:#8a5a5a;color:#e8b0b0}
+.toast.out{opacity:0;transform:translateX(-50%) translateY(-6px)}
+
+.hidden{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}

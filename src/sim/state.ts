@@ -3,7 +3,16 @@ import chars from "../../data/characters.json";
 
 export type StatId = "heart" | "mind" | "charm" | "kind" | "nerve";
 
+export interface ExamResult { score: number; rank: number; }
+export interface Ending {
+  tier: string; tone: string; score: number;
+  closest: string | null; closestRank: number;
+  behaviour: number; club: string | null;
+  lines: string[];
+}
+
 export interface GameState {
+  v: number;
   dayIndex: number;          // 0 = วันเปิดเทอม
   periodIndex: number;       // อ้างอิง data/game.json > periods
   energy: number;
@@ -11,16 +20,36 @@ export interface GameState {
   affinity: Record<string, number>;
   flags: Record<string, true>;
   metToday: Record<string, true>;
+  doneToday: Record<string, number>;   // กิจกรรมไหนทำไปกี่รอบแล้ววันนี้
   history: string[];
+
+  money: number;
+  behaviour: number;
+  study: number;                       // ความพร้อมสอบ ค่อยๆ จางถ้าไม่ทบทวน
+  club: string | null;
+  inventory: Record<string, number>;
+  exams: Record<string, ExamResult>;
+  seenEvents: Record<string, true>;
+  caught: number;
+  sleepDebt: number;
+  ending: Ending | null;
 }
+
+export const SAVE_VERSION = 2;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
   for (const s of game.stats) stats[s.id as StatId] = 0;
   const affinity: Record<string, number> = {};
   for (const c of chars) affinity[c.id] = 0;
-  return { dayIndex: 0, periodIndex: 0, energy: game.energy.max,
-           stats, affinity, flags: {}, metToday: {}, history: [] };
+  return {
+    v: SAVE_VERSION,
+    dayIndex: 0, periodIndex: 0, energy: game.energy.max,
+    stats, affinity, flags: {}, metToday: {}, doneToday: {}, history: [],
+    money: game.money.start, behaviour: game.behaviour.start, study: 0,
+    club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
+    sleepDebt: 0, ending: null,
+  };
 }
 
 export const rankOf = (value: number, ladder: number[]) => {
@@ -30,3 +59,10 @@ export const rankOf = (value: number, ladder: number[]) => {
 };
 export const statRank = (v: number) => rankOf(v, game.statRanks);
 export const affinityRank = (v: number) => rankOf(v, game.affinityRanks);
+export const statName = (id: StatId) => game.stats.find((s) => s.id === id)!.name;
+
+/** บันทึกเหตุการณ์สำคัญไว้ให้ฉากจบหยิบไปเล่า — เดิมฟิลด์นี้ประกาศไว้แต่ไม่เคยถูกเขียน */
+export function remember(s: GameState, line: string) {
+  s.history.push(`วันที่ ${s.dayIndex + 1}: ${line}`);
+  if (s.history.length > 200) s.history.shift();
+}
