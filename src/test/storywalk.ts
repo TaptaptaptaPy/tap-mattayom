@@ -220,7 +220,9 @@ const tsFiles: string[] = [];
 (function collect(d: string) {
   for (const e of readdirSync(d, { withFileTypes: true }))
     if (e.isDirectory()) collect(join(d, e.name));
-    else if (e.name.endsWith(".ts")) tsFiles.push(join(d, e.name));
+    // ไฟล์เทสต์ไม่นับ — `expect(s.flags["x"]).toBe(true)` คือการตรวจ ไม่ใช่การที่เกมเอาธงไปใช้
+    // ถ้านับรวม ธงที่มีแต่เทสต์อ่านจะดูเหมือนมีปลายทางแล้ว ทั้งที่ในเกมจริงไม่มีใครแตะเลย
+    else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")) tsFiles.push(join(d, e.name));
 })(tsDir);
 // ตัดบรรทัดคอมเมนต์ทิ้งก่อนสแกน ไม่งั้นตัวอย่างในคอมเมนต์จะถูกนับเป็นธงจริง
 // (คอมเมนต์ในไฟล์นี้เองเคยทำให้มีธงผีชื่อ x โผล่ในรายงาน)

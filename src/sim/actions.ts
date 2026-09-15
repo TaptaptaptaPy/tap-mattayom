@@ -4,6 +4,7 @@ import game from "../../data/game.json";
 import { isLocked, isSchoolDay, periodId } from "./calendar";
 import { applyStat, canAfford } from "./economy";
 import { rollCatch, inTrouble, type Rnd } from "./discipline";
+import { canPush, dozeOff, push, whyNoPush } from "./push";
 import { clubToday } from "./club";
 import { studyAll, gradePerClass } from "./grades";
 import { inspect } from "./grooming";
@@ -58,17 +59,28 @@ function whoIsAt(s: GameState, locId: string, period: string) {
     .map((c) => ({ id: c.id, name: c.name, color: c.color }));
 }
 
-export interface ActionResult { message: string; caught: string | null; penalty: number; }
+/** `ok` = ทำได้จริงไหม — เดิมฝั่ง UI เดาจากข้อความด้วย regex ซึ่งพังทันทีที่มีเหตุผลใหม่
+ *  `forced` = ทำได้เพราะผู้เล่นเลือกฝืน */
+export interface ActionResult {
+  message: string; caught: string | null; penalty: number; ok: boolean; forced: boolean;
+}
 
-export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.random): ActionResult | null {
+/** `force` = ผู้เล่นกดยืนยันว่าจะฝืนทำทั้งที่แรงไม่พอ ดู src/sim/push.ts
+ *  ฝั่ง UI ต้องถามก่อนเสมอ ห้ามฝืนให้เอง — ราคาของมันตกที่วันพรุ่งนี้ */
+export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.random,
+                         force = false): ActionResult | null {
   const a = loc.action;
   if (!a) return null;
-  if (loc.blocked) return { message: loc.blocked, caught: null, penalty: 0 };
+  if (loc.blocked) return { message: loc.blocked, caught: null, penalty: 0, ok: false, forced: false };
   const why = canAfford(s, a.energy, a.cost ?? 0);
-  if (why) return { message: why, caught: null, penalty: 0 };
+  // แรงไม่พอไม่ใช่กำแพงอีกแล้ว ถ้าผู้เล่นเลือกฝืน — แต่เงินไม่พอยังเป็นกำแพงอยู่
+  const forcing = force && !!why && why !== "เงินไม่พอ" && canPush(s);
+  if (why && !forcing) return { message: (force && whyNoPush(s)) || why, caught: null, penalty: 0, ok: false, forced: false };
 
   const times = s.doneToday[loc.id] ?? 0;
-  const got = applyStat(s, a.stat, a.gain, times);
+  // ฝืนแล้วได้ของน้อยลง — ลดที่ *ต้นทาง* ไม่ใช่ทำเต็มแล้วหักคืน เพราะ applyStat มีผลตอบแทนลดหลั่นในตัว
+  const mult = forcing ? push(s) : 1;
+  const got = applyStat(s, a.stat, a.gain * mult, times);
   s.energy = Math.max(0, Math.min(game.energy.max, s.energy + a.energy));
   if (a.cost) s.money -= a.cost;
   if (a.pay) s.money += a.pay;
@@ -77,6 +89,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
 
   const nm = game.stats.find((x) => x.id === a.stat)!.name;
   let message = `${a.label} · ${nm} +${got.toFixed(1)}`;
+  if (forcing) message += ` (ฝืน · หนี้การนอน ${Math.round(s.sleepDebt)})`;
   if (times > 0) message += " (ทำซ้ำวันนี้ ได้น้อยลง)";
   if (a.cost) message += ` · -${a.cost} บาท`;
   if (a.pay) message += ` · +${a.pay} บาท`;
@@ -86,7 +99,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
     const r = rollCatch(s, loc.catchBase, rnd);
     if (r.caught) { caught = r.message; penalty = r.penalty; }
   }
-  return { message, caught, penalty };
+  return { message, caught, penalty, ok: true, forced: forcing };
 }
 
 export function doRest(s: GameState, loc: LocationOption): string | null {
@@ -101,7 +114,10 @@ export function morningInspect(s: GameState, rnd: Rnd = Math.random) {
   return inspect(s, rnd);
 }
 
-export function attendClass(s: GameState): string {
+export function attendClass(s: GameState, rnd: Rnd = Math.random): string {
+  // อดนอนมาหลายคืนแล้วนั่งอยู่ในคาบ — บางทีก็หลับ คาบนั้นเสียเปล่าและครูเห็น
+  const doze = dozeOff(s, rnd);
+  if (doze) { s.doneToday["_class"] = (s.doneToday["_class"] ?? 0) + 1; return doze; }
   const got = applyStat(s, "mind", 2, s.doneToday["_class"] ?? 0);
   s.doneToday["_class"] = (s.doneToday["_class"] ?? 0) + 1;
   s.study += 2;
@@ -114,5 +130,6 @@ export function skipClass(s: GameState, rnd: Rnd = Math.random): ActionResult {
   const got = applyStat(s, "nerve", 4, 0);
   const r = rollCatch(s, 0.34, rnd);
   if (!r.caught) remember(s, "โดดคาบเรียนแล้วรอด");
-  return { message: `โดดคาบ · ความซ่า +${got.toFixed(1)}`, caught: r.message, penalty: r.penalty };
+  return { message: `โดดคาบ · ความซ่า +${got.toFixed(1)}`, caught: r.message, penalty: r.penalty,
+           ok: true, forced: false };
 }

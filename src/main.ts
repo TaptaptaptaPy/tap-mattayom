@@ -11,6 +11,7 @@ import { availableLocations, doAction, doRest, attendClass, skipClass,
 import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
 import { takeExam } from "./sim/exam";
 import { postBoard, tutor } from "./sim/board";
+import { debtName, energyLowFor, isSick, whyNoPush } from "./sim/push";
 import { computeEnding } from "./sim/ending";
 import { epilogues, selfEpilogue } from "./sim/epilogue";
 import { behaviourLabel } from "./sim/discipline";
@@ -78,6 +79,11 @@ function renderTop() {
   }).join("");
   h += `<span class="chip energy${low ? " low" : ""}" title="แรงที่เหลือวันนี้">แรง
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
+  // หนี้การนอนต้องมองเห็น ไม่งั้นการฝืนจะเป็นการเซ็นเช็คที่ไม่มีใครเห็นยอด
+  if (s.sleepDebt > 0)
+    h += `<span class="chip debt${s.sleepDebt >= game.push.dozeAt ? " low" : ""}"
+      title="ฝืนมาแล้วกี่ครั้ง — ไปหักแรงที่ควรได้คืนตอนเช้า">นอน
+      <b>${debtName(s)}</b><i style="width:${Math.min(100, (s.sleepDebt / game.push.maxDebt) * 100)}%"></i></span>`;
   h += `<span class="chip" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
   h += `<span class="chip" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
   // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
@@ -275,10 +281,32 @@ function renderBoard() {
         `${a.cost ? ` · ${a.cost} บาท` : ""}${a.pay ? ` · ได้ ${a.pay} บาท` : ""}` +
         `${times ? " · ทำแล้ววันนี้" : ""}</em>`;
       b.disabled = !!loc.blocked;
+      // แรงไม่พอไม่ทำให้ปุ่มดับอีกแล้ว — กดได้ แล้วเกมจะถามว่าจะฝืนไหม
+      const tooTired = a.energy < 0 && energyLowFor(s) && !loc.blocked;
+      if (tooTired) b.classList.add("tired");
       b.onclick = async () => {
+        // ฝืนต้องเป็นการตัดสินใจของผู้เล่น ไม่ใช่ของเกม
+        if (tooTired) {
+          const no = whyNoPush(s);
+          if (no) { flash(no, "bad"); sfx.deny(); return; }
+          P.pushPanel(
+            `แรงเหลือ ${Math.round(s.energy)} แล้ว ถ้าฝืนทำต่อจะได้ผลราว ${Math.round(game.push.yield * 100)}% ` +
+            `และหนี้การนอนจะเพิ่มเป็น ${Math.round(s.sleepDebt + game.push.debtPerPush)} ` +
+            `ซึ่งไปหักแรงที่ควรได้คืนพรุ่งนี้` +
+            `<br>ถ้าสิ่งนี้รอถึงพรุ่งนี้ได้ พักแล้วค่อยทำจะได้เต็มกว่าเสมอ — ฝืนมีไว้สำหรับของที่รอไม่ได้` +
+            (s.sleepDebt + game.push.debtPerPush >= game.push.sickAt
+              ? " · ระดับนี้เริ่มมีโอกาสตื่นมาแล้วลุกไม่ไหวทั้งวัน" : ""),
+            `ตอนนี้หนี้การนอน ${Math.round(s.sleepDebt)}`,
+            () => { P.closePanel(); void runAction(true); },
+            () => { P.closePanel(); render(); });
+          return;
+        }
+        await runAction(false);
+      };
+      const runAction = async (force: boolean) => {
         if (loc.haircut) {
-          const r = doAction(s, loc);
-          if (r && /หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) { flash(r.message, "bad"); sfx.deny(); next(); return; }
+          const r = doAction(s, loc, Math.random, force);
+          if (r && !r.ok) { flash(r.message, "bad"); sfx.deny(); next(); return; }
           flash(haircut(s));
           sfx.gain();
           next();
@@ -288,10 +316,10 @@ function renderBoard() {
         if (loc.subjectPick) {
           P.subjectPanel(s, (subId) => {
             P.closePanel();
-            const r = doAction(s, loc);
+            const r = doAction(s, loc, Math.random, force);
             if (!r) { next(); return; }
             flash(r.message);
-            if (!/หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) {
+            if (r.ok) {
               const got = studyOne(s, subId);
               const sub = subjectById(subId);
               if (sub) flash(`ติว${sub.name} · ${sub.name} +${got.toFixed(0)}`);
@@ -301,11 +329,11 @@ function renderBoard() {
           });
           return;
         }
-        const r = doAction(s, loc);
+        const r = doAction(s, loc, Math.random, force);
         if (r) {
-          flash(r.message);
+          flash(r.message, r.ok ? "ok" : "bad");
           if (r.caught) await runDodge(r.caught, r.penalty);
-          else if (!/หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) sfx.gain();
+          else if (r.ok) sfx.gain();
           else sfx.deny();
         }
         next();
@@ -586,6 +614,17 @@ function next() {
 }
 
 function afterStep() {
+  // ตื่นมาแล้วลุกไม่ไหว — เสียทั้งวัน ไม่ใช่แค่แรง นี่คือปลายทางของการฝืนหลายคืนติด
+  // ต้องขึ้นก่อนทุกอย่าง เพราะวันนี้ไม่มีอะไรให้เลือกแล้ว
+  if (isSick(s) && s.periodIndex === 0) {
+    sfx.caught();
+    P.noticePanel("ตื่นมาแล้วลุกไม่ไหว",
+      "ฝืนมาหลายคืนติดกันจนร่างกายเก็บบิล วันนี้ทั้งวันหายไปกับการนอนอยู่บ้าน<br>" +
+      "นัดที่รับไว้วันนี้ก็ไปไม่ได้ และคนที่รออยู่ไม่รู้ว่าทำไม",
+      () => { P.closePanel(); skipToNextDay(); afterStep(); });
+    renderTop();
+    return;
+  }
   // เรื่องที่เกิดขึ้นลับหลังต้องถูกบอก ไม่งั้นมันไม่ต่างจากไม่มีระบบนี้เลย
   const news = takeNews(s);
   if (news.length) sfx.news();

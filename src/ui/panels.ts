@@ -234,6 +234,15 @@ export function subjectPanel(s: GameState, onPick: (id: string) => void) {
     (b.onclick = () => onPick(b.dataset.sub!)));
 }
 
+/** ถามก่อนฝืน — ราคาของการฝืนตกที่วันพรุ่งนี้ ผู้เล่นต้องเห็นราคานั้นก่อนกด
+ *  ห้ามฝืนให้เอง ไม่งั้นมันกลับไปเป็นกำแพงที่เกมตัดสินใจแทนเหมือนเดิม */
+export function pushPanel(body: string, cost: string, onYes: () => void, onNo: () => void) {
+  const p = open(`<h2>ฝืนต่อไหม<small>${cost}</small></h2>
+    <div class="sub">${body}</div>
+    <button class="nextchap" id="bPush">ฝืน</button>`, onNo);
+  p.querySelector<HTMLButtonElement>("#bPush")!.onclick = onYes;
+}
+
 export function noticePanel(title: string, body: string, onClose: () => void) {
   open(`<h2>${title}</h2><div class="sub">${body}</div>`, onClose);
 }

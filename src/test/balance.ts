@@ -23,6 +23,7 @@ import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keep
          planClash } from "../sim/chat";
 import { claim } from "../sim/claims";
 import { postBoard, tutor, myBoardRank } from "../sim/board";
+import { isSick } from "../sim/push";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -60,6 +61,8 @@ interface Run {
   lied: number; caughtLying: number;
   /** กระดานประกาศผล: อันดับสุดท้ายของเรา · ติวให้เพื่อนกี่ครั้ง · เพื่อนร่วงกี่ครั้ง */
   boardRank: number; tutored: number; slipped: number;
+  /** ฝืนทั้งที่หมดแรงกี่ครั้ง · หลับในคาบกี่ครั้ง · ล้มป่วยกี่วัน */
+  pushes: number; dozes: number; sickDays: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -110,7 +113,11 @@ function nextExamIn(s: GameState): number {
   return days.length ? Math.min(...days) : -1;
 }
 
-function play(strat: Strategy, seed: number, skill: number): Run {
+/** ฝืนแค่ไหน — "ไม่ฝืนเลย" คือพฤติกรรมเดิมก่อนมีระบบนี้
+ *  "ฝืนเท่าที่ยังไหว" คือหยุดก่อนถึงระดับที่เริ่มหลับในคาบ · "ฝืนทุกครั้ง" คือโลภสุดตัว */
+type PushPolicy = "never" | "careful" | "always";
+
+function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy): Run {
   const s = newState();
   const rnd: Rnd = mulberry32(seed);
   /** จำลองผลมินิเกม: ฝีมือเป็นฐาน บวกความคลาดเคลื่อนของแต่ละรอบ */
@@ -118,7 +125,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
   let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
-  let lied = 0, tutored = 0;
+  let lied = 0, tutored = 0, pushes = 0, dozes = 0, sickDays = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -136,6 +143,12 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   /** ใครยอมเสียเวลาทบทวนของตัวเองไปติวให้เพื่อน
    *  ถ้าไม่มีกลยุทธ์ไหนติวเลย ทั้งระบบกระดาน (ช่องติวให้ + ธง lifted_*) จะไม่ถูกเดินผ่าน */
   const tutors = strat === "social" || strat === "spread";
+  /** ใครฝืนต่อทั้งที่หมดแรง — คนที่ทุ่มเรียนกับเด็กหลังห้องฝืนด้วยเหตุผลคนละอย่างกัน
+   *  ถ้าไม่มีใครฝืนเลย ทั้งระบบหนี้การนอน หลับในคาบ และล้มป่วย จะไม่ถูกเดินผ่าน */
+  const pol: PushPolicy = policy ?? (strat === "mind" || strat === "rebel" ? "careful" : "never");
+  // "ฝืนเท่าที่ไหว" = ยอมหลับในคาบได้ แต่ไม่ยอมเสี่ยงล้มป่วยทั้งวัน
+  const pushesOn = () => pol === "always" ||
+    (pol === "careful" && s.sleepDebt + game.push.debtPerPush < game.push.sickAt);
   const VERSIONS = ["busy", "other", "tired"];
   const pick = () => VERSIONS[Math.floor(rnd() * VERSIONS.length)];
   const maxedAt: Partial<Record<StatId, number>> = {};
@@ -148,6 +161,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
 
   const runTerm = () => {
   while (!isTermOver(s)) {
+    const beforeDay = s.dayIndex;
     // เหตุการณ์ตามปฏิทินถูกข้ามในโหมดจำลอง เพราะเนื้อหาอยู่ใน ink ที่ต้องมีคนเลือก
     // (`npm run story` เป็นตัวที่คุมฝั่งนั้น) ยกเว้นวันสอบซึ่งต้องเข้าสอบจริง
     const ev = eventNow(s);
@@ -224,7 +238,10 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       haircuts++;
     } else if (isLocked(s)) {
       if (strat === "rebel") afterCatch(skipClass(s, rnd));
-      else { inspect(s, rnd); attendClass(s); }
+      else {
+        inspect(s, rnd);
+        if (attendClass(s, rnd).includes("หลับ")) dozes++;
+      }
     } else if (strat === "lazy") {
       const home = availableLocations(s).find((l) => l.rest);
       if (home) { doRest(s, home); restPeriods++; }
@@ -241,7 +258,8 @@ function play(strat: Strategy, seed: number, skill: number): Run {
         doClubActivity(s, times, mult);
         s.doneToday[clubLoc.id] = times + 1;   // เกมจริงนับ ตัวเทสต์เดิมส่ง 0 ตลอดจนผลตอบแทนไม่เคยลดหลั่น
       } else if (locs.length) {
-        const r = doAction(s, choose(strat, locs, s), rnd);
+        const r = doAction(s, choose(strat, locs, s), rnd, pushesOn());
+        if (r?.forced) pushes++;
         afterCatch(r);
         if (r && /หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) {
           blocked++;
@@ -259,6 +277,11 @@ function play(strat: Strategy, seed: number, skill: number): Run {
         maxedAt[id] = s.dayIndex + 1;
     }
     advance(s, rnd);
+    // ป่วยแล้วเสียทั้งวัน เหมือนที่เกมจริงข้ามวันให้ — เทสต์ต้องเดินทางเดียวกัน
+    if (isSick(s) && s.periodIndex === 0) {
+      sickDays++;
+      while (s.periodIndex !== 0 || s.dayIndex === beforeDay) { advance(s, rnd); if (isTermOver(s)) break; }
+    }
   }
   };
 
@@ -279,7 +302,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
     lied, caughtLying: s.history.filter((h) => h.includes("พูดไม่ตรงกัน")).length,
-    boardRank: myBoardRank(s), tutored,
+    boardRank: myBoardRank(s), tutored, pushes, dozes, sickDays,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
@@ -450,6 +473,9 @@ if (gaps.length && diverged / gaps.length < 0.2)
 const totalClash = sum(allRuns.map((r) => r.clashDays));
 const totalLied = sum(allRuns.map((r) => r.lied));
 const totalTutored = sum(allRuns.map((r) => r.tutored));
+const totalPushes = sum(allRuns.map((r) => r.pushes));
+const totalDozes = sum(allRuns.map((r) => r.dozes));
+const totalSick = sum(allRuns.map((r) => r.sickDays));
 const totalSlipped = sum(allRuns.map((r) => r.slipped));
 const totalCaughtLying = sum(allRuns.map((r) => r.caughtLying));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
@@ -465,6 +491,46 @@ if (rankOfStrat("mind") >= rankOfStrat("rebel"))
 if (totalTutored === 0) console.log("  ← ไม่มีใครติวให้เพื่อนเลย ช่องติวให้ไม่ถูกทดสอบ");
 if (totalSlipped === 0)
   console.log("  ← ไม่มีใครร่วงอันดับเลย ชีวิตที่เราปล่อยไว้ไม่เคยโผล่บนกระดาน");
+// ฝืนคุ้มไหม ต้องเทียบในกลยุทธ์เดียวกัน seed เดียวกัน ไม่งั้นเป็นการเทียบคนละเรื่อง
+// ต้องเทียบในกลยุทธ์ที่ *ชนกำแพงแรงจริง* ไม่งั้นนโยบายการฝืนไม่เคยถูกใช้เลยสักครั้ง
+const pushAB = (["never", "careful", "always"] as PushPolicy[]).map((pol) => {
+  const rs = SEEDS.map((sd) => play("mind", sd, SKILL, pol));
+  const uni = rs.filter((r) => r.uni);
+  return { pol, score: mean(rs.map((r) => r.ending.score)), sick: sum(rs.map((r) => r.sickDays)),
+           mind: mean(rs.map((r) => r.stats.mind)), pushes: sum(rs.map((r) => r.pushes)),
+           blocked: mean(rs.map((r) => r.blocked)), doze: sum(rs.map((r) => r.dozes)),
+           debt: uni.length ? mean(uni.map((r) => r.uni!.debt)) : 0,
+           money: uni.length ? mean(uni.map((r) => r.uni!.money)) : 0,
+           kept: mean(rs.map((r) => r.kept)), invites: mean(rs.map((r) => r.invites)) };
+});
+console.log(`\nฝืนแล้วคุ้มไหม (กลยุทธ์ทุ่มเรียน seed เดียวกัน):`);
+for (const x of pushAB)
+  console.log(`  ${{ never: "ไม่ฝืนเลย  ", careful: "ฝืนเท่าที่ไหว", always: "ฝืนทุกครั้ง " }[x.pol]}` +
+              ` ฝืน ${x.pushes} ครั้ง · ปัญญา ${r0(x.mind)} · หลับในคาบ ${x.doze}` +
+              ` · ป่วย ${x.sick} วัน · คะแนนปลายทาง ${r0(x.score)}` +
+              ` · ปีหนึ่ง: เงิน ${r0(x.money)} หนี้ ${r0(x.debt)}`);
+const [never, careful, always] = pushAB;
+// สิ่งที่ระบบนี้สัญญาไว้มีสองข้อ ไม่ใช่ "ฝืนแล้วต้องชนะ"
+// 1. ฝืนแล้วได้ช่วงเวลาที่เคยเสียเปล่ากลับมาใช้จริง
+// 2. ฝืนสุดตัวต้องแพ้ฝืนเท่าที่ไหว และแพ้การไม่ฝืนเลย — ไม่งั้นคำตอบคือฝืนไปเรื่อยๆ โดยไม่ต้องคิด
+if (careful.pushes === 0)
+  console.log("  ← ฝืนเท่าที่ไหวแล้วไม่ได้ฝืนเลยสักครั้ง กำแพงแรงไม่เคยถูกชน ระบบนี้ไม่ถูกทดสอบ");
+if (always.score >= careful.score)
+  console.log("  ← ฝืนสุดตัวไม่ได้แย่กว่าฝืนเท่าที่ไหว แปลว่าไม่ต้องคิด ฝืนไปเรื่อยๆ คือคำตอบ");
+if (always.score >= never.score)
+  console.log("  ← ฝืนสุดตัวไม่ได้แย่กว่าไม่ฝืนเลย ราคาของการฝืนยังเบาเกินไป");
+// ข้อค้นพบที่ต้องจำไว้: ฝืนเพื่อเก็บค่าสถานะเฉยๆ ไม่มีวันคุ้ม เพราะค่าสถานะอิ่มตัวอยู่แล้ว
+// มันคุ้มเฉพาะตอนที่ของวันนี้เอาไปทำพรุ่งนี้ไม่ได้ (นัดที่รับปากไว้ · กะที่ต้องเข้า · เส้นตาย)
+console.log(`  ราคาที่วัดได้: ฝืนสุดตัวเสียคะแนนปลายทาง ${r0(never.score - always.score)}` +
+            ` และเสียไปทั้งวัน ${always.sick} วันจากการล้มป่วย`);
+
+console.log(`ฝืนต่อทั้งที่หมดแรง: ฝืนรวม ${totalPushes} ครั้ง · หลับในคาบ ${totalDozes} ครั้ง` +
+            ` · ล้มป่วยเสียทั้งวัน ${totalSick} วัน`);
+if (totalPushes === 0)
+  console.log("  ← ไม่มีใครฝืนเลย แรงยังเป็นกำแพงอยู่เหมือนเดิม ระบบฝืนไม่ถูกทดสอบ");
+// ราคาของการฝืนวัดจากขาที่ฝืนสุดตัวในการทดลองข้างบน ไม่ใช่จากรอบปกติที่ทุกคนฝืนเท่าที่ไหว
+if (always.doze === 0 && always.sick === 0)
+  console.log("  ← ฝืนสุดตัวแล้วยังไม่เคยหลับในคาบหรือล้มป่วยเลย — ดู push.dozeAt/sickAt");
 console.log(`คำพูดไม่ตรงกัน: บอกสองคนไม่ตรงกัน ${totalLied} คืน · โป๊ะ ${totalCaughtLying} ครั้ง`);
 if (totalLied === 0)
   console.log("  ← ไม่มีใครบอกสองคนไม่ตรงกันเลย ระบบคำโกหกไม่ได้ถูกทดสอบ");

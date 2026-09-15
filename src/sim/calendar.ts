@@ -3,6 +3,7 @@ import events from "../../data/events.json";
 import { settleMissedPlan } from "./chat";
 import { stepLives } from "./offscreen";
 import { checkClaims } from "./claims";
+import { stepSickness } from "./push";
 import type { Rnd } from "../core/rng";
 import { settleHomework } from "./homework";
 import { decayGrades } from "./grades";
@@ -78,9 +79,14 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     s.metToday = {};
     s.doneToday = {};
     // นอนแล้วฟื้นแรง แต่หนี้การนอนจากคืนที่ฝืนจะตามมาหักในวันถัดไป
+    // หนี้ถูกทยอยใช้คืน ไม่ใช่ล้างทิ้งทุกเช้า — ไม่งั้นฝืนติดกันสิบคืนก็เท่ากับฝืนคืนเดียว
+    // และผลที่เกิด "ระหว่างวัน" (หลับในคาบ) จะไม่มีวันเห็นหนี้เลยสักครั้ง
     const restore = Math.max(20, game.energy.sleepRestore - s.sleepDebt);
     s.energy = Math.min(game.energy.max, s.energy + restore);
-    s.sleepDebt = 0;
+    // ฝืนมาหลายคืนแล้วร่างกายเก็บบิล — ต้องอยู่ *หลัง* ฟื้นแรง (ไม่งั้นแรงที่ฟื้นจะลบผลของการป่วย)
+    // และ *ก่อน* ล้างหนี้ (ไม่งั้นมันจะไม่มีวันเกิดเลย)
+    stepSickness(s, rnd);
+    s.sleepDebt = Math.max(0, s.sleepDebt - game.energy.debtRecover);
     s.study *= game.examModel.studyDecayPerDay;
     decayGrades(s);
     growHair(s);

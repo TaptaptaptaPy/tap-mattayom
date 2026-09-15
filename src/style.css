@@ -464,3 +464,9 @@ button{font-family:inherit;cursor:pointer}
 .brow em{font-style:normal;font-size:12px}
 .brow .up{color:#8fd6a6}.brow .down{color:#d67878}
 .btut{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+
+/* ปุ่มที่ต้องฝืนถึงจะกดได้ — ต้องดูต่างจากปุ่มปกติ แต่ห้ามดูเหมือนปุ่มที่กดไม่ได้
+   เพราะทั้งหมดของระบบนี้คือมันกดได้ ถ้าผู้เล่นยอมจ่าย */
+.act.tired{opacity:.72;border-style:dashed}
+.act.tired::after{content:"ต้องฝืน";font-size:11px;color:var(--dim);margin-left:6px}
+.chip.debt i{background:rgba(214,120,120,.3)}
