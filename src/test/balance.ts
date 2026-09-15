@@ -46,7 +46,7 @@ interface Run {
   caught: number; escaped: number; troublePeriods: number;
   chats: number; invites: number; kept: number;
   homeworkDone: number; homeworkMissed: number;
-  behaviour: number; money: number;
+  behaviour: number; money: number; standing: number;
   ending: Ending;
 }
 
@@ -174,7 +174,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept,
     homeworkDone, homeworkMissed: s.homeworkMissed,
-    behaviour: s.behaviour, money: s.money,
+    behaviour: s.behaviour, money: s.money, standing: s.standing,
     ending: computeEnding(s),
   };
 }
@@ -214,7 +214,8 @@ function report(strat: Strategy, runs: Run[]) {
   const caught = mean(runs.map((r) => r.caught + r.escaped));   // caught ถูกหักคืนตอนหลบรอด
   console.log(`    ฝ่ายปกครอง: โดนจับ ${r0(caught)} ครั้ง · หลบรอด ${r0(mean(runs.map((r) => r.escaped)))}` +
               ` · โดนห้ามเข้าที่เสี่ยง ${r0(mean(runs.map((r) => r.troublePeriods)))} ช่วง` +
-              ` · ความประพฤติ ${r0(mean(runs.map((r) => r.behaviour)))}`);
+              ` · ความประพฤติ ${r0(mean(runs.map((r) => r.behaviour)))}` +
+              ` · ชื่อเสียง ${r0(mean(runs.map((r) => r.standing)))}`);
 
   console.log(`    การบ้าน: ส่ง ${r0(mean(runs.map((r) => r.homeworkDone)))} ครั้ง` +
               ` · ไม่ได้ส่ง ${r0(mean(runs.map((r) => r.homeworkMissed)))} ชิ้น`);

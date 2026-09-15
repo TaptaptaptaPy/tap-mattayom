@@ -16,6 +16,7 @@ import { openMinigame } from "./ui/minigame";
 import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
 import { hasHomework, doHomework } from "./sim/homework";
+import { changeAffinity, shiftStanding, takeSide, standingLabel } from "./sim/bonds";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
@@ -64,6 +65,9 @@ function renderTop() {
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
   h += `<span class="chip" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
   h += `<span class="chip" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
+  // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
+  h += `<span class="chip" title="${standingLabel(s.standing)}">ชื่อเสียง <b>${Math.round(s.standing)}</b></span>`;
+  if (s.homework > 0) h += `<span class="chip hw" title="ไม่ส่งแล้วครูหักคะแนน">การบ้าน <b>${s.homework}</b></span>`;
   if (club) h += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
   $("stats").innerHTML = h;
 }
@@ -281,11 +285,16 @@ function renderBottom() {
 function hooks() {
   return {
     onStat: (id: StatId, n: number) => { s.stats[id] += n; },
-    onAffinity: (cid: string, n: number) => { s.affinity[cid] = (s.affinity[cid] ?? 0) + n; },
+    onAffinity: (cid: string, n: number) => changeAffinity(s, cid, n),
     onFlag: (name: string) => { s.flags[name] = true; },
     onHint: (text: string) => showHint(text),
     onMoney: (amount: number) => { s.money = Math.max(0, s.money + amount); },
     onInvite: (cid: string) => { acceptInvite(s, cid); invitedThisChat = true; },
+    onStanding: (amount: number, why: string) => {
+      shiftStanding(s, amount, why || undefined);
+      if (Math.abs(amount) >= 3) flash(amount > 0 ? "ชื่อเสียงดีขึ้น" : "มีคนเอาไปพูดต่อ", amount > 0 ? "ok" : "bad");
+    },
+    onSide: (cid: string) => { takeSide(s, cid); flash(`เลือกยืนข้าง${nameOf(cid)}แล้ว — อีกฝั่งปิดถาวร`, "bad"); },
   };
 }
 
@@ -452,10 +461,13 @@ function openMenu() {
 }
 
 document.addEventListener("pointerdown", () => unlockAudio(), { once: true });
+const soundIcon = () => (isMuted() ? "๏" : "♪");
+$("bSound").textContent = soundIcon();
+$("bSound").title = "เปิด/ปิดเสียง";
 $("bSound").onclick = () => {
   unlockAudio();
   setMuted(!isMuted());
-  $("bSound").textContent = isMuted() ? "เสียงปิด" : "เสียงเปิด";
+  $("bSound").textContent = soundIcon();
 };
 $("bChat").onclick = () => openChatList();
 $("bChars").onclick = () => P.characterPanel(s);

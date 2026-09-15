@@ -3,6 +3,7 @@ import type { Story } from "inkjs/types";
 import { affinityRank, statRank, type GameState, type StatId } from "../sim/state";
 import { clubOf } from "../sim/club";
 import { isSchoolDay } from "../sim/calendar";
+import { standingRank } from "../sim/bonds";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
@@ -30,6 +31,8 @@ export interface SceneHooks {
   onHint: (text: string) => void;
   onMoney: (amount: number) => void;
   onInvite: (charId: string) => void;
+  onStanding: (amount: number, why: string) => void;
+  onSide: (charId: string) => void;
 }
 
 /** ตัวแปรทุกตัวที่บทอ่านได้ — ประกาศคู่กันไว้ใน story/_shared.ink
@@ -47,6 +50,9 @@ export function injectVars(story: Story, s: GameState, charId: string | null) {
   // นัดเจอกันที่โรงเรียนในวันที่โรงเรียนปิดไม่ได้ บทต้องรู้ก่อนจะยื่นทางเลือกชวนออกไป
   // ไม่งั้นผู้เล่นจะผิดนัดทั้งที่ไม่ได้ทำอะไรผิด แล้วโดนหักความสัมพันธ์ฟรีๆ
   story.variablesState["tomorrowSchool"] = isSchoolDay({ ...s, dayIndex: s.dayIndex + 1 }) ? 1 : 0;
+  story.variablesState["standingRank"] = standingRank(s.standing);
+  story.variablesState["homeworkMissed"] = s.homeworkMissed;
+  story.variablesState["term"] = s.dayIndex >= 95 ? 3 : s.dayIndex >= 49 ? 2 : 1;
 }
 
 /** สร้าง story พร้อมฉีดสถานะปัจจุบันเข้าไป และต่อสะพานกลับมาที่ TS */
@@ -65,6 +71,12 @@ export function openScene(storyName: string, s: GameState, charId: string | null
   story.BindExternalFunction("spend", (amount: number) => { hooks.onMoney(-amount); return null; });
   story.BindExternalFunction("hasFlag", (name: string) => (s.flags[name] ? 1 : 0));
   story.BindExternalFunction("inviteTomorrow", (cid: string) => { hooks.onInvite(cid); return null; });
+  story.BindExternalFunction("standing", (amount: number, why: string) => {
+    hooks.onStanding(amount, why); return null;
+  });
+  story.BindExternalFunction("takeSide", (cid: string) => { hooks.onSide(cid); return null; });
+  story.BindExternalFunction("sideTaken", () => (s.sided ? 1 : 0));
+  story.BindExternalFunction("sidedWith", (cid: string) => (s.sided === cid ? 1 : 0));
 
   injectVars(story, s, charId);
   return story;

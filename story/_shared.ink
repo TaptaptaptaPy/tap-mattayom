@@ -18,6 +18,12 @@ VAR club = ""
 VAR mindRank = 0
 // พรุ่งนี้โรงเรียนเปิดไหม (1/0) — ใช้กั้นทางเลือกที่ชวนเจอกันที่โรงเรียน
 VAR tomorrowSchool = 1
+// ทั้งโรงเรียนมองเรายังไง 0=เสียหาย 4=ทั้งโรงเรียนรู้จัก
+VAR standingRank = 2
+// ไม่ได้ส่งการบ้านไปกี่ชิ้นแล้วทั้งเทอม
+VAR homeworkMissed = 0
+// ช่วงของเทอม 1=ต้นเทอม 2=หลังสอบกลางภาค 3=ปลายเทอม
+VAR term = 1
 
 // สะพานไปฝั่ง TypeScript — ดู src/story/bridge.ts
 EXTERNAL gainStat(id, amount)
@@ -28,3 +34,9 @@ EXTERNAL spend(amount)
 EXTERNAL hasFlag(name)
 // ชวนเจอกันพรุ่งนี้หลังเลิกเรียน — จองช่วงเวลาของวันพรุ่งนี้ไว้จริง ดู src/sim/chat.ts
 EXTERNAL inviteTomorrow(charId)
+// ชื่อเสียงขยับ พร้อมเหตุผลสั้นๆ ที่จะถูกจดลงสมุดบันทึกของเทอม
+EXTERNAL standing(amount, why)
+// เลือกยืนข้างใคร — เลือกแล้วอีกฝั่งปิดถาวร ใช้ได้ครั้งเดียวทั้งเทอม
+EXTERNAL takeSide(charId)
+EXTERNAL sideTaken()
+EXTERNAL sidedWith(charId)

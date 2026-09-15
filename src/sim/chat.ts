@@ -2,6 +2,7 @@ import game from "../../data/game.json";
 import chars from "../../data/characters.json";
 import { affinityRank, remember, type ChatMsg, type ChatThread, type GameState } from "./state";
 import type { Rnd } from "../core/rng";
+import { changeAffinity } from "./bonds";
 
 /** ไลน์ตอนกลางคืน
  *
@@ -82,7 +83,7 @@ export function keepPlan(s: GameState, charId: string): number {
   const p = planToday(s);
   if (!p || p.charId !== charId || !isPlanPeriod(s)) return 0;
   p.kept = true;
-  s.affinity[charId] = (s.affinity[charId] ?? 0) + C.keptBonus;
+  changeAffinity(s, charId, C.keptBonus);
   remember(s, `ไปตามนัด${nameOf(charId)}`);
   return C.keptBonus;
 }
@@ -93,7 +94,7 @@ export function settleMissedPlan(s: GameState) {
   const p = s.plan;
   if (!p || p.day >= s.dayIndex) return;
   if (!p.kept) {
-    s.affinity[p.charId] = Math.max(0, (s.affinity[p.charId] ?? 0) - C.missedPenalty);
+    changeAffinity(s, p.charId, -C.missedPenalty);
     remember(s, `ผิดนัด${nameOf(p.charId)}`);
   }
   s.plan = null;

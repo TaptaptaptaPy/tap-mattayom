@@ -215,8 +215,13 @@ const EVENT_SCENES: Record<string, string> = {
 
 export function backdrop(id: string): string {
   const body = SCENES[id] ?? EVENT_SCENES[id] ?? SCENES.home;
+  // ทุกฉากประกาศ gradient ชื่อ "g" เหมือนกันหมด พอมีหลายการ์ดในหน้าเดียว
+  // `url(#g)` จะไปหยิบของการ์ดใบแรกในเอกสารเสมอ ทุกใบเลยได้สีฟ้าเดียวกันหมดโดยไม่มี error
+  // ต้องเปลี่ยนชื่อให้ไม่ซ้ำตอนคืนค่าออกไป (บั๊กเดียวกับ gradient ของภาพตัวละคร)
+  const u = "g" + Math.random().toString(36).slice(2, 9);
+  const unique = body.replace(/id="g"/g, `id="${u}"`).replace(/url\(#g\)/g, `url(#${u})`);
   return `<svg class="bd" viewBox="${VB}" preserveAspectRatio="xMaxYMid slice"
-    xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+    xmlns="http://www.w3.org/2000/svg">${unique}</svg>`;
 }
 
 export const hasEventArt = (ink: string) => ink in EVENT_SCENES;

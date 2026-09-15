@@ -3,6 +3,7 @@ import chars from "../../data/characters.json";
 import { CLUBS, clubOf } from "../sim/club";
 import { ITEMS, giftable, usable } from "../sim/shop";
 import { behaviourLabel } from "../sim/discipline";
+import { standingLabel } from "../sim/bonds";
 import { EVENTS } from "../sim/calendar";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
@@ -24,7 +25,12 @@ function open(html: string, onClose = closePanel) {
 
 /** หน้าคนรู้จัก — ใช้ข้อมูลใน characters.json ที่เดิมมีครบแต่ไม่เคยถูกแสดงเลยสักฟิลด์ */
 export function characterPanel(s: GameState) {
-  let h = "<h2>คนรู้จัก</h2>";
+  let h = `<h2>คนรู้จัก<small>${standingLabel(s.standing)}</small></h2>`;
+  if (s.sided) {
+    const side = chars.find((c) => c.id === s.sided);
+    h += `<p class="dimline">เทอมนี้เราเลือกยืนข้าง<b style="color:${side?.color}">${side?.name}</b>ไปแล้ว
+      อีกฝั่งปิดถาวรจนจบเทอม</p>`;
+  }
   for (const c of chars) {
     const v = s.affinity[c.id] ?? 0;
     const r = affinityRank(v);

@@ -1,6 +1,7 @@
 import shop from "../../data/shop.json";
 import chars from "../../data/characters.json";
 import game from "../../data/game.json";
+import { changeAffinity } from "./bonds";
 import { remember, type GameState, type StatId } from "./state";
 
 export type Item = (typeof shop)[number];
@@ -49,7 +50,7 @@ export function gift(s: GameState, id: string, charId: string): string {
   const likes = ("likes" in it ? (it.likes as string[]) : []) ?? [];
   const match = likes.some((l) => (ch.likes as StatId[]).includes(l as StatId));
   const amount = match ? base + 2 : base;
-  s.affinity[charId] = (s.affinity[charId] ?? 0) + amount;
+  changeAffinity(s, charId, amount);
   remember(s, `ให้${it.name}กับ${ch.name}`);
   return match
     ? `${ch.name}รับ${it.name}ไป · ตรงใจพอดี (ความสัมพันธ์ +${amount})`

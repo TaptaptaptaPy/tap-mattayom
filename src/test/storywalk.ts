@@ -4,6 +4,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Compiler } from "inkjs/full";
+import game from "../../data/game.json";
 import type { Story } from "inkjs/types";
 
 const dir = join(process.cwd(), "story");
@@ -11,17 +12,41 @@ const files = readdirSync(dir).filter((f) => f.endsWith(".ink") && !f.startsWith
 const shared = readFileSync(join(dir, "_shared.ink"), "utf8");
 
 /** โปรไฟล์ผู้เล่นหลายแบบ เพื่อให้เส้นทางที่ล็อกด้วยค่าสถานะถูกเดินจริง */
-const PROFILES: { name: string; vars: Record<string, number | string> }[] = [
-  { name: "เพิ่งเปิดเทอม", vars: { heart: 0, mind: 0, charm: 0, kind: 0, nerve: 0, affinity: 0, rank: 0, day: 1, money: 200, behaviour: 100, caught: 0, club: "", mindRank: 0, tomorrowSchool: 1 } },
-  { name: "กลางเทอม", vars: { heart: 14, mind: 14, charm: 14, kind: 14, nerve: 14, affinity: 12, rank: 3, day: 60, money: 800, behaviour: 70, caught: 2, club: "music", mindRank: 3, tomorrowSchool: 1 } },
-  { name: "ปลายเทอมทุ่มสุดตัว", vars: { heart: 30, mind: 30, charm: 30, kind: 30, nerve: 30, affinity: 40, rank: 8, day: 115, money: 2000, behaviour: 100, caught: 0, club: "sport", mindRank: 5, tomorrowSchool: 1 } },
-  // โปรไฟล์นี้มีไว้เดินฝั่ง "พรุ่งนี้โรงเรียนปิด" ของบทแชทโดยเฉพาะ
-  { name: "สนิทแต่พรุ่งนี้โรงเรียนปิด", vars: { heart: 30, mind: 30, charm: 30, kind: 30, nerve: 30, affinity: 40, rank: 8, day: 116, money: 2000, behaviour: 100, caught: 0, club: "sport", mindRank: 5, tomorrowSchool: 0 } },
-];
+/** โปรไฟล์ผู้เล่นหนึ่งอันต่อหนึ่งระดับความสัมพันธ์ (0-10)
+ *
+ *  บทแบ่ง knot ตาม `rank` ถ้าเดินไม่ครบทุกระดับ knot ที่เขียนใหม่จะไม่เคยถูกแตะเลย
+ *  แล้วเทสต์จะรายงานว่า "ผ่าน" ทั้งที่ไม่ได้ตรวจอะไรของใหม่สักบรรทัด
+ *  (เคยเกิดขึ้นมาแล้วตอนเพิ่มบทระดับ 6-10 — โปรไฟล์มีแค่ระดับ 0/3/8)
+ *
+ *  ค่าสถานะอื่นไต่ตามระดับไปด้วย เพราะในเกมจริงคนที่สนิทระดับ 10 ย่อมผ่านอะไรมาเยอะแล้ว
+ *  และตัวกั้นอย่าง tomorrowSchool / standingRank ถูกสลับไปมาเพื่อให้ทั้งสองฝั่งถูกเดิน */
+const PROFILES: { name: string; vars: Record<string, number | string> }[] =
+  Array.from({ length: 11 }, (_, r) => {
+    const t = r / 10;
+    return {
+      name: `ระดับ ${r}`,
+      vars: {
+        heart: Math.round(t * 30), mind: Math.round(t * 30), charm: Math.round(t * 30),
+        kind: Math.round(t * 30), nerve: Math.round(t * 30),
+        affinity: game.affinityRanks[r], rank: r,
+        day: 1 + Math.round(t * 115),
+        money: 200 + Math.round(t * 1800),
+        behaviour: 100 - Math.round(t * 30),
+        caught: Math.round(t * 3),
+        club: r % 2 ? "music" : "sport",
+        mindRank: Math.min(5, Math.round(t * 5)),
+        tomorrowSchool: r % 3 === 0 ? 0 : 1,
+        standingRank: Math.min(4, Math.round(t * 4)),
+        homeworkMissed: Math.round(t * 8),
+        term: r < 4 ? 1 : r < 8 ? 2 : 3,
+      },
+    };
+  });
 
 interface Stat { lines: number; choices: number; endings: number; hints: string[]; calls: Record<string, number>; }
 
-function build(src: string, calls: Record<string, number>, flags: Set<string>, hints: string[]): Story {
+function build(src: string, calls: Record<string, number>, flags: Set<string>, hints: string[],
+               sides: Set<string> = new Set()): Story {
   const story = new Compiler(src).Compile();
   const note = (n: string) => { calls[n] = (calls[n] ?? 0) + 1; };
   story.BindExternalFunction("gainStat", (id: string) => { note("gainStat:" + id); return null; });
@@ -31,6 +56,10 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("spend", () => { note("spend"); return null; });
   story.BindExternalFunction("hasFlag", (n: string) => (flags.has(n) ? 1 : 0));
   story.BindExternalFunction("inviteTomorrow", (c: string) => { note("inviteTomorrow:" + c); return null; });
+  story.BindExternalFunction("standing", (n: number) => { note(n >= 0 ? "standing+" : "standing-"); return null; });
+  story.BindExternalFunction("takeSide", (c: string) => { note("takeSide:" + c); sides.add(c); return null; });
+  story.BindExternalFunction("sideTaken", () => (sides.size ? 1 : 0));
+  story.BindExternalFunction("sidedWith", (c: string) => (sides.has(c) ? 1 : 0));
   return story;
 }
 
@@ -123,7 +152,9 @@ for (const f of files) {
   console.log(`${problems.length ? "  พัง  " : "  ok  "} ${f.padEnd(20)} ` +
               `${String(stat.lines).padStart(4)} บรรทัด · ${String(stat.choices).padStart(3)} ทางเลือก · ` +
               `${stat.endings} ปลายทาง${mode}`);
-  console.log(`         ${perProfile.join(" | ")}`);
+  const dead = perProfile.filter((x) => x.endsWith(" 0 ทาง")).map((x) => x.split(" ")[1]);
+  console.log(`         เดินครบ ${PROFILES.length} ระดับ` +
+              (dead.length ? ` · ระดับที่ไม่มีทางเลือกเลย: ${dead.join(",")}` : ""));
   if (gains) console.log(`         ให้ค่า: ${gains}`);
   if (invites) console.log(`         ชวนนัดพรุ่งนี้: ${invites} ครั้ง`);
   if (f.startsWith("chat_") && !invites)

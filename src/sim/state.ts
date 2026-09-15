@@ -42,6 +42,11 @@ export interface GameState {
   caught: number;
   sleepDebt: number;
 
+  /** ทั้งโรงเรียนมองเรายังไง 0-100 — ต่างจากความประพฤติตรงที่นั่นเป็นของฝ่ายปกครอง */
+  standing: number;
+  /** เลือกยืนข้างใครไปแล้ว เลือกแล้วอีกฝั่งปิดถาวร */
+  sided: string | null;
+
   /** การบ้านที่ยังไม่ได้ส่ง (ชิ้น) */
   homework: number;
   /** ส่งไม่ทันมากี่ชิ้นแล้วทั้งเทอม — ฉากจบกับเทสต์ใช้ดู */
@@ -59,7 +64,8 @@ export interface GameState {
 
 // 4: เพิ่มระบบไลน์ (chats · pendingChat · chatDay · plan)
 // 5: เพิ่มการบ้าน (homework · homeworkMissed)
-export const SAVE_VERSION = 5;
+// 6: เพิ่มชื่อเสียงและการเลือกข้าง (standing · sided)
+export const SAVE_VERSION = 6;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -73,6 +79,7 @@ export function newState(): GameState {
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
     sleepDebt: 0, lastQuiz: 0, ending: null,
+    standing: 50, sided: null,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plan: null,
   };

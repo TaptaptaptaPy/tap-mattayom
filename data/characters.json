@@ -1,32 +1,85 @@
 [
   {
-    "id": "ploy", "name": "พลอย", "year": "ม.5", "tag": "หัวหน้าห้อง",
+    "id": "ploy",
+    "name": "พลอย",
+    "year": "ม.5",
+    "tag": "หัวหน้าห้อง",
     "color": "#e4a0b7",
-    "where": { "morning": "classroom", "noon": "library", "after": "library" },
-    "likes": ["mind", "kind"],
+    "where": {
+      "morning": "classroom",
+      "noon": "library",
+      "after": "library"
+    },
+    "likes": [
+      "mind",
+      "kind"
+    ],
     "club": "academic",
     "story": "ploy",
     "blurb": "เก็บทุกอย่างไว้ในตาราง รวมถึงเรื่องที่ไม่ควรเก็บ",
-    "gate": { "stat": "mind", "value": 6, "hint": "ถ้าปัญญาถึง 6 จะมีบทสนทนาที่พลอยไม่เคยให้ใครเห็น" }
+    "gate": {
+      "stat": "mind",
+      "value": 6,
+      "hint": "ถ้าปัญญาถึง 6 จะมีบทสนทนาที่พลอยไม่เคยให้ใครเห็น"
+    },
+    "bonds": {
+      "kanin": -0.3,
+      "minta": 0.12
+    }
   },
   {
-    "id": "kanin", "name": "กนิน", "year": "ม.5", "tag": "หลังห้อง",
+    "id": "kanin",
+    "name": "กนิน",
+    "year": "ม.5",
+    "tag": "หลังห้อง",
     "color": "#7fb2e8",
-    "where": { "noon": "backfield", "after": "backfield", "night": "arcade" },
-    "likes": ["nerve", "heart"],
+    "where": {
+      "noon": "backfield",
+      "after": "backfield",
+      "night": "arcade"
+    },
+    "likes": [
+      "nerve",
+      "heart"
+    ],
     "club": "sport",
     "story": "kanin",
     "blurb": "โดนหมายหัวมาตั้งแต่ ม.4 แต่ไม่เคยมีใครถามว่าทำไม",
-    "gate": { "stat": "nerve", "value": 8, "hint": "ถ้าความซ่าถึง 8 กนินจะยอมพาไปที่ที่ไม่เคยพาใครไป" }
+    "gate": {
+      "stat": "nerve",
+      "value": 8,
+      "hint": "ถ้าความซ่าถึง 8 กนินจะยอมพาไปที่ที่ไม่เคยพาใครไป"
+    },
+    "bonds": {
+      "ploy": -0.3,
+      "minta": 0.06
+    }
   },
   {
-    "id": "minta", "name": "มินตรา", "year": "ม.6", "tag": "รุ่นพี่ชมรมดนตรี",
+    "id": "minta",
+    "name": "มินตรา",
+    "year": "ม.6",
+    "tag": "รุ่นพี่ชมรมดนตรี",
     "color": "#c8a6e8",
-    "where": { "after": "musicroom", "night": "musicroom" },
-    "likes": ["charm", "heart"],
+    "where": {
+      "after": "musicroom",
+      "night": "musicroom"
+    },
+    "likes": [
+      "charm",
+      "heart"
+    ],
     "club": "music",
     "story": "minta",
     "blurb": "ซ้อมอยู่คนเดียวทุกเย็น ไม่เคยบอกว่าซ้อมเพื่ออะไร",
-    "gate": { "stat": "charm", "value": 7, "hint": "ถ้าเสน่ห์ถึง 7 มินตราจะให้ขึ้นเล่นด้วยกัน" }
+    "gate": {
+      "stat": "charm",
+      "value": 7,
+      "hint": "ถ้าเสน่ห์ถึง 7 มินตราจะให้ขึ้นเล่นด้วยกัน"
+    },
+    "bonds": {
+      "ploy": 0.12,
+      "kanin": 0.06
+    }
   }
 ]

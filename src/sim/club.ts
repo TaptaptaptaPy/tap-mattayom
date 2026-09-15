@@ -1,6 +1,7 @@
 import clubs from "../../data/clubs.json";
 import game from "../../data/game.json";
 import { applyStat } from "./economy";
+import { changeAffinity } from "./bonds";
 import { remember, type GameState, type StatId } from "./state";
 import { weekdayOf } from "./calendar";
 
@@ -32,7 +33,7 @@ export function doClubActivity(s: GameState, times: number, mult = 1): ClubOutco
   if ("study" in c && typeof c.study === "number") s.study += c.study;
   if ("behaviourPerWeek" in c && typeof c.behaviourPerWeek === "number")
     s.behaviour = Math.min(game.behaviour.start, s.behaviour + c.behaviourPerWeek / 2);
-  for (const m of c.members) s.affinity[m] = (s.affinity[m] ?? 0) + 1;
+  for (const m of c.members) changeAffinity(s, m, 1);
   const nm = game.stats.find((x) => x.id === c.stat)!.name;
   return { message: `${c.name} · ${nm} +${got.toFixed(1)}`, members: c.members };
 }
