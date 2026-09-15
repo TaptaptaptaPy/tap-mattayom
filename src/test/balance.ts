@@ -18,7 +18,7 @@ import { takeExam } from "../sim/exam";
 import { joinClub, clubToday, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
 import { changeAffinity, trustFromFlag } from "../sim/bonds";
-import { visited } from "../sim/offscreen";
+import { stepLives, visited } from "../sim/offscreen";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          planClash } from "../sim/chat";
 import { claim } from "../sim/claims";
@@ -27,6 +27,7 @@ import { isSick } from "../sim/push";
 import { milestoneToday, runMilestone } from "../sim/milestone";
 import { seenWith } from "../sim/seen";
 import { askAmount, giveHome, refuseHome } from "../sim/home";
+import { rivalLead, stepRivals } from "../sim/rival";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -74,6 +75,8 @@ interface Run {
   homeGiven: number; homeRefused: number; homeStrain: number;
   /** ครูมองเรายังไงตอนจบ · ครูเข้าไปพูดแทนกี่ครั้ง · โทรหาที่บ้านกี่ครั้ง */
   teacher: number; shielded: number; calledHome: number;
+  /** คู่แข่งแซงเราไปกี่คน และเรานำอยู่เฉลี่ยเท่าไหร่ */
+  rivalsAhead: number; rivalLeadAvg: number; affinityTop: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -338,6 +341,9 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     gossips: s.history.filter((h) => h.includes("เรื่องนี้ไปถึง")).length,
     homeGiven, homeRefused, homeStrain: s.home.strain,
     teacher: s.teacher,
+    rivalsAhead: Object.keys(s.flags).filter((f) => /^rival_.+_ahead$/.test(f)).length,
+    rivalLeadAvg: mean(Object.keys(s.affinity).map((id) => rivalLead(s, id))),
+    affinityTop: Math.max(...Object.values(s.affinity)),
     shielded: s.history.filter((h) => h.includes("เข้าไปคุยกับฝ่ายปกครองแทนเรา")).length,
     calledHome: s.history.filter((h) => h.includes("โทรหาที่บ้าน")).length,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
@@ -577,6 +583,40 @@ const totalGossip = sum(allRuns.map((r) => r.gossips));
 const givers = allRuns.filter((r) => r.homeGiven > 0);
 const keepers = allRuns.filter((r) => r.homeRefused > 0);
 const byStrat = (st: Strategy, f: (r: Run) => number) => mean((results.get(st) ?? []).map(f));
+console.log(`คู่แข่ง: คนที่ถูกแซงเฉลี่ย ${mean(allRuns.map((r) => r.rivalsAhead)).toFixed(1)} คนต่อรอบ` +
+            ` · เรานำอยู่เฉลี่ย ${r0(mean(allRuns.map((r) => r.rivalLeadAvg)))}` +
+            ` · คนที่ทุ่มให้เพื่อน ${r0(byStrat("social", (r) => r.rivalsAhead))} คน` +
+            ` · คนที่ทุ่มเรียน ${r0(byStrat("mind", (r) => r.rivalsAhead))} คน` +
+            ` · ความสนิทสูงสุดที่ทำได้ ${r0(byStrat("social", (r) => r.affinityTop))}`);
+// กลยุทธ์ปกติไม่มีอันไหน "เริ่มแล้วทิ้ง" ซึ่งเป็นกรณีเดียวที่ระบบคู่แข่งมีไว้รับ
+// จึงต้องมีการทดลองแยกของมันเอง แบบเดียวกับการทดลองสามขาของการฝืน
+{
+  const dropped = SEEDS.map((sd) => {
+    const s = newState();
+    void sd;
+    // สนิทกับคนหนึ่งจนเกินเกณฑ์ แล้วเลิกไปหาเขาเลยทั้งเทอม
+    changeAffinity(s, "ploy", 12);
+    for (let d = 0; d < game.term.days; d++) { s.dayIndex = d; stepLives(s); stepRivals(s); }
+    return rivalLead(s, "ploy");
+  });
+  const tended = SEEDS.map((sd) => {
+    const s = newState();
+    void sd;
+    changeAffinity(s, "ploy", 12);
+    for (let d = 0; d < game.term.days; d++) {
+      s.dayIndex = d;
+      if (d % 4 === 0) { visited(s, "ploy"); changeAffinity(s, "ploy", 0.5); }
+      stepLives(s); stepRivals(s);
+    }
+    return rivalLead(s, "ploy");
+  });
+  console.log(`  เริ่มแล้วทิ้งเทียบกับเริ่มแล้วไปต่อ: ทิ้งไว้จบที่ ${r0(mean(dropped))}` +
+              ` · ไปหาทุกสี่วันจบที่ ${r0(mean(tended))} (ติดลบ = เขานำ)`);
+  if (mean(dropped) >= 0)
+    console.log("  ← เริ่มแล้วทิ้งไว้ทั้งเทอมแล้วยังไม่โดนแซง คู่แข่งไม่ได้กดดันอะไรเลย");
+  if (mean(tended) <= mean(dropped))
+    console.log("  ← ไปหาเขาแล้วไม่ได้ต่างจากทิ้งไว้ เวลาไม่ได้ช่วยอะไร");
+}
 console.log(`ครูประจำชั้น: ทุ่มเรียนจบที่ ${r0(byStrat("mind", (r) => r.teacher))}` +
             ` · เฉลี่ยทุกอย่าง ${r0(byStrat("spread", (r) => r.teacher))}` +
             ` · เด็กหลังห้อง ${r0(byStrat("rebel", (r) => r.teacher))}` +

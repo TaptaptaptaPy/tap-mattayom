@@ -9,6 +9,7 @@ import { lastMemory, memoryCount, standingRank } from "../sim/bonds";
 import { toldCount } from "../sim/claims";
 import { myBoardRank, tutoredCount } from "../sim/board";
 import { askAmount, homeLevel } from "../sim/home";
+import { rivalLead, rivalOf } from "../sim/rival";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
@@ -36,6 +37,7 @@ export interface SceneHooks {
   onClaim: (topic: string, version: string, charId: string) => void;
   onTutor: (charId: string) => void;
   onHome: (kind: "give" | "part" | "refuse" | "cannot") => void;
+  onConcede: (charId: string) => void;
   onRecall: () => void;
   onFlag: (name: string) => void;
   onHint: (text: string) => void;
@@ -120,6 +122,10 @@ export function openScene(storyName: string, s: GameState, charId: string | null
   story.BindExternalFunction("homeGivePartial", () => { hooks.onHome("part"); return null; });
   story.BindExternalFunction("homeRefuse", () => { hooks.onHome("refuse"); return null; });
   story.BindExternalFunction("homeCannot", () => { hooks.onHome("cannot"); return null; });
+  // คู่แข่งไม่มีภาพและไม่มีบทของตัวเอง เขาเป็นชื่อที่ตัวละครเอ่ยถึงเอง
+  story.BindExternalFunction("rivalName", () => (charId ? rivalOf(charId)?.name ?? "" : ""));
+  story.BindExternalFunction("rivalLead", () => (charId ? rivalLead(s, charId) : 0));
+  story.BindExternalFunction("letThemGo", () => { if (charId) hooks.onConcede(charId); return null; });
   story.BindExternalFunction("plansBooked", () =>
     s.plans.filter((p) => p.day === s.dayIndex + 1 && !p.kept).length);
   story.BindExternalFunction("standing", (amount: number, why: string) => {

@@ -66,3 +66,7 @@ EXTERNAL homeGive()
 EXTERNAL homeGivePartial()
 EXTERNAL homeRefuse()
 EXTERNAL homeCannot()
+// คนอื่นที่กำลังสนิทกับเขาเหมือนกัน — ดู src/sim/rival.ts
+EXTERNAL rivalName()
+EXTERNAL rivalLead()
+EXTERNAL letThemGo()

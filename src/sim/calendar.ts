@@ -6,6 +6,7 @@ import { checkClaims } from "./claims";
 import { stepSickness } from "./push";
 import { allowanceCut, homeDrag } from "./home";
 import { maybeCallHome } from "./teacher";
+import { stepRivals } from "./rival";
 import type { Rnd } from "../core/rng";
 import { settleHomework } from "./homework";
 import { decayGrades } from "./grades";
@@ -98,6 +99,8 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     s.stoodUp = settleMissedPlan(s).missed;
     // ตัวละครมีชีวิตของตัวเองตอนเราไม่อยู่ — เดินต่อไม่ว่าเราจะแวะไปหรือไม่
     stepLives(s);
+    // คนอื่นก็ใช้เวลากับเขาเหมือนกัน — วันที่เราไม่ไป เขาไป
+    stepRivals(s);
     // คนที่สนิทกันเอาเรื่องที่เราเล่ามาเทียบกันบ้าง — คำพูดที่ไม่ตรงกันมีวันโป๊ะ
     checkClaims(s, rnd);
     // ครูเก็บการบ้านเช้าวันเปิดเรียน แล้วสั่งของวันใหม่ — อยู่ในทางเดินหลักเพื่อให้เทสต์เดินผ่านเอง

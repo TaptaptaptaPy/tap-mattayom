@@ -76,6 +76,9 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("homeGivePartial", () => { note("homePart"); return null; });
   story.BindExternalFunction("homeRefuse", () => { note("homeRefuse"); return null; });
   story.BindExternalFunction("homeCannot", () => { note("homeCannot"); return null; });
+  story.BindExternalFunction("rivalName", () => "ฟ้า");
+  story.BindExternalFunction("rivalLead", () => -20);
+  story.BindExternalFunction("letThemGo", () => { note("letThemGo"); return null; });
   story.BindExternalFunction("memoryOf", () => "เรื่องที่เขายังจำได้");
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   return story;

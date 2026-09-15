@@ -22,6 +22,7 @@ import { milestoneToday, runMilestone } from "./sim/milestone";
 import { seenWith } from "./sim/seen";
 import { askAmount, giveHome, homeLevel, homeName, refuseHome } from "./sim/home";
 import { teacherLevel, teacherName } from "./sim/teacher";
+import { concede } from "./sim/rival";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
          keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
@@ -450,6 +451,7 @@ function hooks() {
     onTrust: (cid: string, n: number) => { changeTrust(s, cid, n); if (n > 0) sfx.trust(); else if (n < 0) sfx.broke(); },
     onClaim: (topic: string, version: string, cid: string) => claim(s, topic, version, cid),
     onRecall: () => sfx.recall(),
+    onConcede: (cid: string) => { concede(s, cid); sfx.trust(); flash(`ยินดีกับ${nameOf(cid)}ไปตรงๆ`); },
     onHome: (kind: "give" | "part" | "refuse" | "cannot") => {
       const amount = askAmount(s);
       if (kind === "give") { giveHome(s, amount); flash(`ส่งให้ที่บ้าน ${amount} บาท`); }
