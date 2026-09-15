@@ -26,6 +26,7 @@ import { postBoard, tutor, myBoardRank } from "../sim/board";
 import { isSick } from "../sim/push";
 import { milestoneToday, runMilestone } from "../sim/milestone";
 import { seenWith } from "../sim/seen";
+import { askAmount, giveHome, refuseHome } from "../sim/home";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -69,6 +70,8 @@ interface Run {
   clubDays: number; milestoneTier: number; bigCount: number;
   /** กี่ครั้งที่คนที่นัดเราไว้เห็นเราอยู่กับอีกคน · เรื่องแพร่ไปทั้งวงกี่ครั้ง */
   caughtOut: number; gossips: number;
+  /** ส่งเงินให้ที่บ้านรวมเท่าไหร่ · ปฏิเสธทั้งที่มีกี่ครั้ง · บ้านตึงระดับไหนตอนจบ */
+  homeGiven: number; homeRefused: number; homeStrain: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -133,7 +136,7 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
   let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
   let lied = 0, tutored = 0, pushes = 0, dozes = 0, sickDays = 0, milestoneTier = -1;
   // ต้องจำไว้ตอนวันงาน ไม่ใช่ไปอ่านตอนจบ — ขึ้นปีหนึ่งแล้ว s.clubDays ถูกล้างเป็น 0
-  let milestoneAttended = 0, bigCount = 0, caughtOut = 0;
+  let milestoneAttended = 0, bigCount = 0, caughtOut = 0, homeGiven = 0, homeRefused = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -151,6 +154,9 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
   /** ใครยอมเสียเวลาทบทวนของตัวเองไปติวให้เพื่อน
    *  ถ้าไม่มีกลยุทธ์ไหนติวเลย ทั้งระบบกระดาน (ช่องติวให้ + ธง lifted_*) จะไม่ถูกเดินผ่าน */
   const tutors = strat === "social" || strat === "spread";
+  /** ใครส่งเงินให้ที่บ้าน — คนขี้เกียจกับเด็กหลังห้องเก็บไว้เอง จะได้เห็นราคาของมัน
+   *  ถ้าทุกกลยุทธ์ให้หมด ราคาของการไม่ให้จะไม่เคยถูกวัดเลย */
+  const givesHome = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครฝืนต่อทั้งที่หมดแรง — คนที่ทุ่มเรียนกับเด็กหลังห้องฝืนด้วยเหตุผลคนละอย่างกัน
    *  ถ้าไม่มีใครฝืนเลย ทั้งระบบหนี้การนอน หลับในคาบ และล้มป่วย จะไม่ถูกเดินผ่าน */
   const pol: PushPolicy = policy ?? (strat === "mind" || strat === "rebel" ? "careful" : "never");
@@ -187,6 +193,14 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
                  if (milestoneTier < 0) { milestoneTier = r.tier; milestoneAttended = r.attended; }
                  bigCount++; }
       if (ev.assignProject && !s.project) assignProject(s, s.chapter);
+      // โทรศัพท์จากที่บ้าน — คำพูดอยู่ใน ink แต่การตัดสินใจเป็นตัวเลขล้วน
+      // คนที่เก็บเงินไว้เองจะได้เห็นราคาของมันจริงๆ ไม่ใช่แค่ตัวเลขในกระเป๋าที่สูงกว่า
+      if (ev.ink === "ev_home_ask") {
+        const want = askAmount(s);
+        if (s.money < want) refuseHome(s, false);
+        else if (givesHome) { giveHome(s, want); homeGiven += want; }
+        else { refuseHome(s, true); homeRefused++; }
+      }
     }
 
     // ไลน์ตอนกลางคืน — ฝั่งตัวเลขล้วน คำพูดอยู่ใน ink ซึ่ง `npm run story` คุมอยู่แล้ว
@@ -320,6 +334,7 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     boardRank: myBoardRank(s), tutored, pushes, dozes, sickDays,
     clubDays: milestoneAttended, milestoneTier, bigCount, caughtOut,
     gossips: s.history.filter((h) => h.includes("เรื่องนี้ไปถึง")).length,
+    homeGiven, homeRefused, homeStrain: s.home.strain,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
@@ -554,6 +569,15 @@ else if (tierCount[3] === withBig.length)
   console.log("  ← ทุกรอบได้ระดับสูงสุด งานใหญ่ไม่ได้วัดอะไรเลย");
 const totalSeenOut = sum(allRuns.map((r) => r.caughtOut));
 const totalGossip = sum(allRuns.map((r) => r.gossips));
+const givers = allRuns.filter((r) => r.homeGiven > 0);
+const keepers = allRuns.filter((r) => r.homeRefused > 0);
+console.log(`ทางบ้าน: ส่งให้เฉลี่ย ${r0(mean(givers.map((r) => r.homeGiven)))} บาท` +
+            ` · คนที่เก็บไว้เองจบด้วยบ้านตึง ${r0(mean(keepers.map((r) => r.homeStrain)))}` +
+            ` · คนที่ส่งให้ ${r0(mean(givers.map((r) => r.homeStrain)))}`);
+if (!givers.length || !keepers.length)
+  console.log("  ← ไม่มีทั้งคนที่ให้และคนที่ไม่ให้ ราคาของการเลือกยังไม่ถูกวัด");
+else if (mean(keepers.map((r) => r.homeStrain)) <= mean(givers.map((r) => r.homeStrain)))
+  console.log("  ← เก็บเงินไว้เองแล้วบ้านไม่ได้ตึงกว่า การขอของที่บ้านไม่มีราคาอะไรเลย");
 console.log(`การเลือกมีพยานไหม: คนที่นัดเราไว้เห็นเราอยู่กับอีกคน ${totalSeenOut} ครั้ง` +
             ` · เรื่องแพร่ไปทั้งวง ${totalGossip} ครั้ง`);
 if (totalSeenOut === 0)

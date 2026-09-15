@@ -4,6 +4,7 @@ import { settleMissedPlan } from "./chat";
 import { stepLives } from "./offscreen";
 import { checkClaims } from "./claims";
 import { stepSickness } from "./push";
+import { allowanceCut, homeDrag } from "./home";
 import type { Rnd } from "../core/rng";
 import { settleHomework } from "./homework";
 import { decayGrades } from "./grades";
@@ -104,6 +105,8 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     // ค่าขนมออกทุกวันจันทร์ ความประพฤติค่อยๆ ฟื้นถ้าไม่ก่อเรื่องซ้ำ
     // มัธยมได้ค่าขนมจากที่บ้าน ปีหนึ่งต้องจ่ายค่าหอเอง — คนละทิศทางกันเลย
     if (weekdayOf(s) === 1) { if (isUni(s)) payRent(s); else payAllowance(s); }
+    // บ้านที่ตึงกินแรงที่ควรได้คืนตอนนอน — ไปบวกกับหนี้การนอนที่มีอยู่แล้ว
+    if (!isUni(s)) homeDrag(s);
   }
 }
 
@@ -112,6 +115,8 @@ function payAllowance(s: GameState) {
   const best = Math.max(0, ...Object.values(s.exams).map((e) => 45 - e.rank));
   let amount = M.allowanceBase + Math.round(best * M.allowancePerRank / 10);
   if (s.behaviour < B.troubleAt) amount -= M.behaviourPenalty;
+  // ที่บ้านตึงแล้วค่าขนมก็ลดลงจริงๆ ไม่ใช่การลงโทษ — เขาไม่มีจะให้
+  amount -= allowanceCut(s);
   amount = Math.max(60, amount);
   s.money += amount;
   s.behaviour = Math.min(B.start, s.behaviour + B.recoverPerWeek);

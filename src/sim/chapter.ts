@@ -68,6 +68,7 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
   // ชมรมของมหาลัยเป็นคนละชมรม การซ้อมของ ม.ปลาย ไม่นับให้
   s.clubDays = 0;
   s.milestoneDone = false;
+  s.seenToday = {};
 
   remember(s, `เข้าเรียนปีหนึ่ง · ${schoolEnding.tier}`);
 }

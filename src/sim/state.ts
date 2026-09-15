@@ -102,6 +102,8 @@ export interface GameState {
   board: Record<string, BoardRow[]>;
   /** เราติวให้ใครไปกี่ครั้ง */
   tutored: Record<string, number>;
+  /** เรื่องที่บ้าน — ดู src/sim/home.ts */
+  home: { strain: number; gave: number; refused: number; given: number };
   /** ใครเห็นเราอยู่กับคนอื่นไปแล้ววันนี้ — วันละครั้งต่อคน ล้างทุกเช้าพร้อม metToday */
   seenToday: Record<string, true>;
   /** ไปซ้อมชมรมมาแล้วกี่ครั้งทั้งเทอม — ฐานของผลงานในวันงานใหญ่ */
@@ -126,7 +128,8 @@ export interface GameState {
 // 15: เพิ่มกระดานประกาศผลและการติวให้เพื่อน (board · tutored)
 // 16: เพิ่มงานใหญ่ของชมรม (clubDays · milestoneDone)
 // 17: เพิ่มการถูกเห็นตอนอยู่กับอีกคน (seenToday)
-export const SAVE_VERSION = 17;
+// 18: เพิ่มเรื่องที่บ้าน (home)
+export const SAVE_VERSION = 18;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -147,6 +150,7 @@ export function newState(): GameState {
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plans: [],
     lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {}, clubDays: 0, milestoneDone: false, seenToday: {},
+    home: { strain: 0, gave: 0, refused: 0, given: 0 },
   };
 }
 

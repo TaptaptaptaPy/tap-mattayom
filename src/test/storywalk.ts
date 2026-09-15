@@ -70,6 +70,12 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("tutorThem", () => { note("tutor"); return null; });
   story.BindExternalFunction("tutoredTimes", () => 0);
   story.BindExternalFunction("myRank", () => 12);
+  story.BindExternalFunction("homeAsk", () => 900);
+  story.BindExternalFunction("homeStrain", () => 1);
+  story.BindExternalFunction("homeGive", () => { note("homeGive"); return null; });
+  story.BindExternalFunction("homeGivePartial", () => { note("homePart"); return null; });
+  story.BindExternalFunction("homeRefuse", () => { note("homeRefuse"); return null; });
+  story.BindExternalFunction("homeCannot", () => { note("homeCannot"); return null; });
   story.BindExternalFunction("memoryOf", () => "เรื่องที่เขายังจำได้");
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   return story;

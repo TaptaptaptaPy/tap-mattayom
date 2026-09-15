@@ -8,6 +8,7 @@ import { isSchoolDay } from "../sim/calendar";
 import { lastMemory, memoryCount, standingRank } from "../sim/bonds";
 import { toldCount } from "../sim/claims";
 import { myBoardRank, tutoredCount } from "../sim/board";
+import { askAmount, homeLevel } from "../sim/home";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
@@ -34,6 +35,7 @@ export interface SceneHooks {
   onTrust: (charId: string, amount: number) => void;
   onClaim: (topic: string, version: string, charId: string) => void;
   onTutor: (charId: string) => void;
+  onHome: (kind: "give" | "part" | "refuse" | "cannot") => void;
   onRecall: () => void;
   onFlag: (name: string) => void;
   onHint: (text: string) => void;
@@ -111,6 +113,13 @@ export function openScene(storyName: string, s: GameState, charId: string | null
   story.BindExternalFunction("tutorThem", () => { if (charId) hooks.onTutor(charId); return null; });
   story.BindExternalFunction("tutoredTimes", () => (charId ? tutoredCount(s, charId) : 0));
   story.BindExternalFunction("myRank", () => myBoardRank(s));
+  // เรื่องที่บ้าน — บทเป็นคนถาม TS เป็นคนตอบว่าเท่าไหร่และเกิดอะไรขึ้น
+  story.BindExternalFunction("homeAsk", () => askAmount(s));
+  story.BindExternalFunction("homeStrain", () => homeLevel(s));
+  story.BindExternalFunction("homeGive", () => { hooks.onHome("give"); return null; });
+  story.BindExternalFunction("homeGivePartial", () => { hooks.onHome("part"); return null; });
+  story.BindExternalFunction("homeRefuse", () => { hooks.onHome("refuse"); return null; });
+  story.BindExternalFunction("homeCannot", () => { hooks.onHome("cannot"); return null; });
   story.BindExternalFunction("plansBooked", () =>
     s.plans.filter((p) => p.day === s.dayIndex + 1 && !p.kept).length);
   story.BindExternalFunction("standing", (amount: number, why: string) => {

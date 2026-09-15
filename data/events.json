@@ -181,5 +181,29 @@
     "chapter": "uni",
     "ink": "ev_group",
     "assignProject": true
+  },
+  {
+    "id": "home_ask_1",
+    "day": 20,
+    "period": "night",
+    "name": "โทรศัพท์จากที่บ้าน",
+    "ink": "ev_home_ask",
+    "chapter": "school"
+  },
+  {
+    "id": "home_ask_2",
+    "day": 57,
+    "period": "night",
+    "name": "โทรศัพท์จากที่บ้าน",
+    "ink": "ev_home_ask",
+    "chapter": "school"
+  },
+  {
+    "id": "home_ask_3",
+    "day": 92,
+    "period": "night",
+    "name": "โทรศัพท์จากที่บ้าน",
+    "ink": "ev_home_ask",
+    "chapter": "school"
   }
 ]

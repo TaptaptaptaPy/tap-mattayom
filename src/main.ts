@@ -20,6 +20,7 @@ import { escapeCatch } from "./sim/discipline";
 import { openMinigame, type MgKind } from "./ui/minigame";
 import { milestoneToday, runMilestone } from "./sim/milestone";
 import { seenWith } from "./sim/seen";
+import { askAmount, giveHome, homeLevel, homeName, refuseHome } from "./sim/home";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
          keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
@@ -81,6 +82,10 @@ function renderTop() {
   }).join("");
   h += `<span class="chip energy${low ? " low" : ""}" title="แรงที่เหลือวันนี้">แรง
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
+  // เรื่องที่บ้านต้องมองเห็นเหมือนกัน มันกินแรงทุกคืนโดยที่ไม่มีอะไรบอก
+  if (homeLevel(s) > 0)
+    h += `<span class="chip debt low" title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง">บ้าน
+      <b>${homeName(s)}</b></span>`;
   // หนี้การนอนต้องมองเห็น ไม่งั้นการฝืนจะเป็นการเซ็นเช็คที่ไม่มีใครเห็นยอด
   if (s.sleepDebt > 0)
     h += `<span class="chip debt${s.sleepDebt >= game.push.dozeAt ? " low" : ""}"
@@ -441,6 +446,12 @@ function hooks() {
     onTrust: (cid: string, n: number) => { changeTrust(s, cid, n); if (n > 0) sfx.trust(); else if (n < 0) sfx.broke(); },
     onClaim: (topic: string, version: string, cid: string) => claim(s, topic, version, cid),
     onRecall: () => sfx.recall(),
+    onHome: (kind: "give" | "part" | "refuse" | "cannot") => {
+      const amount = askAmount(s);
+      if (kind === "give") { giveHome(s, amount); flash(`ส่งให้ที่บ้าน ${amount} บาท`); }
+      else if (kind === "part") { giveHome(s, Math.floor(s.money)); flash("ให้เท่าที่มี"); }
+      else { refuseHome(s, kind === "refuse"); if (kind === "refuse") flash("เก็บเงินไว้เอง", "bad"); }
+    },
     onTutor: (cid: string) => { tutor(s, cid); flash(`ติวให้${nameOf(cid)} — เวลาทบทวนของเราหายไปส่วนหนึ่ง`); },
     // ธงบางอันแปลว่าเราทำสิ่งที่ยากหรือซื่อสัตย์ ตารางใน game.json แปลงเป็นความเชื่อใจให้เอง
     onFlag: (name: string) => { s.flags[name] = true; trustFromFlag(s, name); },
