@@ -1,0 +1,13 @@
+{
+  "_note": "สถานที่ที่มีภาพวาดจริง ที่เหลือยังใช้ภาพ SVG ที่วาดจากโค้ดใน src/ui/backdrop.ts",
+  "credit": "Pandita Studio · VN Backgrounds School Vol.1 (ชุดฟรี) · ใช้เชิงพาณิชย์ได้ ห้ามขายต่อตัวไฟล์",
+  "_periods": "ชุดนี้ให้ภาพสถานที่ละสี่แบบ พอดีกับที่เกมแบ่งวันเป็นสี่ช่วงอยู่แล้ว",
+  "periods": { "morning": "day", "noon": "day", "after": "dusk", "night": "lit" },
+  "_places": "lecture กับ faccant ใช้ภาพร่วมกับของมัธยม เพราะเป็นห้องเรียนกับโรงอาหารเหมือนกัน",
+  "places": {
+    "classroom": "classroom",
+    "canteen": "canteen",
+    "lecture": "classroom",
+    "faccant": "canteen"
+  }
+}

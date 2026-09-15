@@ -4,7 +4,7 @@ import chars from "../data/characters.json";
 import game2 from "../data/game.json";
 import { newState, statRank, affinityRank, remember, type GameState, type StatId } from "./sim/state";
 import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
-         nextEvent, type TermEvent } from "./sim/calendar";
+         nextEvent, periodId, type TermEvent } from "./sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
          morningInspect } from "./sim/actions";
 import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
@@ -213,7 +213,7 @@ function renderBoard() {
   for (const loc of availableLocations(s)) {
     const card = document.createElement("div");
     card.className = "loc" + (loc.blocked ? " blocked" : "");
-    card.innerHTML = `<div class="locbg">${backdrop(loc.id)}</div>
+    card.innerHTML = `<div class="locbg">${backdrop(loc.id, periodId(s))}</div>
       <div class="ico">${icon(loc.id)}</div><div class="nm">${loc.name}</div>`;
 
     const acts = document.createElement("div");
@@ -322,7 +322,7 @@ function renderClassroom(board: HTMLElement) {
   const card = document.createElement("div");
   card.className = "loc wide";
   const flagRaised = s.doneToday["_assembly"] > 0;
-  card.innerHTML = `<div class="locbg">${backdrop("assembly")}</div>
+  card.innerHTML = `<div class="locbg">${backdrop("assembly", periodId(s))}</div>
     <div class="ico">${icon("assembly")}</div>
     <div class="nm">เข้าแถวหน้าเสาธง แล้วเข้าเรียน</div>`;
   const acts = document.createElement("div");
@@ -448,14 +448,14 @@ function talkTo(charId: string, where?: string) {
   const bonus = keepPlan(s, charId);
   if (bonus) flash(`ไปตามนัด${c.name} · สนิทขึ้น +${bonus}`);
   remember(s, `คุยกับ${c.name}`);
-  playScene(story, c.name, c.color, charId, () => next(), where);
+  playScene(story, c.name, c.color, charId, () => next(), where, periodId(s));
 }
 
 function playInk(name: string, charId: string | null, speaker: string, color: string,
                  onEnd: () => void, bgOverride?: string) {
   const story = openScene(name, s, charId, hooks());
   const bg = bgOverride ?? (hasEventArt(name) ? name : name === "assembly" ? "assembly" : undefined);
-  playScene(story, speaker, color, charId, onEnd, bg);
+  playScene(story, speaker, color, charId, onEnd, bg, periodId(s));
 }
 
 /** ฉากจบรายตัวละคร — เล่นก่อนแผงสรุปเทอม เรียงจากคนที่สนิทที่สุด แล้วปิดท้ายด้วยเรื่องของเราเอง

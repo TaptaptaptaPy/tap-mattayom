@@ -34,15 +34,24 @@ test("ฉากหลังทุกฉากเรียงกัน — ต้
   await page.goto("/");
   const html = await page.evaluate(async () => {
     const m = await import("/src/ui/backdrop.ts");
+    const scenes = (await import("/data/scenes.json")).default;
     const ids = m.allBackdropIds();
-    return ids.map((id: string) =>
-      `<figure><div class="b">${m.backdrop(id)}</div><figcaption>${id}</figcaption></figure>`).join("");
+    // สถานที่ที่มีภาพวาดจริงต้องโชว์ครบทั้งสี่ช่วงเวลา ไม่งั้นภาพที่หายไปจะไม่มีใครเห็น
+    const cells: string[] = [];
+    for (const id of ids) {
+      if (m.hasPhoto(id))
+        for (const p of Object.keys(scenes.periods))
+          cells.push(`<figure><div class="b">${m.backdrop(id, p)}</div>
+                      <figcaption>${id} · ${p}</figcaption></figure>`);
+      else cells.push(`<figure><div class="b">${m.backdrop(id)}</div><figcaption>${id}</figcaption></figure>`);
+    }
+    return cells.join("");
   });
   await page.setContent(`<style>
     body{margin:0;background:#16131f;font:11px system-ui;color:#f2eef7;
          display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;align-content:start}
     figure{margin:0}.b{border-radius:10px;overflow:hidden;line-height:0;aspect-ratio:400/150}
-    .b svg{width:100%;height:100%;display:block}
+    .b svg,.b img{width:100%;height:100%;object-fit:cover;display:block}
     figcaption{text-align:center;padding-top:4px;opacity:.75}</style>${html}`);
   await expect(page).toHaveScreenshot("backdrops.png", { fullPage: true });
 });

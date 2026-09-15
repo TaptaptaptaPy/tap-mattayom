@@ -1,3 +1,4 @@
+import scenes from "../../data/scenes.json";
 /** ฉากหลังของแต่ละสถานที่และเหตุการณ์ วาดด้วย SVG ในโค้ด ไม่มีไฟล์รูป
  *  ใช้ทั้งเป็นแถบบนการ์ดสถานที่ และเป็นพื้นหลังของกล่องบทสนทนา */
 
@@ -400,7 +401,24 @@ const EVENT_SCENES: Record<string, string> = {
       ${Array.from({ length: 12 }, (_, i) => `<path d="M${20 + i * 34} 20v10"/>`).join("")}</g>`,
 };
 
-export function backdrop(id: string): string {
+/** สถานที่ไหนมีภาพวาดจริงแล้วบ้าง — ที่เหลือยังเป็น SVG ที่วาดจากโค้ด */
+export const hasPhoto = (id: string) => id in scenes.places;
+
+/** ภาพฉาก — ถ้าสถานที่นั้นมีภาพวาดจริงจะได้ภาพ ถ้าไม่มีก็ได้ SVG เหมือนเดิม
+ *
+ *  `period` คือช่วงเวลาของวัน ชุดภาพให้มาสถานที่ละสี่แบบ (กลางวัน เย็น กลางคืนเปิดไฟ กลางคืนปิดไฟ)
+ *  ซึ่งพอดีกับที่เกมแบ่งวันเป็นสี่ช่วงอยู่แล้ว ห้องเรียนตอนเช้ากับตอนเย็นจึงไม่ใช่ภาพเดียวกันอีกต่อไป
+ */
+export function backdrop(id: string, period?: string): string {
+  const photo = (scenes.places as Record<string, string>)[id];
+  if (photo) {
+    const t = (scenes.periods as Record<string, string>)[period ?? "noon"] ?? "day";
+    return `<img class="bd" src="/assets/scenes/${photo}-${t}.jpg" alt="" loading="eager">`;
+  }
+  return svgBackdrop(id);
+}
+
+function svgBackdrop(id: string): string {
   const body = SCENES[id] ?? EVENT_SCENES[id] ?? SCENES.home;
   // ทุกฉากประกาศ gradient ชื่อ "g" เหมือนกันหมด พอมีหลายการ์ดในหน้าเดียว
   // `url(#g)` จะไปหยิบของการ์ดใบแรกในเอกสารเสมอ ทุกใบเลยได้สีฟ้าเดียวกันหมดโดยไม่มี error
