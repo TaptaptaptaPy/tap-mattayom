@@ -4,6 +4,7 @@ import { applyStat } from "./economy";
 import { shiftStanding, changeAffinity } from "./bonds";
 import { SUBJECTS, subjectById } from "./grades";
 import { remember, type GameState } from "./state";
+import { noteBehaviour } from "./teacher";
 
 /** สอบซ่อม และงานกลุ่ม
  *
@@ -45,6 +46,7 @@ export function doRetake(s: GameState, subjectId: string): string {
   s.grades[subjectId] = Math.max(s.grades[subjectId] ?? 0, R.fixTo);
   const name = subjectById(subjectId)?.name ?? subjectId;
   remember(s, `ไปสอบซ่อม${name}`);
+  noteBehaviour(s, game.teacher.perRetake, "ไปสอบซ่อม");
   return `สอบซ่อม${name}ผ่านแล้ว · -${R.cost} บาท`;
 }
 

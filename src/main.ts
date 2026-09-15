@@ -21,6 +21,7 @@ import { openMinigame, type MgKind } from "./ui/minigame";
 import { milestoneToday, runMilestone } from "./sim/milestone";
 import { seenWith } from "./sim/seen";
 import { askAmount, giveHome, homeLevel, homeName, refuseHome } from "./sim/home";
+import { teacherLevel, teacherName } from "./sim/teacher";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
          keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
@@ -82,6 +83,9 @@ function renderTop() {
   }).join("");
   h += `<span class="chip energy${low ? " low" : ""}" title="แรงที่เหลือวันนี้">แรง
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
+  // ครูมองเรายังไง — ค่านี้ขยับจากความรับผิดชอบ ไม่ใช่จากการไปหา ผู้เล่นต้องเห็นมันขยับ
+  h += `<span class="chip${teacherLevel(s) === 0 ? " low" : ""}" title="ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ">ครู
+      <b>${teacherName(s)}</b><i style="width:${s.teacher}%"></i></span>`;
   // เรื่องที่บ้านต้องมองเห็นเหมือนกัน มันกินแรงทุกคืนโดยที่ไม่มีอะไรบอก
   if (homeLevel(s) > 0)
     h += `<span class="chip debt low" title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง">บ้าน

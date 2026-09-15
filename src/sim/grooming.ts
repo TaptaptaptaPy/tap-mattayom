@@ -3,6 +3,7 @@ import { shiftStanding } from "./bonds";
 import { isUni } from "./chapter";
 import { remember, type GameState } from "./state";
 import type { Rnd } from "../core/rng";
+import { noteBehaviour } from "./teacher";
 
 /** ตรวจหน้าเสาธง
  *
@@ -30,6 +31,7 @@ export function growHair(s: GameState): void {
 
 /** ตัดผม — เสียเงินและเสียหนึ่งช่วงเวลา แต่ไม่ต้องลุ้นหน้าเสาธงอีกสักพัก */
 export function haircut(s: GameState): string {
+  noteBehaviour(s, game.teacher.perHaircut, "ตัดผม");
   s.grooming = G.start;
   remember(s, "ไปตัดผมให้เรียบร้อย");
   return "ตัดผมเรียบร้อยแล้ว ครูไม่มีอะไรจะว่า";
@@ -47,6 +49,7 @@ export function inspect(s: GameState, rnd: Rnd = Math.random): InspectResult {
 
   s.behaviour = Math.max(0, s.behaviour - G.behaviourPenalty);
   shiftStanding(s, -G.standingPenalty, "โดนเรียกออกมาหน้าแถวเพราะผมยาว");
+  noteBehaviour(s, game.teacher.perInspected, "โดนเรียกหน้าแถว");
   s.inspected++;
   return {
     caught: true,

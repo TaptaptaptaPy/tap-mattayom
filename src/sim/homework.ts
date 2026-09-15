@@ -2,6 +2,7 @@ import game from "../../data/game.json";
 import { applyStat } from "./economy";
 import { studyAll, gradePerHomework } from "./grades";
 import { remember, type GameState } from "./state";
+import { noteBehaviour } from "./teacher";
 
 /** การบ้าน
  *
@@ -28,11 +29,13 @@ export function doHomework(s: GameState): string {
   studyAll(s, gradePerHomework * pieces);
   s.doneToday["_homework"] = (s.doneToday["_homework"] ?? 0) + 1;
   remember(s, `ส่งการบ้าน ${pieces} ชิ้น`);
+  noteBehaviour(s, game.teacher.perHomework * pieces, "ส่งการบ้าน");
   return `ทำการบ้าน ${pieces} ชิ้น · ความพร้อมสอบ +${H.study * pieces} · ปัญญา +${got.toFixed(1)}`;
 }
 
 /** เรียกตอนขึ้นวันเรียนใหม่ — เก็บงานที่ค้าง แล้วสั่งของวันใหม่
  *  อยู่ในทางเดินของ `advance()` เพื่อให้ `npm run balance` เดินผ่านเองโดยไม่ต้องจำไปเรียก */
+/** ครูเห็นทุกอย่างที่เราทำและไม่ทำ — ดู src/sim/teacher.ts */
 export function settleHomework(s: GameState, schoolDay: boolean): number {
   let missed = 0;
   if (s.homework > 0) {
@@ -41,6 +44,7 @@ export function settleHomework(s: GameState, schoolDay: boolean): number {
     s.study = Math.max(0, s.study - H.studyPenalty * pieces);
     s.homeworkMissed += pieces;
     remember(s, `ไม่ได้ส่งการบ้าน ${pieces} ชิ้น ครูจดชื่อไว้`);
+    noteBehaviour(s, game.teacher.perMissedHomework * pieces, "ไม่ส่งการบ้าน");
     missed = pieces;
     s.homework = 0;
   }

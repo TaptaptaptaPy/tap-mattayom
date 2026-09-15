@@ -72,6 +72,8 @@ interface Run {
   caughtOut: number; gossips: number;
   /** ส่งเงินให้ที่บ้านรวมเท่าไหร่ · ปฏิเสธทั้งที่มีกี่ครั้ง · บ้านตึงระดับไหนตอนจบ */
   homeGiven: number; homeRefused: number; homeStrain: number;
+  /** ครูมองเรายังไงตอนจบ · ครูเข้าไปพูดแทนกี่ครั้ง · โทรหาที่บ้านกี่ครั้ง */
+  teacher: number; shielded: number; calledHome: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -335,6 +337,9 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     clubDays: milestoneAttended, milestoneTier, bigCount, caughtOut,
     gossips: s.history.filter((h) => h.includes("เรื่องนี้ไปถึง")).length,
     homeGiven, homeRefused, homeStrain: s.home.strain,
+    teacher: s.teacher,
+    shielded: s.history.filter((h) => h.includes("เข้าไปคุยกับฝ่ายปกครองแทนเรา")).length,
+    calledHome: s.history.filter((h) => h.includes("โทรหาที่บ้าน")).length,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
@@ -571,6 +576,18 @@ const totalSeenOut = sum(allRuns.map((r) => r.caughtOut));
 const totalGossip = sum(allRuns.map((r) => r.gossips));
 const givers = allRuns.filter((r) => r.homeGiven > 0);
 const keepers = allRuns.filter((r) => r.homeRefused > 0);
+const byStrat = (st: Strategy, f: (r: Run) => number) => mean((results.get(st) ?? []).map(f));
+console.log(`ครูประจำชั้น: ทุ่มเรียนจบที่ ${r0(byStrat("mind", (r) => r.teacher))}` +
+            ` · เฉลี่ยทุกอย่าง ${r0(byStrat("spread", (r) => r.teacher))}` +
+            ` · เด็กหลังห้อง ${r0(byStrat("rebel", (r) => r.teacher))}` +
+            ` · ครูพูดแทนรวม ${sum(allRuns.map((r) => r.shielded))} ครั้ง` +
+            ` · โทรหาที่บ้านรวม ${sum(allRuns.map((r) => r.calledHome))} ครั้ง`);
+if (byStrat("mind", (r) => r.teacher) <= byStrat("rebel", (r) => r.teacher))
+  console.log("  ← ตั้งใจเรียนแล้วครูไม่ได้มองต่างจากเด็กหลังห้าง ค่านี้ไม่ได้วัดอะไรเลย");
+if (sum(allRuns.map((r) => r.shielded)) === 0)
+  console.log("  ← ครูไม่เคยพูดแทนใครเลย รางวัลของการเป็นเด็กดีไม่ถูกทดสอบ");
+if (sum(allRuns.map((r) => r.calledHome)) === 0)
+  console.log("  ← ครูไม่เคยโทรหาที่บ้านเลย ราคาของการเป็นเด็กมีปัญหาไม่ถูกทดสอบ");
 console.log(`ทางบ้าน: ส่งให้เฉลี่ย ${r0(mean(givers.map((r) => r.homeGiven)))} บาท` +
             ` · คนที่เก็บไว้เองจบด้วยบ้านตึง ${r0(mean(keepers.map((r) => r.homeStrain)))}` +
             ` · คนที่ส่งให้ ${r0(mean(givers.map((r) => r.homeStrain)))}`);

@@ -20,6 +20,13 @@ export interface Home { strain: number; gave: number; refused: number; given: nu
 export const homeOf = (s: GameState): Home =>
   (s.home ??= { strain: 0, gave: 0, refused: 0, given: 0 });
 
+/** ความตึงมีเพดาน ไม่งั้นตัวเลขจะวิ่งเลยระดับสูงสุดไปไกลจนระดับไม่มีความหมาย
+ *  และการกลับตัวจะใช้เวลานานจนผู้เล่นไม่มีทางรู้ว่ามันขยับ */
+export function addStrain(s: GameState, amount: number): void {
+  const h = homeOf(s);
+  h.strain = Math.max(0, Math.min(H.strainMax, h.strain + amount));
+}
+
 /** ทางบ้านขอเท่าไหร่รอบนี้ — ยิ่งปลายเทอมยิ่งมากขึ้น เพราะเรื่องที่บ้านไม่ได้ดีขึ้นเอง */
 export function askAmount(s: GameState): number {
   const stage = Math.min(1, s.dayIndex / game.term.days);
@@ -43,7 +50,7 @@ export function giveHome(s: GameState, amount: number): boolean {
  *  เงินไม่พอจริงๆ ไม่นับว่าปฏิเสธ เพราะนั่นไม่ใช่การเลือก */
 export function refuseHome(s: GameState, couldAfford: boolean): void {
   const h = homeOf(s);
-  h.strain += couldAfford ? H.strainPerRefusal : H.strainPerCannot;
+  h.strain = Math.min(H.strainMax, h.strain + (couldAfford ? H.strainPerRefusal : H.strainPerCannot));
   if (couldAfford) { h.refused++; s.flags["refused_home"] = true; }
   else s.flags["broke_at_home"] = true;
   remember(s, couldAfford ? "บอกที่บ้านว่าไม่มี ทั้งที่มี" : "ที่บ้านขอมา แต่เราไม่มีจริงๆ");

@@ -5,6 +5,7 @@ import { stepLives } from "./offscreen";
 import { checkClaims } from "./claims";
 import { stepSickness } from "./push";
 import { allowanceCut, homeDrag } from "./home";
+import { maybeCallHome } from "./teacher";
 import type { Rnd } from "../core/rng";
 import { settleHomework } from "./homework";
 import { decayGrades } from "./grades";
@@ -105,6 +106,8 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     // ค่าขนมออกทุกวันจันทร์ ความประพฤติค่อยๆ ฟื้นถ้าไม่ก่อเรื่องซ้ำ
     // มัธยมได้ค่าขนมจากที่บ้าน ปีหนึ่งต้องจ่ายค่าหอเอง — คนละทิศทางกันเลย
     if (weekdayOf(s) === 1) { if (isUni(s)) payRent(s); else payAllowance(s); }
+    // สัปดาห์ที่แย่พอ ครูประจำชั้นโทรหาที่บ้าน — จุดที่ฝ่ายปกครองกับเรื่องที่บ้านมาบรรจบกัน
+    if (weekdayOf(s) === 1 && !isUni(s)) maybeCallHome(s);
     // บ้านที่ตึงกินแรงที่ควรได้คืนตอนนอน — ไปบวกกับหนี้การนอนที่มีอยู่แล้ว
     if (!isUni(s)) homeDrag(s);
   }

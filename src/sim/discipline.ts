@@ -1,5 +1,6 @@
 import game from "../../data/game.json";
 import { remember, type GameState } from "./state";
+import { noteBehaviour, teacherShields } from "./teacher";
 
 const B = game.behaviour;
 
@@ -14,10 +15,15 @@ export function rollCatch(s: GameState, catchBase: number, rnd: Rnd = Math.rando
   const chance = Math.max(0.02, catchBase * (1 - dodge));
   if (rnd() > chance) return { caught: false, message: null, penalty: 0 };
 
-  const penalty = 6 + Math.round(rnd() * 6);
+  const raw = 6 + Math.round(rnd() * 6);
+  // ครูประจำชั้นที่ไว้ใจเราเข้าไปพูดแทน — เขาไม่ได้ทำให้เราไม่ผิด แค่เป็นคนที่พูดแทนเราได้
+  const { penalty, saved } = teacherShields(s, raw);
   s.behaviour = Math.max(0, s.behaviour - penalty);
   s.caught++;
-  const line = s.behaviour < B.troubleAt
+  noteBehaviour(s, game.teacher.perCaught, "โดนฝ่ายปกครองจับ");
+  const line = saved
+    ? `ครูปกครองจับได้ · ครูประจำชั้นเข้าไปคุยให้ · ตัดคะแนน ${penalty} แทนที่จะเป็น ${raw}`
+    : s.behaviour < B.troubleAt
     ? `ครูปกครองจับได้ · ตัดคะแนนความประพฤติ ${penalty} · เรียกผู้ปกครองแล้ว`
     : `ครูปกครองจับได้ · ตัดคะแนนความประพฤติ ${penalty}`;
   remember(s, line);
