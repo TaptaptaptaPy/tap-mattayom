@@ -48,3 +48,6 @@ EXTERNAL trustOf(charId)
 EXTERNAL gainTrust(charId, amount)
 // พรุ่งนี้รับนัดใครไว้แล้วกี่คน — รับซ้อนได้ แต่ไปได้คนเดียว
 EXTERNAL plansBooked()
+// เขาจำเรื่องที่เราทำกับเขาได้กี่เรื่อง และเรื่องล่าสุดคืออะไร
+EXTERNAL recalls(charId)
+EXTERNAL memoryOf(charId)

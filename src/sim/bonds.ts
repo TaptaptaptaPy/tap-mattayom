@@ -37,7 +37,7 @@ export function changeAffinity(s: GameState, charId: string, amount: number): vo
 
 const T = game.trust;
 // TypeScript อ่าน JSON แล้วมองคู่ [ชื่อ, เลข] เป็น (string|number)[] ต้องผ่าน unknown ก่อน
-const TRUST_FLAGS = game.trustFlags as unknown as Record<string, [string, number]>;
+const TRUST_FLAGS = game.trustFlags as unknown as Record<string, [string, number, string?]>;
 
 /** ความเชื่อใจ — คนละเรื่องกับความสนิท
  *
@@ -67,7 +67,23 @@ export function trustFromFlag(s: GameState, flag: string): void {
   const rule = TRUST_FLAGS[flag];
   if (!rule) return;
   changeTrust(s, rule[0], rule[1]);
+  // บางเรื่องเขาจำได้ และจะหยิบมาพูดเองทีหลังโดยที่เราไม่ได้ถาม
+  // นั่นคือสิ่งที่ทำให้รู้สึกว่าเขาจำได้จริง ไม่ใช่แค่ตัวเลขที่ขยับ
+  if (rule[2]) recall(s, rule[0], rule[2]);
 }
+
+/** เก็บสิ่งที่ตัวละครคนนี้จำได้เกี่ยวกับเรา */
+export function recall(s: GameState, charId: string, line: string): void {
+  const list = (s.memories[charId] ??= []);
+  if (!list.includes(line)) list.push(line);
+  if (list.length > 8) list.shift();
+}
+
+/** เรื่องล่าสุดที่เขาจำได้ — บทหยิบไปพูดเอง */
+export const lastMemory = (s: GameState, charId: string): string =>
+  s.memories[charId]?.[s.memories[charId].length - 1] ?? "";
+export const memoryCount = (s: GameState, charId: string): number =>
+  s.memories[charId]?.length ?? 0;
 
 export const trustOf = (s: GameState, charId: string) => s.trust[charId] ?? 0;
 export const trustRankOf = (s: GameState, charId: string) => trustRank(trustOf(s, charId));

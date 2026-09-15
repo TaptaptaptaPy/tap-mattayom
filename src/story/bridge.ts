@@ -3,7 +3,7 @@ import type { Story } from "inkjs/types";
 import { affinityRank, statRank, trustRank, type GameState, type StatId } from "../sim/state";
 import { clubOf } from "../sim/club";
 import { isSchoolDay } from "../sim/calendar";
-import { standingRank } from "../sim/bonds";
+import { lastMemory, memoryCount, standingRank } from "../sim/bonds";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
@@ -78,6 +78,9 @@ export function openScene(storyName: string, s: GameState, charId: string | null
     hooks.onTrust(cid, amount); return null;
   });
   story.BindExternalFunction("inviteTomorrow", (cid: string) => { hooks.onInvite(cid); return null; });
+  // ตัวละครจำเรื่องที่เราทำกับเขาได้ แล้วหยิบมาพูดเองโดยเราไม่ได้ถาม
+  story.BindExternalFunction("recalls", (cid: string) => memoryCount(s, cid));
+  story.BindExternalFunction("memoryOf", (cid: string) => lastMemory(s, cid));
   story.BindExternalFunction("plansBooked", () =>
     s.plans.filter((p) => p.day === s.dayIndex + 1 && !p.kept).length);
   story.BindExternalFunction("standing", (amount: number, why: string) => {

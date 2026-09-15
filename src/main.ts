@@ -27,6 +27,7 @@ import { hasRetake, retakeNames, retakeCost, doRetake, projectPartner, projectNa
 import { startUni, isUni, chapterName, chapterDef, rentPerWeek } from "./sim/chapter";
 import { changeAffinity, changeTrust, trustFromFlag, shiftStanding, takeSide,
          standingLabel } from "./sim/bonds";
+import { takeNews, visited } from "./sim/offscreen";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
@@ -460,6 +461,8 @@ function talkTo(charId: string, where?: string) {
   const c = chars.find((x) => x.id === charId)!;
   const story = openScene(c.story, s, charId, hooks());
   s.metToday[charId] = true;
+  // ไปหาเขาแล้ววันนี้ แรงกดดันของเขาลดลง เพราะมีคนฟัง
+  visited(s, charId);
   // ไปตามนัดที่รับไว้ทางไลน์เมื่อคืน — ได้ใจเพิ่มจากการที่ไปจริง ไม่ใช่จากบทสนทนา
   const bonus = keepPlan(s, charId);
   if (bonus) flash(`ไปตามนัด${c.name} · สนิทขึ้น +${bonus}`);
@@ -573,6 +576,8 @@ function next() {
 }
 
 function afterStep() {
+  // เรื่องที่เกิดขึ้นลับหลังต้องถูกบอก ไม่งั้นมันไม่ต่างจากไม่มีระบบนี้เลย
+  for (const line of takeNews(s)) flash(line, "bad");
   rollChat();
   save();
   const e = isTermOver(s) ? null : eventNow(s);

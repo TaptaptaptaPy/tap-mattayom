@@ -17,6 +17,8 @@ import { availableLocations, doAction, doRest, attendClass, skipClass,
 import { takeExam } from "../sim/exam";
 import { joinClub, clubToday, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
+import { changeAffinity, trustFromFlag } from "../sim/bonds";
+import { visited } from "../sim/offscreen";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          planClash } from "../sim/chat";
 import { hasHomework, doHomework } from "../sim/homework";
@@ -54,6 +56,8 @@ interface Run {
   chats: number; invites: number; kept: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
+  /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
+  offscreen: number; memories: number;
   /** ผลต่างของสองแกน (สนิท − เชื่อใจ) ต่อตัวละครหนึ่งคน ตอนจบเทอม */
   axisGap: number[];
   homeworkDone: number; homeworkMissed: number;
@@ -158,6 +162,11 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     if (appt && isPlanPeriod(s) && keepsInvite) {
       // ไปตามนัดกินช่วงเวลานั้นไปทั้งช่วง เหมือนไปนั่งคุยกับเขาจริงๆ
       keepPlan(s, appt.charId);
+      visited(s, appt.charId);
+      // ไปเจอกันแล้วย่อมมีอะไรให้ตัดสินใจ — หยิบธงของคนนั้นมาสักอันเป็นตัวแทน
+      // เทสต์นี้ไม่ได้เดินบท จึงไม่มีทางได้ธงมาเองเหมือนตอนเล่นจริง
+      // ถ้าไม่จำลองตรงนี้ ระบบความเชื่อใจกับความทรงจำจะไม่เคยถูกวัดเลย
+      rollChoice(s, appt.charId, rnd);
       kept++;
     } else if (!isLocked(s) && doesHomework && hasHomework(s) && s.energy + game.homework.energy >= 0) {
       // การบ้านกินหนึ่งช่วงเวลาเต็มๆ เหมือนในเกมจริง
@@ -232,6 +241,8 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
+    offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
+    memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
     axisGap: Object.keys(s.affinity).map((id) =>
       affinityRank(s.affinity[id] ?? 0) - trustRank(s.trust[id] ?? 0)),
     homeworkDone, homeworkMissed: s.homeworkMissed,
@@ -249,6 +260,35 @@ function play(strat: Strategy, seed: number, skill: number): Run {
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+/** ธงของแต่ละคน แยกไว้ล่วงหน้าเพื่อไม่ต้องกรองซ้ำทุกครั้ง */
+const FLAGS_BY_CHAR = (() => {
+  const out: Record<string, string[]> = {};
+  for (const [flag, rule] of Object.entries(
+        game.trustFlags as unknown as Record<string, [string, number, string?]>))
+    (out[rule[0]] ??= []).push(flag);
+  return out;
+})();
+
+/** จำลองว่าผู้เล่นตัดสินใจอะไรสักอย่างกับคนนี้
+ *
+ *  สัดส่วนต้องใกล้ของจริง: ในบทมีธง 79 อัน แต่มีแค่ 39 อันที่อยู่ในตารางความเชื่อใจ
+ *  อีกครึ่งเป็นทางเลือกที่อบอุ่นแต่ไม่ได้พิสูจน์อะไร — สนิทขึ้นโดยไม่ได้ไว้ใจขึ้น
+ *  ถ้าจำลองแต่ทางที่ขยับความเชื่อใจ สองแกนจะดูเหมือนขยับไปด้วยกันเสมอ ซึ่งไม่จริง */
+function rollChoice(s: GameState, charId: string, rnd: () => number) {
+  if (rnd() > 0.55) return;
+  const list = FLAGS_BY_CHAR[charId];
+  const provesSomething = list && rnd() < 0.49;
+  if (!provesSomething) {
+    // คุยกันสนุกดี แต่ไม่ได้มีอะไรให้พิสูจน์ตัว
+    changeAffinity(s, charId, 2 + Math.floor(rnd() * 3));
+    return;
+  }
+  const flag = list[Math.floor(rnd() * list.length)];
+  if (s.flags[flag]) return;
+  s.flags[flag] = true;
+  trustFromFlag(s, flag);
+}
 const r0 = (v: number) => Math.round(v);
 
 function runAll(strat: Strategy, skill = SKILL) { return SEEDS.map((sd) => play(strat, sd, skill)); }
@@ -372,6 +412,13 @@ console.log(`ไลน์ทำงานจริงไหม: ทักมา�
             ` · ผิดนัด ${totalInvites - totalKept} · วันที่รับนัดซ้อนกัน ${totalClash}`);
 if (totalClash === 0)
   console.log("  ← ไม่เคยรับนัดซ้อนกันเลยสักครั้ง ระบบนัดซ้อนไม่ได้ถูกทดสอบ");
+
+const offTotal = sum(allRuns.map((r) => r.offscreen));
+const memTotal = sum(allRuns.map((r) => r.memories));
+console.log(`โลกเดินตอนเราไม่อยู่ไหม: เรื่องที่เกิดลับหลังรวม ${offTotal} เรื่อง` +
+            ` · ตัวละครจำเรื่องของเราไว้รวม ${memTotal} เรื่อง`);
+if (offTotal === 0) console.log("  ← ไม่มีอะไรเกิดขึ้นลับหลังเลย ระบบนี้ไม่ได้ถูกทดสอบ");
+if (memTotal === 0) console.log("  ← ไม่มีใครจำอะไรเกี่ยวกับเราได้เลย");
 
 const rt = sum(allRuns.map((r) => r.retakesDone));
 const rtLeft = sum(allRuns.map((r) => r.retakesLeft));
