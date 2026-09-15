@@ -32,10 +32,11 @@ export interface GameState {
   seenEvents: Record<string, true>;
   caught: number;
   sleepDebt: number;
+  lastQuiz: number;
   ending: Ending | null;
 }
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -48,7 +49,7 @@ export function newState(): GameState {
     stats, affinity, flags: {}, metToday: {}, doneToday: {}, history: [],
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
-    sleepDebt: 0, ending: null,
+    sleepDebt: 0, lastQuiz: 0, ending: null,
   };
 }
 

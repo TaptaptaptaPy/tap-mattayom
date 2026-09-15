@@ -242,3 +242,101 @@ button{font-family:inherit;cursor:pointer}
   #date{font-size:17px}
   .avatar{width:34px;height:34px;border-radius:9px}
 }
+
+/* ═════════ มินิเกม ═════════ */
+
+#minigame{position:fixed;inset:0;z-index:14;display:grid;place-items:center;
+  background:rgba(10,8,16,.94);padding:16px}
+.mg{width:100%;max-width:520px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:20px;padding:18px 18px 20px;box-shadow:0 22px 60px rgba(0,0,0,.55)}
+.mgHead{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+.mgHead b{font-family:"Bai Jamjuree",sans-serif;font-size:19px}
+.mgHead span{font-size:12px;color:var(--dim)}
+.mgBar{height:4px;border-radius:3px;background:rgba(242,238,247,.12);overflow:hidden;margin-bottom:16px}
+.mgBar i{display:block;height:100%;background:var(--accent);transition:width .1s linear}
+.mgBtn{background:var(--accent);border:0;color:#1a1626;border-radius:12px;padding:12px 18px;
+  font:600 14px/1 "Noto Sans Thai",sans-serif;cursor:pointer}
+.mgBtn.wide{width:100%;margin-top:14px}
+.mgBtn:disabled{opacity:.45}
+
+/* ผลลัพธ์ */
+.mg.result{text-align:center}
+.mgScore{font-family:"Bai Jamjuree",sans-serif;font-size:52px;font-weight:700;line-height:1;margin:6px 0 12px}
+.mg.result.great .mgScore{color:#8ec7a0}
+.mg.result.good  .mgScore{color:#c8b06a}
+.mg.result.ok    .mgScore{color:#9aa6c8}
+.mg.result.bad   .mgScore{color:#c88a8a}
+.mgScore small{font-size:18px;font-weight:400;color:var(--dim)}
+.mgLine{font-size:13px;color:var(--dim);margin:4px 0;line-height:1.6}
+.mg.result .mgBtn{width:100%;margin-top:16px}
+
+/* ข้อสอบ */
+.qmeta{font-size:11.5px;color:var(--dim);margin-bottom:6px}
+.qtext{font-size:16px;line-height:1.65;margin-bottom:14px;min-height:3.3em}
+.qchoices{display:grid;gap:8px}
+.qc{background:none;border:1px solid var(--line);color:var(--ink);border-radius:12px;
+  padding:12px 14px;font:400 14px/1.4 "Noto Sans Thai",sans-serif;text-align:left;cursor:pointer}
+.qc:hover:not(:disabled){border-color:var(--accent)}
+.qc.right{border-color:#6ba883;background:rgba(107,168,131,.18)}
+.qc.wrong{border-color:#b06a6a;background:rgba(176,106,106,.16)}
+
+/* วิ่งผลัด */
+.relayInfo{font-size:12.5px;color:var(--dim);margin-bottom:10px}
+.track{position:relative;height:46px;border-radius:12px;background:rgba(242,238,247,.07);
+  border:1px solid var(--line);overflow:hidden}
+.zone{position:absolute;top:0;bottom:0;background:rgba(110,190,140,.3);border-left:2px solid #6ebe8c;
+  border-right:2px solid #6ebe8c}
+.marker{position:absolute;top:4px;bottom:4px;width:5px;border-radius:3px;background:var(--accent);
+  box-shadow:0 0 12px var(--accent)}
+.marker.hit{background:#6ebe8c;box-shadow:0 0 16px #6ebe8c}
+.marker.miss{background:#c07272;box-shadow:none}
+
+/* ดนตรี */
+.stageR{position:relative;height:250px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(242,238,247,.04),rgba(242,238,247,.09));
+  border:1px solid var(--line);display:flex}
+.lane{flex:1;border-right:1px solid rgba(242,238,247,.07)}
+.lane:last-child{border-right:0}
+.hitline{position:absolute;left:0;right:0;bottom:36px;height:3px;background:var(--accent);
+  box-shadow:0 0 14px var(--accent);z-index:2}
+.note{position:absolute;top:-36px;width:36px;height:24px;border-radius:7px;
+  background:#8fb6e0;box-shadow:0 2px 10px rgba(0,0,0,.4);opacity:0;
+  transform:translateY(0)}
+.note.hit{background:#6ebe8c}
+.note.perfect{background:#e8c98a;box-shadow:0 0 16px #e8c98a}
+.note.miss{background:#6a5f78;opacity:.4!important}
+.laneBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.laneBtn{background:rgba(242,238,247,.06);border:1px solid var(--line);color:var(--ink);
+  border-radius:12px;padding:16px 0;font:600 16px/1 "Bai Jamjuree",sans-serif;cursor:pointer}
+.laneBtn:active{background:var(--accent);color:#1a1626}
+
+/* หลบครู */
+.dodgeWrap{position:relative;text-align:center}
+.teacher{font-family:"Bai Jamjuree",sans-serif;font-size:19px;padding:26px 0;border-radius:14px;
+  border:1px solid var(--line);transition:background .2s ease,color .2s ease}
+.teacher.away{background:rgba(110,190,140,.14);color:#8ec7a0;border-color:#4d7a60}
+.teacher.watch{background:rgba(200,110,110,.18);color:#e0a0a0;border-color:#8a5a5a}
+.dodgeTrack{height:10px;border-radius:5px;background:rgba(242,238,247,.1);overflow:hidden;margin-top:14px}
+.dodgeTrack i{display:block;height:100%;background:var(--accent);transition:width .25s ease}
+.dodgeFlash{position:absolute;left:50%;top:26px;transform:translateX(-50%);
+  font-size:13px;padding:6px 14px;border-radius:999px;background:rgba(10,8,16,.85);
+  border:1px solid var(--line);animation:flashUp .7s ease forwards}
+@keyframes flashUp{0%{opacity:0;transform:translate(-50%,6px)}25%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-10px)}}
+
+/* ═════════ ฉากหลัง ═════════ */
+
+.bd{display:block;width:100%;height:100%}
+/* ฉากหลังต้องจางตรงที่มีตัวหนังสือ (ซ้ายบน) และชัดขึ้นทางขวา */
+.locbg{position:absolute;inset:0;border-radius:16px;overflow:hidden;opacity:.4;
+  -webkit-mask-image:linear-gradient(105deg,transparent 12%,rgba(0,0,0,.35) 42%,#000 100%);
+  mask-image:linear-gradient(105deg,transparent 12%,rgba(0,0,0,.35) 42%,#000 100%);
+  pointer-events:none}
+.locbg .bd{transform:scale(1.02)}
+.loc{position:relative;overflow:hidden}
+.loc .ico,.loc .nm,.loc .acts{position:relative;z-index:1}
+
+#sceneBg{position:absolute;inset:0;z-index:-1;overflow:hidden;opacity:.5;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.65) 45%,transparent 92%);
+  mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.65) 45%,transparent 92%)}
+#sceneBg .bd{height:62vh;min-height:280px}
+#scene{isolation:isolate}

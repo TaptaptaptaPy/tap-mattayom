@@ -1,5 +1,6 @@
 import type { Story } from "inkjs/types";
 import { portraitSVG, type Mood } from "./portrait";
+import { backdrop } from "./backdrop";
 
 const $ = (id: string) => document.getElementById(id)!;
 const REVEAL_MS = 16;          // ความเร็วไล่ตัวอักษร
@@ -41,9 +42,12 @@ function finishTyping(el: HTMLElement, text: string, done: () => void) {
 /** กล่องบทสนทนา: ภาพตัวละคร ป้ายชื่อ ข้อความที่ไล่ทีละตัว แล้วค่อยแสดงตัวเลือก
  *  บทบอกเองได้ว่ามีทางที่ยังเปิดไม่ได้ ผ่าน external setHint() — แสดงเป็นบรรทัดจางใต้ตัวเลือก */
 export function playScene(story: Story, speaker: string, color: string,
-                          charId: string | null, onEnd: () => void) {
+                          charId: string | null, onEnd: () => void, bg?: string) {
   const box = $("scene"), lineEl = $("line"), choiceEl = $("choices"),
-        spEl = $("speaker"), hintEl = $("hint"), artEl = $("portrait");
+        spEl = $("speaker"), hintEl = $("hint"), artEl = $("portrait"),
+        bgEl = $("sceneBg");
+  bgEl.innerHTML = bg ? backdrop(bg) : "";
+  bgEl.classList.toggle("hidden", !bg);
   box.classList.remove("hidden");
   spEl.textContent = speaker;
   (spEl as HTMLElement).style.color = color;

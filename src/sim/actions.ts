@@ -50,14 +50,14 @@ function whoIsAt(s: GameState, locId: string, period: string) {
     .map((c) => ({ id: c.id, name: c.name, color: c.color }));
 }
 
-export interface ActionResult { message: string; caught: string | null; }
+export interface ActionResult { message: string; caught: string | null; penalty: number; }
 
 export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.random): ActionResult | null {
   const a = loc.action;
   if (!a) return null;
-  if (loc.blocked) return { message: loc.blocked, caught: null };
+  if (loc.blocked) return { message: loc.blocked, caught: null, penalty: 0 };
   const why = canAfford(s, a.energy, a.cost ?? 0);
-  if (why) return { message: why, caught: null };
+  if (why) return { message: why, caught: null, penalty: 0 };
 
   const times = s.doneToday[loc.id] ?? 0;
   const got = applyStat(s, a.stat, a.gain, times);
@@ -71,12 +71,12 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
   if (times > 0) message += " (ทำซ้ำวันนี้ ได้น้อยลง)";
   if (a.cost) message += ` · -${a.cost} บาท`;
 
-  let caught: string | null = null;
+  let caught: string | null = null, penalty = 0;
   if (loc.risky && loc.catchBase) {
     const r = rollCatch(s, loc.catchBase, rnd);
-    if (r.caught) caught = r.message;
+    if (r.caught) { caught = r.message; penalty = r.penalty; }
   }
-  return { message, caught };
+  return { message, caught, penalty };
 }
 
 export function doRest(s: GameState, loc: LocationOption): string | null {
@@ -97,5 +97,5 @@ export function skipClass(s: GameState, rnd: Rnd = Math.random): ActionResult {
   const got = applyStat(s, "nerve", 4, 0);
   const r = rollCatch(s, 0.34, rnd);
   if (!r.caught) remember(s, "โดดคาบเรียนแล้วรอด");
-  return { message: `โดดคาบ · ความซ่า +${got.toFixed(1)}`, caught: r.message };
+  return { message: `โดดคาบ · ความซ่า +${got.toFixed(1)}`, caught: r.message, penalty: r.penalty };
 }

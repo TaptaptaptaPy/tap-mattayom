@@ -14,9 +14,11 @@ export function examById(id: string) {
 
 /** คะแนนสอบ = ปัญญาที่สะสมมาทั้งเทอม + การทบทวนช่วงใกล้สอบ
  *  ฝืนเข้าห้องสอบทั้งที่หมดแรง คะแนนตก — เป็นเหตุผลให้ระบบแรงมีความหมาย */
-export function takeExam(s: GameState, id: string): ExamReport {
+/** quizScore 0..1 = ผลจากมินิเกมห้องสอบ · 0.5 คือทำได้กลางๆ
+ *  ความรู้ที่สะสมมาทั้งเทอมยังเป็นฐานหลัก มินิเกมเป็นตัวคูณ ไม่ใช่ตัวตัดสินทั้งหมด */
+export function takeExam(s: GameState, id: string, quizScore = 0.5): ExamReport {
   const def = examById(id);
-  let raw = s.stats.mind * E.mindWeight + s.study * E.studyWeight;
+  let raw = (s.stats.mind * E.mindWeight + s.study * E.studyWeight) * (0.72 + quizScore * 0.56);
   const tired = s.energy < game.energy.lowThreshold;
   if (tired) raw *= 1 - E.energyPenalty;
 
@@ -29,6 +31,7 @@ export function takeExam(s: GameState, id: string): ExamReport {
   s.exams[id] = { score, rank };
   s.study *= 0.35;   // สอบเสร็จแล้วความพร้อมรีเซ็ตเกือบหมด ต้องทบทวนใหม่รอบหน้า
   const note = tired ? "เข้าห้องสอบทั้งที่หลับไม่พอ คะแนนหายไปส่วนหนึ่ง" : "";
+  s.lastQuiz = quizScore;
   remember(s, `${def.name} ได้ ${score} คะแนน อันดับที่ ${rank} ของห้อง`);
   return { id, name: def.name, score, rank, classSize: E.classSize, note };
 }

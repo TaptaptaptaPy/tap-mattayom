@@ -11,10 +11,13 @@ import { takeExam } from "./sim/exam";
 import { computeEnding } from "./sim/ending";
 import { behaviourLabel } from "./sim/discipline";
 import { buy, use, gift } from "./sim/shop";
+import { escapeCatch } from "./sim/discipline";
+import { openMinigame } from "./ui/minigame";
 import { openScene } from "./story/bridge";
 import { playScene, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
+import { backdrop, hasEventArt } from "./ui/backdrop";
 import { portraitSVG } from "./ui/portrait";
 import * as P from "./ui/panels";
 import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotId } from "./core/save";
@@ -91,7 +94,8 @@ function renderBoard() {
   for (const loc of availableLocations(s)) {
     const card = document.createElement("div");
     card.className = "loc" + (loc.blocked ? " blocked" : "");
-    card.innerHTML = `<div class="ico">${icon(loc.id)}</div><div class="nm">${loc.name}</div>`;
+    card.innerHTML = `<div class="locbg">${backdrop(loc.id)}</div>
+      <div class="ico">${icon(loc.id)}</div><div class="nm">${loc.name}</div>`;
 
     const acts = document.createElement("div");
     acts.className = "acts";
@@ -103,7 +107,7 @@ function renderBoard() {
       const rank = affinityRank(s.affinity[p.id] ?? 0);
       b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
         <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${rank}</em></span>`;
-      b.onclick = () => talkTo(p.id);
+      b.onclick = () => talkTo(p.id, loc.id);
       acts.appendChild(b);
     }
 
@@ -111,8 +115,16 @@ function renderBoard() {
       const b = document.createElement("button");
       b.className = "act club";
       b.textContent = loc.club.label;
-      b.onclick = () => {
-        const r = doClubActivity(s, s.doneToday[loc.id] ?? 0);
+      b.onclick = async () => {
+        const club = clubOf(s);
+        const mg = club?.id === "music" ? "rhythm" : club?.id === "sport" ? "relay" : null;
+        let mult = 1;
+        if (mg) {
+          const res = await openMinigame(mg, 1);
+          mult = 0.6 + res.score * 0.9;
+          flash(`${res.label} · ${res.detail}`);
+        }
+        const r = doClubActivity(s, s.doneToday[loc.id] ?? 0, mult);
         if (r) { flash(r.message); s.doneToday[loc.id] = (s.doneToday[loc.id] ?? 0) + 1; }
         next();
       };
@@ -127,9 +139,12 @@ function renderBoard() {
       b.innerHTML = `${a.label}<em>${a.energy < 0 ? `แรง ${a.energy}` : `แรง +${a.energy}`}` +
         `${a.cost ? ` · ${a.cost} บาท` : ""}${times ? " · ทำแล้ววันนี้" : ""}</em>`;
       b.disabled = !!loc.blocked;
-      b.onclick = () => {
+      b.onclick = async () => {
         const r = doAction(s, loc);
-        if (r) { flash(r.message); if (r.caught) flash(r.caught, "bad"); }
+        if (r) {
+          flash(r.message);
+          if (r.caught) await runDodge(r.caught, r.penalty);
+        }
         next();
       };
       acts.appendChild(b);
@@ -158,7 +173,8 @@ function renderClassroom(board: HTMLElement) {
   const card = document.createElement("div");
   card.className = "loc wide";
   const flagRaised = s.doneToday["_assembly"] > 0;
-  card.innerHTML = `<div class="ico">${icon("assembly")}</div>
+  card.innerHTML = `<div class="locbg">${backdrop("assembly")}</div>
+    <div class="ico">${icon("assembly")}</div>
     <div class="nm">เข้าแถวหน้าเสาธง แล้วเข้าเรียน</div>`;
   const acts = document.createElement("div");
   acts.className = "acts";
@@ -177,10 +193,10 @@ function renderClassroom(board: HTMLElement) {
   const b2 = document.createElement("button");
   b2.className = "act risky";
   b2.innerHTML = "โดดคาบ<em>ความซ่า + · เสี่ยงโดนจับ</em>";
-  b2.onclick = () => {
+  b2.onclick = async () => {
     const r = skipClass(s);
     flash(r.message);
-    if (r.caught) flash(r.caught, "bad");
+    if (r.caught) await runDodge(r.caught, r.penalty);
     next();
   };
   acts.appendChild(b2);
@@ -193,7 +209,7 @@ function renderClassroom(board: HTMLElement) {
     b.style.borderColor = p.color;
     b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
       <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${affinityRank(s.affinity[p.id] ?? 0)}</em></span>`;
-    b.onclick = () => talkTo(p.id);
+    b.onclick = () => talkTo(p.id, "classroom");
     acts.appendChild(b);
   }
   card.appendChild(acts);
@@ -225,17 +241,18 @@ function hooks() {
   };
 }
 
-function talkTo(charId: string) {
+function talkTo(charId: string, where?: string) {
   const c = chars.find((x) => x.id === charId)!;
   const story = openScene(c.story, s, charId, hooks());
   s.metToday[charId] = true;
   remember(s, `คุยกับ${c.name}`);
-  playScene(story, c.name, c.color, charId, () => next());
+  playScene(story, c.name, c.color, charId, () => next(), where);
 }
 
 function playInk(name: string, charId: string | null, speaker: string, color: string, onEnd: () => void) {
   const story = openScene(name, s, charId, hooks());
-  playScene(story, speaker, color, charId, onEnd);
+  const bg = hasEventArt(name) ? name : name === "assembly" ? "assembly" : undefined;
+  playScene(story, speaker, color, charId, onEnd, bg);
 }
 
 // ───────────────────────── เหตุการณ์ตามปฏิทิน ─────────────────────────
@@ -253,8 +270,11 @@ function handleEvent(e: TermEvent): boolean {
   remember(s, e.name);
 
   if (e.exam) {
-    const r = takeExam(s, e.exam);
-    P.examPanel(r, () => { P.closePanel(); skipToNextDay(); afterStep(); });
+    void (async () => {
+      const mg = await openMinigame("quiz", e.exam === "final" ? 2 : 1);
+      const r = takeExam(s, e.exam!, mg.score);
+      P.examPanel(r, () => { P.closePanel(); skipToNextDay(); afterStep(); });
+    })();
     return true;
   }
   if (e.holiday && !e.ink) {
@@ -267,6 +287,17 @@ function handleEvent(e: TermEvent): boolean {
     if (e.wholeDay || e.holiday) skipToNextDay();
     afterStep();
   };
+  if (e.id === "sports_day") {
+    void (async () => {
+      const club = clubOf(s);
+      const res = await openMinigame(club?.id === "music" ? "rhythm" : "relay", 2);
+      s.stats.heart += 2 + res.score * 6;
+      if (club) s.stats[club.stat as StatId] += res.score * 6;
+      flash(`กีฬาสี · ${res.detail}`);
+      playInk(e.ink ?? "ev_sports_day", null, e.name, "#cfc8e8", finish);
+    })();
+    return true;
+  }
   if (e.ink) { playInk(e.ink, null, e.name, "#cfc8e8", finish); return true; }
   finish();
   return true;
@@ -335,6 +366,15 @@ function openBag() {
     onUse: (id) => { flash(use(s, id)); save(); renderTop(); openBag(); },
     onGift: (id, cid) => { flash(gift(s, id, cid)); save(); openBag(); },
   });
+}
+
+/** โดนจับได้ = ได้โอกาสหลบหนึ่งครั้ง ถ้าเอาตัวรอดได้ก็ไม่โดนตัดคะแนน */
+async function runDodge(message: string, penalty: number) {
+  flash("ครูปกครองเห็นแล้ว!", "bad");
+  const res = await openMinigame("dodge");
+  if (res.score >= 0.6) { escapeCatch(s, penalty); flash("เอาตัวรอดมาได้ ไม่โดนตัดคะแนน"); }
+  else flash(message, "bad");
+  renderTop();
 }
 
 function flash(msg: string, kind: "ok" | "bad" = "ok") {

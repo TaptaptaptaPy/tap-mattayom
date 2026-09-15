@@ -24,10 +24,10 @@ export function joinClub(s: GameState, id: string) {
 
 export interface ClubOutcome { message: string; members: string[]; }
 
-export function doClubActivity(s: GameState, times: number): ClubOutcome | null {
+export function doClubActivity(s: GameState, times: number, mult = 1): ClubOutcome | null {
   const c = clubToday(s);
   if (!c) return null;
-  const got = applyStat(s, c.stat as StatId, c.gain, times);
+  const got = applyStat(s, c.stat as StatId, c.gain * mult, times);
   s.energy = Math.max(0, s.energy + c.energy);
   if ("study" in c && typeof c.study === "number") s.study += c.study;
   if ("behaviourPerWeek" in c && typeof c.behaviourPerWeek === "number")
