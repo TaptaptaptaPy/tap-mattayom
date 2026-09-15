@@ -84,20 +84,25 @@ const SCENES: Record<string, string> = {
     <rect x="0" y="16" width="400" height="10" fill="#8a5f5a" opacity=".6"/>
     <path d="M0 26h400" stroke="#6a4642" stroke-width="3"/>`,
   arcade: `
-    <defs>${sky("g", "#221a38", "#140f22")}</defs>
+    <defs>${sky("g", "#2a1f3e", "#140f22")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <g>
-      <rect x="24" y="30" width="72" height="108" rx="6" fill="#2e2448"/>
-      <rect x="34" y="42" width="52" height="38" rx="3" fill="#6ec8e0" opacity=".8"/>
-      <circle cx="46" cy="98" r="6" fill="#e06a8a"/><circle cx="64" cy="98" r="6" fill="#e8c96a"/>
-      <rect x="120" y="22" width="76" height="116" rx="6" fill="#33264f"/>
-      <rect x="130" y="34" width="56" height="42" rx="3" fill="#8ae0a0" opacity=".8"/>
-      <circle cx="144" cy="96" r="6" fill="#7fb2e8"/><circle cx="162" cy="96" r="6" fill="#e06a8a"/>
-      <rect x="220" y="34" width="70" height="104" rx="6" fill="#2a2044"/>
-      <rect x="230" y="46" width="50" height="36" rx="3" fill="#e8a06a" opacity=".8"/>
-    </g>
-    <g opacity=".8"><rect x="300" y="24" width="86" height="26" rx="6" fill="#e06a8a"/>
-      <path d="M312 37h62" stroke="#fff" stroke-width="3" opacity=".7"/></g>`,
+    <rect x="0" y="118" width="400" height="32" fill="#241a33"/>
+    <rect x="0" y="115" width="400" height="4" fill="#3a2b4e"/>
+    ${Array.from({ length: 5 }, (_, i) => {
+      const x = 14 + i * 78, c = ["#e8557a", "#5bc8e8", "#e8b24a", "#8a6ae8", "#4ad98a"][i];
+      return `<g>
+        <rect x="${x}" y="46" width="58" height="72" rx="4" fill="#332545"/>
+        <rect x="${x + 5}" y="52" width="48" height="30" rx="3" fill="${c}" opacity=".85"/>
+        <rect x="${x + 5}" y="52" width="48" height="30" rx="3" fill="none" stroke="#1b1329" stroke-width="2"/>
+        <circle cx="${x + 16}" cy="94" r="5" fill="${c}"/>
+        <circle cx="${x + 30}" cy="94" r="5" fill="#e8e2f2" opacity=".6"/>
+        <rect x="${x + 8}" y="104" width="42" height="5" rx="2" fill="#4a3a63"/>
+      </g>`;
+    }).join("")}
+    <g fill="#e8557a" opacity=".22">${Array.from({ length: 5 }, (_, i) =>
+      `<ellipse cx="${43 + i * 78}" cy="70" rx="42" ry="30"/>`).join("")}</g>
+    <g stroke="#5bc8e8" stroke-width="2" opacity=".4" fill="none">
+      <path d="M0 26h400"/><path d="M0 34h400"/></g>`,
   tutorschool: `
     <defs>${sky("g", "#28304a", "#181c2c")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
@@ -120,16 +125,23 @@ const SCENES: Record<string, string> = {
     </g>
     <g fill="#4a5a3c"><ellipse cx="44" cy="106" rx="30" ry="16"/><ellipse cx="358" cy="104" rx="34" ry="18"/></g>`,
   home: `
-    <defs>${sky("g", "#221d33", "#151120")}</defs>
+    <defs>${sky("g", "#3a2f4a", "#221a2e")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="104" width="400" height="46" fill="#241e30"/>
-    <rect x="60" y="40" width="130" height="66" fill="#33283f"/>
-    <path d="M52 40l73-26 73 26z" fill="#5a3f4a"/>
-    <rect x="86" y="58" width="34" height="26" rx="2" fill="#e8c98a" opacity=".85"/>
-    <rect x="140" y="58" width="30" height="48" rx="2" fill="#3f3250"/>
-    <g stroke="#3a3048" stroke-width="3" fill="none"><path d="M230 104V58q0-16 18-16t18 16v46"/></g>
-    <g fill="#2f2840"><rect x="286" y="66" width="58" height="40" rx="4"/></g>
-    <circle cx="330" cy="30" r="12" fill="#e8e2f0" opacity=".22"/>`,
+    <rect x="0" y="116" width="400" height="34" fill="#4a3a52"/>
+    <rect x="0" y="113" width="400" height="4" fill="#63506b"/>
+    <rect x="22" y="24" width="150" height="90" rx="3" fill="#2e2440"/>
+    <rect x="30" y="32" width="134" height="60" rx="2" fill="#5b4a72" opacity=".55"/>
+    <g stroke="#221a2e" stroke-width="3" fill="none"><path d="M97 32v60M30 62h134"/></g>
+    <g fill="#e8c98a" opacity=".5"><rect x="34" y="36" width="56" height="22" rx="2"/></g>
+    <rect x="200" y="62" width="86" height="52" rx="3" fill="#6b5340"/>
+    <rect x="206" y="56" width="74" height="8" rx="3" fill="#8a6b52"/>
+    <g fill="#4e3d5e">${Array.from({ length: 4 }, (_, i) =>
+      `<rect x="${212 + i * 18}" y="70" width="12" height="20" rx="2"/>`).join("")}</g>
+    <rect x="304" y="78" width="76" height="36" rx="3" fill="#57466a"/>
+    <rect x="310" y="72" width="64" height="8" rx="3" fill="#6d5a82"/>
+    <g fill="#e8c98a" opacity=".85"><circle cx="342" cy="40" r="9"/></g>
+    <g stroke="#6d5a82" stroke-width="2"><path d="M342 20v12"/></g>
+    <g fill="#e8c98a" opacity=".16"><ellipse cx="342" cy="58" rx="46" ry="26"/></g>`,
   assembly: `
     <defs>${sky("g", "#2e4160", "#1b2436")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
@@ -197,35 +209,50 @@ const SCENES: Record<string, string> = {
     </g>`,
 
   parttime: `
-    <defs>${sky("g", "#342a2a", "#1e1818")}</defs>
+    <defs>${sky("g", "#dfe8ec", "#a9bcc6")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="104" width="400" height="46" fill="#3b2f28"/>
-    <rect x="30" y="96" width="340" height="10" rx="3" fill="#6b5240"/>
-    <g fill="#8a6a4a">
-      <rect x="60" y="30" width="90" height="60" rx="4"/><rect x="250" y="30" width="90" height="60" rx="4"/>
-    </g>
-    <g fill="#e0c48a" opacity=".5">
-      <rect x="72" y="42" width="66" height="7" rx="2"/><rect x="72" y="56" width="50" height="7" rx="2"/>
-      <rect x="262" y="42" width="66" height="7" rx="2"/><rect x="262" y="56" width="42" height="7" rx="2"/>
-    </g>
-    <path d="M186 60q8-14 0-26M204 60q8-14 0-26" stroke="#d8c9a4" stroke-width="3" fill="none" opacity=".45"/>
-    <rect x="178" y="62" width="40" height="30" rx="4" fill="#c9a06a" opacity=".8"/>`,
+    <rect x="0" y="0" width="400" height="16" fill="#3f7a5e"/>
+    <rect x="0" y="16" width="400" height="4" fill="#2d5a45"/>
+    <rect x="0" y="112" width="400" height="38" fill="#c8cfd4"/>
+    <rect x="0" y="109" width="400" height="4" fill="#9aa6ae"/>
+    <g>${Array.from({ length: 3 }, (_, i) => {
+      const x = 16 + i * 124;
+      const shelves = [46, 66, 86].map((y) =>
+        `<rect x="${x + 4}" y="${y}" width="96" height="3" fill="#b9c6cc"/>` +
+        Array.from({ length: 6 }, (_, k) =>
+          `<rect x="${x + 8 + k * 15}" y="${y - 11}" width="11" height="11" rx="2"
+            fill="${["#d88a6a", "#6aa8d8", "#d8c46a", "#8ad8a0", "#c78ad8", "#d8a06a"][(k + i) % 6]}"
+            opacity=".85"/>`).join(""));
+      return `<rect x="${x}" y="30" width="104" height="80" rx="3" fill="#eef3f5"/>
+              <rect x="${x}" y="30" width="104" height="80" rx="3" fill="none" stroke="#a8b6bd" stroke-width="2"/>
+              ${shelves.join("")}`;
+    }).join("")}</g>
+    <rect x="248" y="86" width="140" height="26" rx="3" fill="#8a949b"/>
+    <rect x="248" y="82" width="140" height="6" rx="2" fill="#aab4bb"/>
+    <rect x="292" y="58" width="52" height="24" rx="3" fill="#3b4a54"/>
+    <rect x="298" y="64" width="40" height="12" rx="2" fill="#7fd0b0" opacity=".8"/>`,
 
   bar: `
-    <defs>${sky("g", "#2a1e28", "#150f16")}</defs>
+    <defs>${sky("g", "#3b2437", "#1c1220")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="108" width="400" height="42" fill="#2e222c"/>
-    <rect x="24" y="100" width="352" height="10" rx="3" fill="#5c3f4e"/>
-    <g fill="#7a5468" opacity=".9">
-      <rect x="44" y="22" width="312" height="66" rx="4"/>
-    </g>
-    <g fill="#e8a0b8" opacity=".35">
-      <circle cx="90" cy="46" r="9"/><circle cx="140" cy="40" r="9"/><circle cx="190" cy="48" r="9"/>
-      <circle cx="240" cy="40" r="9"/><circle cx="290" cy="46" r="9"/>
-    </g>
-    <g fill="#c9b08a">
-      <path d="M120 100l-8-16h16zM200 100l-8-16h16zM280 100l-8-16h16z"/>
-    </g>`,
+    <rect x="0" y="96" width="400" height="54" fill="#2a1a26"/>
+    <rect x="0" y="92" width="400" height="6" rx="2" fill="#6d4a3a"/>
+    <rect x="0" y="16" width="400" height="52" fill="#241725"/>
+    <g fill="#8a5f4a">${Array.from({ length: 4 }, (_, i) =>
+      `<rect x="${18 + i * 96}" y="22" width="86" height="6" rx="2"/>
+       <rect x="${18 + i * 96}" y="46" width="86" height="6" rx="2"/>`).join("")}</g>
+    <g>${Array.from({ length: 14 }, (_, i) => {
+      const x = 24 + i * 26, tall = i % 3 === 0;
+      return `<rect x="${x}" y="${tall ? 28 : 30}" width="9" height="${tall ? 18 : 16}" rx="2"
+               fill="${["#c98a4a", "#7aa86a", "#b05a5a", "#d0b06a"][i % 4]}" opacity=".85"/>`;
+    }).join("")}</g>
+    ${Array.from({ length: 4 }, (_, i) =>
+      `<g><rect x="${52 + i * 92}" y="112" width="30" height="7" rx="3" fill="#5b3e30"/>
+       <rect x="${64 + i * 92}" y="119" width="6" height="26" fill="#4a3226"/></g>`).join("")}
+    <g fill="#f0c98a" opacity=".55">${[70, 200, 330].map((x) =>
+      `<ellipse cx="${x}" cy="14" rx="26" ry="16"/>`).join("")}</g>
+    <g stroke="#3a2a33" stroke-width="2" fill="none">${[70, 200, 330].map((x) =>
+      `<path d="M${x} 0v6"/>`).join("")}</g>`,
 
   clubroom: `
     <defs>${sky("g", "#2e2a42", "#1b1828")}</defs>
@@ -243,31 +270,45 @@ const SCENES: Record<string, string> = {
     <circle cx="228" cy="101" r="7" fill="#e8c98a" opacity=".7"/>`,
 
   dorm: `
-    <defs>${sky("g", "#262a3c", "#151723")}</defs>
+    <defs>${sky("g", "#33405c", "#1c2436")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="116" width="400" height="34" fill="#232634"/>
-    <rect x="34" y="20" width="150" height="96" rx="4" fill="#333a50"/>
-    <g fill="#e8c98a" opacity=".38">
-      <rect x="48" y="32" width="26" height="20" rx="2"/><rect x="86" y="32" width="26" height="20" rx="2"/>
-      <rect x="124" y="32" width="26" height="20" rx="2"/>
-      <rect x="48" y="62" width="26" height="20" rx="2"/><rect x="124" y="62" width="26" height="20" rx="2"/>
-      <rect x="86" y="92" width="26" height="20" rx="2"/>
-    </g>
-    <rect x="228" y="70" width="140" height="10" rx="3" fill="#5c4f6a"/>
-    <rect x="234" y="80" width="128" height="30" rx="4" fill="#443a52"/>
-    <rect x="244" y="56" width="42" height="16" rx="4" fill="#6b5f7e" opacity=".8"/>`,
+    <rect x="0" y="114" width="400" height="36" fill="#3d4256"/>
+    <rect x="0" y="111" width="400" height="4" fill="#556078"/>
+    <rect x="18" y="40" width="120" height="74" rx="3" fill="#48506b"/>
+    <rect x="18" y="34" width="120" height="8" rx="3" fill="#5c6685"/>
+    <rect x="26" y="48" width="104" height="26" rx="2" fill="#2c3247"/>
+    <g fill="#7d8aab">${Array.from({ length: 4 }, (_, i) =>
+      `<rect x="${32 + i * 25}" y="78" width="18" height="28" rx="2"/>`).join("")}</g>
+    <rect x="156" y="66" width="106" height="48" rx="3" fill="#5a4a52"/>
+    <rect x="152" y="58" width="114" height="10" rx="4" fill="#8a6f76"/>
+    <rect x="162" y="44" width="40" height="16" rx="6" fill="#d8ccc4"/>
+    <rect x="286" y="26" width="96" height="88" rx="3" fill="#2a3246"/>
+    <rect x="294" y="34" width="80" height="60" rx="2" fill="#6f86b5" opacity=".55"/>
+    <g stroke="#1c2436" stroke-width="3" fill="none"><path d="M334 34v60M294 64h80"/></g>
+    <g fill="#e8d0a0" opacity=".9"><circle cx="240" cy="30" r="7"/></g>
+    <g fill="#e8d0a0" opacity=".14"><ellipse cx="240" cy="48" rx="40" ry="22"/></g>`,
 
   barber: `
-    <defs>${sky("g", "#2a2e3c", "#171a24")}</defs>
+    <defs>${sky("g", "#efe4d2", "#bda98c")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="112" width="400" height="38" fill="#252936"/>
-    <rect x="60" y="26" width="280" height="86" rx="4" fill="#333a4a"/>
-    <rect x="86" y="42" width="100" height="56" rx="3" fill="#4d5468" opacity=".8"/>
-    <rect x="214" y="42" width="100" height="56" rx="3" fill="#4d5468" opacity=".8"/>
-    <g fill="#e8e0d0" opacity=".5"><circle cx="136" cy="62" r="13"/><circle cx="264" cy="62" r="13"/></g>
-    <rect x="34" y="34" width="14" height="70" rx="7" fill="#c85a5a" opacity=".8"/>
-    <rect x="34" y="34" width="14" height="70" rx="7" fill="none" stroke="#e8e0d0" stroke-width="3"
-      stroke-dasharray="9 9" opacity=".7"/>`,
+    <rect x="0" y="110" width="400" height="40" fill="#5c4a38"/>
+    <rect x="0" y="107" width="400" height="4" fill="#7a6248"/>
+    <rect x="18" y="26" width="212" height="82" rx="3" fill="#cdb79a"/>
+    <rect x="24" y="32" width="200" height="56" rx="2" fill="#e7f0ee" opacity=".7"/>
+    <g fill="#8d7458">${Array.from({ length: 3 }, (_, i) =>
+      `<rect x="${34 + i * 66}" y="88" width="46" height="8" rx="3"/>
+       <rect x="${52 + i * 66}" y="96" width="10" height="12"/>
+       <rect x="${40 + i * 66}" y="60" width="34" height="30" rx="12" fill="#6d5742"/>`).join("")}</g>
+    <g>
+      <rect x="262" y="34" width="16" height="74" rx="8" fill="#f2ece2"/>
+      ${Array.from({ length: 6 }, (_, i) =>
+        `<path d="M262 ${40 + i * 12} l16 -7 v7 l-16 7z" fill="${i % 2 ? "#4a6fb0" : "#c3474a"}"/>`).join("")}
+      <rect x="258" y="28" width="24" height="8" rx="3" fill="#b9a68d"/>
+      <rect x="258" y="106" width="24" height="8" rx="3" fill="#b9a68d"/>
+    </g>
+    <rect x="302" y="44" width="80" height="64" rx="3" fill="#b9a88e"/>
+    <g fill="#7d684f">${Array.from({ length: 3 }, (_, i) =>
+      `<rect x="${310 + i * 24}" y="${52 + (i % 2) * 18}" width="16" height="22" rx="2"/>`).join("")}</g>`,
 };
 
 const EVENT_SCENES: Record<string, string> = {
