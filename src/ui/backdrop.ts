@@ -401,20 +401,25 @@ const EVENT_SCENES: Record<string, string> = {
       ${Array.from({ length: 12 }, (_, i) => `<path d="M${20 + i * 34} 20v10"/>`).join("")}</g>`,
 };
 
+const PLAIN = new Set(scenes.plain as string[]);
+const TIMED = scenes.timed as Record<string, string>;
+
 /** สถานที่ไหนมีภาพวาดจริงแล้วบ้าง — ที่เหลือยังเป็น SVG ที่วาดจากโค้ด */
-export const hasPhoto = (id: string) => id in scenes.places;
+export const hasPhoto = (id: string) => id in TIMED || PLAIN.has(id);
 
 /** ภาพฉาก — ถ้าสถานที่นั้นมีภาพวาดจริงจะได้ภาพ ถ้าไม่มีก็ได้ SVG เหมือนเดิม
  *
- *  `period` คือช่วงเวลาของวัน ชุดภาพให้มาสถานที่ละสี่แบบ (กลางวัน เย็น กลางคืนเปิดไฟ กลางคืนปิดไฟ)
- *  ซึ่งพอดีกับที่เกมแบ่งวันเป็นสี่ช่วงอยู่แล้ว ห้องเรียนตอนเช้ากับตอนเย็นจึงไม่ใช่ภาพเดียวกันอีกต่อไป
+ *  ภาพมาจากสองชุดที่ให้ของมาไม่เหมือนกัน จึงต้องจัดการคนละแบบ
+ *  - ชุดที่ให้มาสี่ช่วงเวลาต่อหนึ่งที่ (ห้องเรียน โรงอาหาร) ใช้ภาพคนละใบไปเลย แสงถูกวาดมาจริง
+ *  - ชุดที่ให้ภาพเดียวต่อหนึ่งที่ ไล่สีทับตอนรันตามช่วงเวลา
+ *  ผลที่ได้คือทุกที่ในเกมรู้สึกถึงเวลาของวัน ไม่ใช่แค่สองที่
  */
 export function backdrop(id: string, period?: string): string {
-  const photo = (scenes.places as Record<string, string>)[id];
-  if (photo) {
-    const t = (scenes.periods as Record<string, string>)[period ?? "noon"] ?? "day";
-    return `<img class="bd" src="/assets/scenes/${photo}-${t}.jpg" alt="" loading="eager">`;
-  }
+  const t = (scenes.periods as Record<string, string>)[period ?? "noon"] ?? "day";
+  const timed = TIMED[id];
+  if (timed) return `<img class="bd" src="/assets/scenes/${timed}-${t}.jpg" alt="" loading="eager">`;
+  if (PLAIN.has(id))
+    return `<span class="bdt tod-${t}"><img src="/assets/scenes/${id}.jpg" alt="" loading="eager"></span>`;
   return svgBackdrop(id);
 }
 

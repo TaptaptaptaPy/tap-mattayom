@@ -40,7 +40,7 @@ test("ฉากหลังทุกฉากเรียงกัน — ต้
     const cells: string[] = [];
     for (const id of ids) {
       if (m.hasPhoto(id))
-        for (const p of Object.keys(scenes.periods))
+        for (const p of ["morning", "after", "night"])
           cells.push(`<figure><div class="b">${m.backdrop(id, p)}</div>
                       <figcaption>${id} · ${p}</figcaption></figure>`);
       else cells.push(`<figure><div class="b">${m.backdrop(id)}</div><figcaption>${id}</figcaption></figure>`);

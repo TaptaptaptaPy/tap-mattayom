@@ -1,13 +1,17 @@
 {
   "_note": "สถานที่ที่มีภาพวาดจริง ที่เหลือยังใช้ภาพ SVG ที่วาดจากโค้ดใน src/ui/backdrop.ts",
-  "credit": "Pandita Studio · VN Backgrounds School Vol.1 (ชุดฟรี) · ใช้เชิงพาณิชย์ได้ ห้ามขายต่อตัวไฟล์",
-  "_periods": "ชุดนี้ให้ภาพสถานที่ละสี่แบบ พอดีกับที่เกมแบ่งวันเป็นสี่ช่วงอยู่แล้ว",
+  "_credit": "ห้องเรียนกับโรงอาหาร = Pandita Studio · ที่เหลือ = ชุด School 61 ภาพ",
+  "_periods": "ช่วงเวลาของเกมสี่ช่วง → ชื่อภาพ/ชื่อคลาสไล่สี",
   "periods": { "morning": "day", "noon": "day", "after": "dusk", "night": "lit" },
-  "_places": "lecture กับ faccant ใช้ภาพร่วมกับของมัธยม เพราะเป็นห้องเรียนกับโรงอาหารเหมือนกัน",
-  "places": {
+  "_timed": "ชุด Pandita ให้ภาพจริงมาสี่ช่วงเวลา ใช้ภาพคนละใบไปเลย ดีกว่าไล่สีเอา",
+  "timed": {
     "classroom": "classroom",
-    "canteen": "canteen",
-    "lecture": "classroom",
-    "faccant": "canteen"
-  }
+    "canteen": "canteen"
+  },
+  "_plain": "ชุด School ให้ภาพเดียวต่อที่ แสงในภาพถูกวาดมาแล้ว จึงไล่สีทับตอนรันแทน",
+  "plain": [
+    "library", "backfield", "musicroom", "tutorschool", "assembly",
+    "lecture", "unilib", "faccant", "clubroom",
+    "ev_wai_kru", "ev_sports_day", "ev_farewell", "epilogue", "epilogue_uni"
+  ]
 }
