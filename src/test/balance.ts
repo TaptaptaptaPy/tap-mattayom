@@ -25,6 +25,7 @@ import { claim } from "../sim/claims";
 import { postBoard, tutor, myBoardRank } from "../sim/board";
 import { isSick } from "../sim/push";
 import { milestoneToday, runMilestone } from "../sim/milestone";
+import { seenWith } from "../sim/seen";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -66,6 +67,8 @@ interface Run {
   pushes: number; dozes: number; sickDays: number;
   /** ไปซ้อมชมรมกี่ครั้ง และวันงานใหญ่ได้ระดับไหน (-1 = ไม่ได้อยู่ชมรมที่มีงาน) */
   clubDays: number; milestoneTier: number; bigCount: number;
+  /** กี่ครั้งที่คนที่นัดเราไว้เห็นเราอยู่กับอีกคน · เรื่องแพร่ไปทั้งวงกี่ครั้ง */
+  caughtOut: number; gossips: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -130,7 +133,7 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
   let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
   let lied = 0, tutored = 0, pushes = 0, dozes = 0, sickDays = 0, milestoneTier = -1;
   // ต้องจำไว้ตอนวันงาน ไม่ใช่ไปอ่านตอนจบ — ขึ้นปีหนึ่งแล้ว s.clubDays ถูกล้างเป็น 0
-  let milestoneAttended = 0, bigCount = 0;
+  let milestoneAttended = 0, bigCount = 0, caughtOut = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -223,6 +226,8 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     if (appt && isPlanPeriod(s) && keepsInvite) {
       // ไปตามนัดกินช่วงเวลานั้นไปทั้งช่วง เหมือนไปนั่งคุยกับเขาจริงๆ
       keepPlan(s, appt.charId);
+      // ที่ที่ไปเจอกันมีคนอื่นอยู่ด้วย — คนที่นัดเราไว้เหมือนกันจะเห็นกับตา
+      caughtOut += seenWith(s, appt.charId).filter((w) => w.hadPlan).length;
       visited(s, appt.charId);
       // ไปเจอกันแล้วย่อมมีอะไรให้ตัดสินใจ — หยิบธงของคนนั้นมาสักอันเป็นตัวแทน
       // เทสต์นี้ไม่ได้เดินบท จึงไม่มีทางได้ธงมาเองเหมือนตอนเล่นจริง
@@ -313,7 +318,8 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
     lied, caughtLying: s.history.filter((h) => h.includes("พูดไม่ตรงกัน")).length,
     boardRank: myBoardRank(s), tutored, pushes, dozes, sickDays,
-    clubDays: milestoneAttended, milestoneTier, bigCount,
+    clubDays: milestoneAttended, milestoneTier, bigCount, caughtOut,
+    gossips: s.history.filter((h) => h.includes("เรื่องนี้ไปถึง")).length,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
@@ -546,6 +552,14 @@ else if (tierCount[0] === withBig.length)
   console.log("  ← ทุกรอบตกระดับล่างสุด เกณฑ์การซ้อมสูงเกินไปจนไม่มีทางทำได้");
 else if (tierCount[3] === withBig.length)
   console.log("  ← ทุกรอบได้ระดับสูงสุด งานใหญ่ไม่ได้วัดอะไรเลย");
+const totalSeenOut = sum(allRuns.map((r) => r.caughtOut));
+const totalGossip = sum(allRuns.map((r) => r.gossips));
+console.log(`การเลือกมีพยานไหม: คนที่นัดเราไว้เห็นเราอยู่กับอีกคน ${totalSeenOut} ครั้ง` +
+            ` · เรื่องแพร่ไปทั้งวง ${totalGossip} ครั้ง`);
+if (totalSeenOut === 0)
+  console.log("  ← ไม่เคยมีใครเห็นเราอยู่กับอีกคนเลย ระบบพยานไม่ถูกทดสอบ (ดู where ใน characters.json)");
+if (totalGossip === 0)
+  console.log("  ← เรื่องไม่เคยแพร่ไปถึงใครเลย ระเบิดแบบ Tokimeki ยังไม่ทำงาน");
 console.log(`ฝืนต่อทั้งที่หมดแรง: ฝืนรวม ${totalPushes} ครั้ง · หลับในคาบ ${totalDozes} ครั้ง` +
             ` · ล้มป่วยเสียทั้งวัน ${totalSick} วัน`);
 if (totalPushes === 0)

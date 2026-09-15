@@ -60,8 +60,39 @@ export function stepLives(s: GameState): void {
     changeTrust(s, c.id, hit * 0.5);
     remember(s, line);
     s.offscreenNews.push(line);
+    gossip(s, c.id);
     if (s.offscreenNews.length > 6) s.offscreenNews.shift();
   }
+}
+
+/** เขาเอาเรื่องของเราไปเล่าให้เพื่อนฟัง
+ *
+ *  Tokimeki Memorial เรียกระบบนี้ว่า "ระเบิด" — คนที่ถูกปล่อยไว้นานพอจะไม่ได้แค่เสียใจ
+ *  เขาไปเล่าให้เพื่อนฟัง แล้วความสัมพันธ์กับทั้งวงลดลงพร้อมกัน ผู้เล่นที่จีบหลายคน
+ *  จึงต้องวางแผนจริงๆ ไม่ใช่แค่เลือกคนที่ชอบที่สุดแล้วทุ่มให้คนเดียว
+ *
+ *  เกมนี้มีแผนที่ว่าใครคุยกับใครอยู่แล้ว (`bonds` ใน characters.json) และ
+ *  `changeAffinity()` ก็กระจายระลอกให้อยู่แล้ว — แต่ระลอกนั้นเล็กเกินกว่าจะรู้สึก
+ *  ระเบิดคือระลอกที่ *ตั้งใจให้รู้สึก* และเกิดเฉพาะตอนที่เราปล่อยเขาไว้จนมีเรื่อง
+ *
+ *  กติกาเดิมยังอยู่: ผู้เล่นต้องได้รู้ว่ามันเกิด
+ */
+function gossip(s: GameState, fromId: string): void {
+  const src = chars.find((c) => c.id === fromId) as { bonds?: Record<string, number> } | undefined;
+  const bonds = src?.bonds ?? {};
+  const told: string[] = [];
+  for (const [other, weight] of Object.entries(bonds)) {
+    if (weight < O.gossipMinBond) continue;
+    const c = chars.find((x) => x.id === other);
+    if (!c || !inChapter(c as { chapter?: string }, chapterOf(s))) continue;
+    changeAffinity(s, other, O.gossipHit * weight / O.gossipMinBond);
+    told.push(c.name);
+  }
+  if (!told.length) return;
+  const line = `เรื่องนี้ไปถึง${told.join("กับ")}แล้ว`;
+  remember(s, line);
+  s.offscreenNews.push(line);
+  s.flags["gossip_spread"] = true;
 }
 
 /** เรื่องที่เพิ่งรู้ว่าเกิดขึ้นตอนเราไม่อยู่ — ฝั่ง UI เอาไปขึ้นให้เห็นแล้วล้างทิ้ง */

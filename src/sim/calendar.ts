@@ -77,6 +77,7 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     s.periodIndex = 0;
     s.dayIndex++;
     s.metToday = {};
+    s.seenToday = {};
     s.doneToday = {};
     // นอนแล้วฟื้นแรง แต่หนี้การนอนจากคืนที่ฝืนจะตามมาหักในวันถัดไป
     // หนี้ถูกทยอยใช้คืน ไม่ใช่ล้างทิ้งทุกเช้า — ไม่งั้นฝืนติดกันสิบคืนก็เท่ากับฝืนคืนเดียว

@@ -102,6 +102,8 @@ export interface GameState {
   board: Record<string, BoardRow[]>;
   /** เราติวให้ใครไปกี่ครั้ง */
   tutored: Record<string, number>;
+  /** ใครเห็นเราอยู่กับคนอื่นไปแล้ววันนี้ — วันละครั้งต่อคน ล้างทุกเช้าพร้อม metToday */
+  seenToday: Record<string, true>;
   /** ไปซ้อมชมรมมาแล้วกี่ครั้งทั้งเทอม — ฐานของผลงานในวันงานใหญ่ */
   clubDays: number;
   /** งานใหญ่ของชมรมผ่านไปแล้วหรือยัง เทอมละครั้งเดียว */
@@ -123,7 +125,8 @@ export interface GameState {
 // 14: เพิ่มคำพูดที่ไม่ตรงกัน (claims)
 // 15: เพิ่มกระดานประกาศผลและการติวให้เพื่อน (board · tutored)
 // 16: เพิ่มงานใหญ่ของชมรม (clubDays · milestoneDone)
-export const SAVE_VERSION = 16;
+// 17: เพิ่มการถูกเห็นตอนอยู่กับอีกคน (seenToday)
+export const SAVE_VERSION = 17;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -143,7 +146,7 @@ export function newState(): GameState {
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plans: [],
-    lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {}, clubDays: 0, milestoneDone: false,
+    lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {}, clubDays: 0, milestoneDone: false, seenToday: {},
   };
 }
 

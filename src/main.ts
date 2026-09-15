@@ -19,6 +19,7 @@ import { buy, use, gift } from "./sim/shop";
 import { escapeCatch } from "./sim/discipline";
 import { openMinigame, type MgKind } from "./ui/minigame";
 import { milestoneToday, runMilestone } from "./sim/milestone";
+import { seenWith } from "./sim/seen";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
          keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
@@ -504,6 +505,11 @@ function talkTo(charId: string, where?: string) {
   // ไปตามนัดที่รับไว้ทางไลน์เมื่อคืน — ได้ใจเพิ่มจากการที่ไปจริง ไม่ใช่จากบทสนทนา
   const bonus = keepPlan(s, charId);
   if (bonus) flash(`ไปตามนัด${c.name} · สนิทขึ้น +${bonus}`);
+  // ที่ที่เราไปนั่งคุยกันมีคนอื่นอยู่ด้วยเสมอ — การเลือกจึงมีพยาน ไม่ใช่เรื่องของเรากับตัวเลข
+  for (const w of seenWith(s, charId)) {
+    if (w.hadPlan) { sfx.stood(); flash(`${w.name}นั่งอยู่ตรงนั้นด้วย และวันนี้เรานัดเขาไว้`, "bad"); }
+    else flash(`${w.name}อยู่ตรงนั้นด้วย`);
+  }
   remember(s, `คุยกับ${c.name}`);
   playScene(story, c.name, c.color, charId, () => next(), where, periodId(s));
 }
