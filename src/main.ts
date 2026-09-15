@@ -10,6 +10,7 @@ import { availableLocations, doAction, doRest, attendClass, skipClass,
 import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
 import { takeExam } from "./sim/exam";
 import { computeEnding } from "./sim/ending";
+import { epilogues, selfEpilogue } from "./sim/epilogue";
 import { behaviourLabel } from "./sim/discipline";
 import { buy, use, gift } from "./sim/shop";
 import { escapeCatch } from "./sim/discipline";
@@ -110,8 +111,10 @@ function renderBoard() {
     const e = s.ending ?? computeEnding(s);
     board.innerHTML = `<div class="end"><b>${e.tier}</b>
       <small>คะแนนรวมทั้งเทอม ${e.score}</small>
-      <button id="bSeeEnd">ดูสรุปเทอม</button></div>`;
+      <button id="bSeeEnd">ดูสรุปเทอม</button>
+      <button id="bSeeEpi">ดูปลายทางของแต่ละคน</button></div>`;
     $("bSeeEnd").onclick = () => P.endingPanel(e, P.closePanel);
+    $("bSeeEpi").onclick = () => playEpilogues(() => renderBoard());
     return;
   }
 
@@ -448,10 +451,28 @@ function talkTo(charId: string, where?: string) {
   playScene(story, c.name, c.color, charId, () => next(), where);
 }
 
-function playInk(name: string, charId: string | null, speaker: string, color: string, onEnd: () => void) {
+function playInk(name: string, charId: string | null, speaker: string, color: string,
+                 onEnd: () => void, bgOverride?: string) {
   const story = openScene(name, s, charId, hooks());
-  const bg = hasEventArt(name) ? name : name === "assembly" ? "assembly" : undefined;
+  const bg = bgOverride ?? (hasEventArt(name) ? name : name === "assembly" ? "assembly" : undefined);
   playScene(story, speaker, color, charId, onEnd, bg);
+}
+
+/** ฉากจบรายตัวละคร — เล่นก่อนแผงสรุปเทอม เรียงจากคนที่สนิทที่สุด แล้วปิดท้ายด้วยเรื่องของเราเอง
+ *  นี่คือที่เดียวที่ธงของทางเลือกเล็กๆ ทั้งเทอมถูกอ่านกลับออกมา */
+function playEpilogues(done: () => void) {
+  const uni = isUni(s);
+  const bg = uni ? "epilogue_uni" : "epilogue";
+  const queue: { ink: string; charId: string | null; name: string; color: string }[] =
+    epilogues(s).map((e) => ({ ink: e.ink, charId: e.charId, name: e.name, color: e.color }));
+  const self = selfEpilogue(s);
+  if (self) queue.push({ ink: self, charId: null, name: "หลังจากนั้น", color: "#cfc8e8" });
+  const next = () => {
+    const item = queue.shift();
+    if (!item) { done(); return; }
+    playInk(item.ink, item.charId, item.name, item.color, next, bg);
+  };
+  next();
 }
 
 // ───────────────────────── เหตุการณ์ตามปฏิทิน ─────────────────────────
@@ -488,17 +509,19 @@ function handleEvent(e: TermEvent): boolean {
     if (e.pickClub && !s.club) { P.clubPickPanel((id) => { joinClub(s, id); P.closePanel(); afterStep(); }); return; }
     if (e.ending) {
       const en = computeEnding(s);
-      sfx.ending();
       // จบมัธยมแล้วยังไม่จบเกม — ปีหนึ่งรออยู่ ถ้าไม่ได้ไปเรียนต่อก็จบตรงนี้จริงๆ
       const goesOn = !isUni(s) && en.score >= game.carryOver.minScoreToUni;
-      P.endingPanel(en, () => { P.closePanel(); afterStep(); },
-        goesOn ? { label: "เข้าสู่ปีหนึ่ง", fn: () => {
-          startUni(s, en);
-          P.closePanel();
-          save();
-          flash("ปีหนึ่ง · เทอมแรกในมหาวิทยาลัย");
-          afterStep();
-        } } : undefined);
+      playEpilogues(() => {
+        sfx.ending();
+        P.endingPanel(en, () => { P.closePanel(); afterStep(); },
+          goesOn ? { label: "เข้าสู่ปีหนึ่ง", fn: () => {
+            startUni(s, en);
+            P.closePanel();
+            save();
+            flash("ปีหนึ่ง · เทอมแรกในมหาวิทยาลัย");
+            afterStep();
+          } } : undefined);
+      });
       return;
     }
     if (e.wholeDay || e.holiday) skipToNextDay();

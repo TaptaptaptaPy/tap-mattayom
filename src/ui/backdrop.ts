@@ -270,6 +270,36 @@ const SCENES: Record<string, string> = {
 };
 
 const EVENT_SCENES: Record<string, string> = {
+  /** ฉากจบรายคน — ห้องเรียนตอนเย็นหลังคนกลับหมด เก้าอี้คว่ำบนโต๊ะ */
+  epilogue: `
+    <defs>${sky("g", "#f0c48a", "#8c6a8e")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="104" width="400" height="46" fill="#5a4436"/>
+    <rect x="0" y="100" width="400" height="6" fill="#6e5442"/>
+    <g fill="#7b5c46">${Array.from({ length: 7 }, (_, i) =>
+      `<rect x="${18 + i * 54}" y="72" width="36" height="30" rx="3"/>`).join("")}</g>
+    <g fill="#8a6a50" opacity=".9">${Array.from({ length: 7 }, (_, i) =>
+      `<rect x="${26 + i * 54}" y="58" width="20" height="16" rx="2"/>
+       <rect x="${24 + i * 54}" y="54" width="24" height="5" rx="2"/>`).join("")}</g>
+    <g stroke="#ffe9c0" stroke-width="1.5" opacity=".35" fill="none">
+      <path d="M0 108h400"/><path d="M60 0v104"/><path d="M330 0v104"/></g>
+    <circle cx="336" cy="34" r="16" fill="#ffe2a8" opacity=".55"/>`,
+
+  /** ฉากจบปีหนึ่ง — หน้าหอตอนหอปิด กล่องกองอยู่หน้าประตู */
+  epilogue_uni: `
+    <defs>${sky("g", "#e8b98c", "#4a3a56")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="112" width="400" height="38" fill="#3a3040"/>
+    <rect x="30" y="34" width="150" height="78" fill="#4e4258"/>
+    <g fill="#ffd89a" opacity=".75">${Array.from({ length: 8 }, (_, i) =>
+      `<rect x="${42 + (i % 4) * 34}" y="${46 + Math.floor(i / 4) * 28}" width="20" height="16" rx="2"/>`).join("")}</g>
+    <rect x="96" y="82" width="26" height="30" rx="2" fill="#2e2636"/>
+    <g fill="#b08a5e">${Array.from({ length: 4 }, (_, i) =>
+      `<rect x="${200 + i * 30}" y="${94 - i * 2}" width="26" height="18" rx="2"/>`).join("")}</g>
+    <g stroke="#2e2636" stroke-width="1" opacity=".5" fill="none">${Array.from({ length: 4 }, (_, i) =>
+      `<path d="M${200 + i * 30} ${103 - i * 2}h26"/>`).join("")}</g>
+    <circle cx="358" cy="40" r="14" fill="#ffe2a8" opacity=".5"/>`,
+
   ev_wai_kru: `
     <defs>${sky("g", "#3a2f48", "#221b2e")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>

@@ -27,7 +27,8 @@
       "minta": 0.12,
       "palm": 0.1
     },
-    "chapter": "school"
+    "chapter": "school",
+    "epilogue": "epi_ploy"
   },
   {
     "id": "kanin",
@@ -57,7 +58,8 @@
       "minta": 0.06,
       "palm": 0.1
     },
-    "chapter": "school"
+    "chapter": "school",
+    "epilogue": "epi_kanin"
   },
   {
     "id": "minta",
@@ -86,7 +88,8 @@
       "kanin": 0.06,
       "palm": 0.1
     },
-    "chapter": "school"
+    "chapter": "school",
+    "epilogue": "epi_minta"
   },
   {
     "id": "palm",
@@ -116,7 +119,8 @@
       "stat": "kind",
       "value": 7,
       "hint": "ถ้าน้ำใจถึง 7 ปาล์มจะเล่าว่าทำไมถึงย้ายโรงเรียน"
-    }
+    },
+    "epilogue": "epi_palm"
   },
   {
     "id": "tar",
@@ -144,7 +148,8 @@
       "stat": "nerve",
       "value": 10,
       "hint": "ถ้าความซ่าถึง 10 ต้าร์จะพาไปที่ที่รุ่นพี่เขาไปกัน"
-    }
+    },
+    "epilogue": "epi_tar"
   },
   {
     "id": "nun",
@@ -172,6 +177,7 @@
       "stat": "kind",
       "value": 9,
       "hint": "ถ้าน้ำใจถึง 9 นุ่นจะเล่าว่าที่บ้านเป็นยังไง"
-    }
+    },
+    "epilogue": "epi_nun"
   }
 ]

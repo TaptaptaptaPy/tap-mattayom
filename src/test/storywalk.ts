@@ -164,4 +164,77 @@ for (const f of files) {
 }
 
 console.log(bad ? `\nมีบทที่เดินแล้วมีปัญหา ${bad} ไฟล์` : `\nเดินครบทุกเส้นทางแล้ว ไม่เจอทางตัน`);
-process.exit(bad ? 1 : 0);
+
+const srcAll = files.map((f) => readFileSync(join(dir, f), "utf8")).join("\n");
+const srcAllFlags = () => [...srcAll.matchAll(/setFlag\("([a-z0-9_]+)"\)/g)].map((m) => m[1]);
+
+// ───────────────────── ฉากจบรายคนตอบสนองจริงไหม ─────────────────────
+// ฉากจบทั้งไฟล์เป็นเงื่อนไขล้วน ไม่มีทางเลือกสักอัน การเดินแบบปกติจึงได้แต่ทางที่ "ไม่มีธงเลย"
+// ถ้าเขียนเงื่อนไขผิดหรือสะกดชื่อธงผิด มันจะเงียบสนิท ไม่มี error ไม่มีบรรทัดหาย
+// ต้องเดินสองรอบเทียบกัน: รอบที่ไม่ตัดสินใจอะไรเลย กับรอบที่ตัดสินใจครบทุกอย่าง
+const epiFiles = files.filter((f) => f.startsWith("epi_"));
+const allFlags = new Set([...srcAllFlags()]);
+let epiBad = 0;
+console.log("\nฉากจบรายคน");
+for (const f of epiFiles) {
+  const src = readFileSync(join(dir, f), "utf8").replace(/^INCLUDE\s+.+$/gm, shared);
+  const run = (flags: Set<string>) => {
+    const st: Stat = { lines: 0, choices: 0, endings: 0, hints: [], calls: {} };
+    const story = build(src, st.calls, flags, st.hints);
+    // ค่าสถานะของคนที่เล่นมาเต็มเทอม เพื่อให้กิ่งที่อ่าน behaviour/standingRank ถูกเดินด้วย
+    if (flags.size) for (const [k, v] of Object.entries({ behaviour: 68, standingRank: 4, homeworkMissed: 13 }))
+      { try { story.variablesState[k] = v; } catch { /* บทนี้ไม่ได้ประกาศ */ } }
+    let text = "";
+    while (story.canContinue) { text += story.Continue(); st.lines++; }
+    return { lines: st.lines, chars: text.trim().length };
+  };
+  const bare = run(new Set());
+  const full = run(new Set(allFlags));
+  const ok = full.chars > bare.chars * 1.2 && bare.chars > 0;
+  if (!ok) epiBad++;
+  console.log(`${ok ? "  ok  " : "  พัง  "} ${f.padEnd(18)} ` +
+              `ไม่ตัดสินใจอะไรเลย ${String(bare.chars).padStart(4)} ตัวอักษร · ` +
+              `ตัดสินใจครบ ${String(full.chars).padStart(4)} ตัวอักษร`);
+  if (!ok) console.log("         ← ฉากจบนี้แทบไม่เปลี่ยนตามสิ่งที่ผู้เล่นทำ เงื่อนไขอาจสะกดชื่อธงผิด");
+}
+
+// ───────────────────── ธงที่ไม่มีใครอ่าน ─────────────────────
+// ทางเลือกที่ตั้งธงไว้แล้วไม่มีใครอ่านธงนั้น = ทางเลือกที่ผู้เล่นคิดนาน แต่เกมลืมทันที
+// ตอนตรวจครั้งแรกเจอ 79 ตั้ง / 34 อ่าน — ค้าง 45 อัน ทั้งหมดเป็นฉากที่เขียนมาแล้วไม่ได้ใช้
+// เทสต์นี้กันไม่ให้มันกลับมาอีก ถ้าเขียนทางเลือกใหม่ต้องมีที่ให้มันไปออก
+
+const tsDir = join(process.cwd(), "src");
+const tsFiles: string[] = [];
+(function collect(d: string) {
+  for (const e of readdirSync(d, { withFileTypes: true }))
+    if (e.isDirectory()) collect(join(d, e.name));
+    else if (e.name.endsWith(".ts")) tsFiles.push(join(d, e.name));
+})(tsDir);
+const tsAll = tsFiles.map((f) => readFileSync(f, "utf8")).join("\n");
+
+const grab = (re: RegExp, text: string) =>
+  new Set([...text.matchAll(re)].map((m) => m[1]));
+
+const setFlags = grab(/setFlag\("([a-z0-9_]+)"\)/g, srcAll);
+const readInk = grab(/hasFlag\("([a-z0-9_]+)"\)/g, srcAll);
+const readTs = new Set([
+  ...grab(/s\.flags\[["']([a-z0-9_]+)["']\]/g, tsAll),
+  ...grab(/^\s*\[\s*"([a-z0-9_]+)",\s*"/gm, tsAll),   // ตาราง deep ใน ending.ts
+]);
+const readAll = new Set([...readInk, ...readTs]);
+
+const orphans = [...setFlags].filter((f) => !readAll.has(f)).sort();
+const dangling = [...readAll].filter((f) => !setFlags.has(f) && /_/.test(f)).sort();
+
+console.log(`\nธงการตัดสินใจ: ตั้ง ${setFlags.size} · อ่าน ${[...readAll].filter((f) => setFlags.has(f)).length}`);
+if (orphans.length) {
+  console.log(`  ← ธงที่ตั้งแล้วไม่มีใครอ่าน ${orphans.length} อัน (ทางเลือกที่ไม่ส่งผลอะไรเลย):`);
+  for (let i = 0; i < orphans.length; i += 6)
+    console.log(`     ${orphans.slice(i, i + 6).join("  ")}`);
+}
+if (dangling.length)
+  console.log(`  ← ธงที่มีคนอ่านแต่ไม่มีใครตั้ง ${dangling.length} อัน: ${dangling.join("  ")}`);
+
+const flagBad = orphans.length > 0 || dangling.length > 0 || epiBad > 0;
+if (!flagBad) console.log("  ทุกทางเลือกมีปลายทางของมัน");
+process.exit(bad || flagBad ? 1 : 0);
