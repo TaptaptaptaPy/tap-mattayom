@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+// หน้าวิธีเล่นเปิดเองครั้งแรกที่เล่น ซึ่งจะบังทุกภาพในไฟล์นี้
+// เทสต์ที่อยากดูหน้านั้นจริงๆ เรียก __mattayom.showHow() เอง
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try { localStorage.setItem("mattayom:seenHow", "1"); } catch { /* โหมดส่วนตัว */ }
+  });
+});
+
 /** แผ่นภาพรวม — วาดของทุกชิ้นลงหน้าเดียวแล้วถ่ายทีเดียว
  *
  *  นี่คือเทสต์ที่สำคัญที่สุดในไฟล์นี้ บั๊ก id ซ้ำใน SVG โผล่ก็ต่อเมื่อมีหลายชิ้น

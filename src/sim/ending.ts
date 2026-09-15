@@ -2,6 +2,8 @@ import game from "../../data/game.json";
 import chars from "../../data/characters.json";
 import { termScore } from "./exam";
 import { clubOf } from "./club";
+import { homeLevel, homeName, homeOf } from "./home";
+import { teacherName } from "./teacher";
 import { standingLabel } from "./bonds";
 import { gpa, gradeOf, bestWorst, SUBJECTS } from "./grades";
 import { retakePenalty, retakeNames } from "./schoolwork";
@@ -96,14 +98,28 @@ export function computeEnding(s: GameState): Ending {
   const statAvg = Object.values(s.stats).reduce((a, b) => a + b, 0) / 5;
   const statScore = Math.min(100, (statAvg / 55) * 100);
 
+  // ครูประจำชั้นเขียนหนังสือรับรองให้ — ในระบบจริงนี่คือเกณฑ์หนึ่งที่มีน้ำหนักจริง
+  const teacherScore = s.teacher;
+  // ผลงานที่เป็นชิ้นเป็นอัน ไม่ใช่แค่ค่าสถานะที่ได้จากการไปซ้อม
+  // `clubScore` วัดว่าเราเก่งขึ้นแค่ไหน · อันนี้วัดว่าเคยทำอะไรให้ใครเห็นบ้าง
+  const folioScore = s.milestoneDone
+    ? (s.flags["milestone_won"] ? 100 : s.flags["milestone_flopped"] ? 25 : 60) : 0;
+  // บ้านที่มีเรื่องไม่ได้ทำให้เราเป็นคนไม่ดี มันทำให้เราอ่านหนังสือไม่ออก — จึงเป็นตัวหัก
+  const homePenalty = Math.min(1, homeOf(s).strain / game.home.strainMax) * EN.homePenalty;
+
   // ชื่อเสียงคือสิ่งที่คนที่ไม่รู้จักเราใช้ตัดสินเรา — กรรมการสอบสัมภาษณ์ก็เป็นคนกลุ่มนั้น
-  const score = Math.round(
-    exams * (1 - EN.behaviourWeight - EN.clubWeight - EN.statWeight - EN.standingWeight - EN.gpaWeight) +
+  const carried = EN.behaviourWeight + EN.clubWeight + EN.statWeight + EN.standingWeight +
+                  EN.gpaWeight + EN.teacherWeight + EN.folioWeight;
+  const score = Math.max(0, Math.round(
+    exams * (1 - carried) +
     behaviour * EN.behaviourWeight +
     clubScore * EN.clubWeight +
     statScore * EN.statWeight +
     s.standing * EN.standingWeight +
-    (gpa(s) / 4) * 100 * EN.gpaWeight);
+    (gpa(s) / 4) * 100 * EN.gpaWeight +
+    teacherScore * EN.teacherWeight +
+    folioScore * EN.folioWeight -
+    homePenalty));
 
   const tier = EN.tiers.find((t) => score >= t.min) ?? EN.tiers[EN.tiers.length - 1];
 
@@ -132,6 +148,15 @@ export function computeEnding(s: GameState): Ending {
   if (bw && (s.grades[bw.best.id] ?? 0) - (s.grades[bw.worst.id] ?? 0) > 12)
     lines.push(`แข็ง${bw.best.name} อ่อน${bw.worst.name}`);
   lines.push(`ชื่อเสียงในโรงเรียน: ${standingLabel(s.standing)} (${Math.round(s.standing)})`);
+  lines.push(`ครูประจำชั้น: ${teacherName(s)} (${Math.round(s.teacher)})`);
+  if (s.milestoneDone)
+    lines.push(`งานใหญ่ของชมรม: ${s.flags["milestone_won"] ? "ทำได้ดีจนมีคนพูดถึง"
+      : s.flags["milestone_flopped"] ? "ผ่านไปโดยไม่มีใครจำ" : "ผ่านไปได้"}` +
+      ` (ไปซ้อมมา ${s.clubDays} ครั้ง)`);
+  else if (club) lines.push("งานใหญ่ของชมรม: ไม่ได้ขึ้นเวที");
+  if (homeOf(s).gave > 0)
+    lines.push(`ส่งเงินให้ที่บ้าน ${homeOf(s).gave} รอบ รวม ${homeOf(s).given} บาท`);
+  if (homeLevel(s) > 0) lines.push(`ที่บ้าน: ${homeName(s)}`);
   if (s.homeworkMissed > 0)
     lines.push(`ไม่ได้ส่งการบ้านรวม ${s.homeworkMissed} ชิ้น`);
   if (s.sided) {

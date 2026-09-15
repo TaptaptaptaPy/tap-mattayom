@@ -724,6 +724,8 @@ const save = () => writeSlot("auto", s, metaOf());
 
 function openMenu() {
   P.menuPanel(s, {
+    onHow: () => { P.closePanel(); P.howToPanel(() => { P.closePanel(); openMenu(); }); },
+    onDiary: () => { P.closePanel(); P.diaryPanel(s, () => { P.closePanel(); openMenu(); }); },
     slots: SLOTS.map((id) => {
       const m = slotMeta(id);
       return {
@@ -795,9 +797,20 @@ if (import.meta.env.DEV)
     { get s() { return s; }, render, next, save, openChatList, rollChat, playEpilogues,
       epilogues: () => epilogues(s),
       // เปิดกระดานประกาศผลโดยไม่ต้องเล่นถึงวันสอบจริง — เทสต์ภาพใช้
+      showHow: () => P.howToPanel(() => P.closePanel()),
+      showDiary: () => P.diaryPanel(s, () => P.closePanel()),
       showBoard: (examId = "midterm") => P.boardPanel(postBoard(s, examId), () => P.closePanel()) };
 
 // เปิดเกมมา ถ้ามีเหตุการณ์ค้างอยู่ตรงช่วงเวลานี้ ให้เล่นก่อน
+// เกมนี้มีระบบซ้อนกันสิบกว่าอย่าง ถ้าไม่มีอะไรบอกเลย ผู้เล่นจะไม่มีทางรู้ว่ามีอะไรให้ทำบ้าง
+// (เป็นเหตุผลเดียวกับที่เคยต้องตัดขอบเขตของอีกเกมทิ้งทั้งชั้น)
+try {
+  if (localStorage.getItem("mattayom:seenHow") !== "1") {
+    P.howToPanel(() => { P.closePanel(); render(); });
+    localStorage.setItem("mattayom:seenHow", "1");
+  }
+} catch { /* โหมดส่วนตัวก็เล่นได้ */ }
+
 const startEvent = isTermOver(s) ? null : eventNow(s);
 if (startEvent) { renderTop(); handleEvent(startEvent); }
 else render();

@@ -470,3 +470,23 @@ button{font-family:inherit;cursor:pointer}
 .act.tired{opacity:.72;border-style:dashed}
 .act.tired::after{content:"ต้องฝืน";font-size:11px;color:var(--dim);margin-left:6px}
 .chip.debt i{background:rgba(214,120,120,.3)}
+
+/* หน้าวิธีเล่น — ต้องอ่านได้รวดเดียวบนจอเดียว ไม่ใช่กำแพงตัวหนังสือ
+   หัวข้อหนาแล้วขึ้นบรรทัดใหม่ เพราะคนอ่านจะกวาดหาหัวข้อก่อนเสมอ */
+.howto{display:grid;gap:9px;margin-top:6px}
+.hrow{border:1px solid var(--line);border-radius:11px;padding:9px 12px;
+  font-size:13px;line-height:1.75;color:var(--dim)}
+.hrow b{display:block;font-family:"Bai Jamjuree",sans-serif;font-size:14px;
+  color:var(--ink);font-weight:600;margin-bottom:2px}
+.hrow em{font-style:normal;color:var(--ink)}
+
+/* สมุดบันทึกของเทอม — 200 บรรทัดต้องเลื่อนได้และกรองได้ ไม่งั้นอ่านไม่ออกเหมือนเดิม */
+.dtabs{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}
+.dtab{border:1px solid var(--line);background:none;color:var(--dim);border-radius:999px;
+  padding:5px 13px;font-family:"Bai Jamjuree",sans-serif;font-size:13px;cursor:pointer}
+.dtab.is-on{border-color:rgba(228,160,183,.55);color:var(--ink);background:rgba(228,160,183,.14)}
+.diary{max-height:52vh;overflow-y:auto;display:grid;gap:5px;
+  border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.dline{font-size:13px;line-height:1.7;color:var(--dim);
+  padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05)}
+.dline:last-child{border-bottom:none;padding-bottom:0}

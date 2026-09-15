@@ -113,6 +113,8 @@ export function calendarPanel(s: GameState) {
 }
 
 export interface MenuHandlers {
+  onHow: () => void;
+  onDiary: () => void;
   slots: { id: string; label: string; desc: string; has: boolean }[];
   onSave: (id: string) => void;
   onLoad: (id: string) => void;
@@ -130,17 +132,22 @@ export function menuPanel(s: GameState, hx: MenuHandlers) {
       <span><button data-save="${sl.id}">บันทึก</button>
       <button data-load="${sl.id}" ${sl.has ? "" : "disabled"}>โหลด</button>
       <button data-wipe="${sl.id}" class="danger" ${sl.has ? "" : "disabled"}>ลบ</button></span></div>`;
+  h += `<hr><div class="row"><span>วิธีเล่น<small>ระบบทั้งหมดของเกมในหน้าเดียว</small></span>
+    <button data-how="1">เปิด</button></div>`;
   h += `<hr><div class="row"><span>เริ่มเทอมใหม่<small>ความคืบหน้าที่ยังไม่บันทึกจะหายไป</small></span>
     <button data-new="1" class="danger">เริ่มใหม่</button></div>`;
   if (s.history.length) {
-    h += `<hr><h3>สิ่งที่เกิดขึ้นมาแล้ว</h3>`;
-    for (const line of s.history.slice(-12).reverse()) h += `<div class="sub">${line}</div>`;
+    h += `<hr><div class="row"><span>สมุดบันทึกของเทอม<small>${s.history.length} เรื่องที่เกิดขึ้นมาแล้ว</small></span>
+      <button data-diary="1">เปิด</button></div>`;
+    for (const line of s.history.slice(-4).reverse()) h += `<div class="sub">${line}</div>`;
   }
   const p = open(h);
+  p.querySelector<HTMLButtonElement>("[data-diary]")?.addEventListener("click", hx.onDiary);
   p.querySelectorAll<HTMLButtonElement>("[data-save]").forEach((b) => (b.onclick = () => hx.onSave(b.dataset.save!)));
   p.querySelectorAll<HTMLButtonElement>("[data-load]").forEach((b) => (b.onclick = () => hx.onLoad(b.dataset.load!)));
   p.querySelectorAll<HTMLButtonElement>("[data-wipe]").forEach((b) => (b.onclick = () => hx.onWipe(b.dataset.wipe!)));
   p.querySelector<HTMLButtonElement>("[data-new]")!.onclick = hx.onNew;
+  p.querySelector<HTMLButtonElement>("[data-how]")!.onclick = hx.onHow;
 }
 
 export function clubPickPanel(onPick: (id: string) => void) {
@@ -255,6 +262,75 @@ export function milestonePanel(r: MilestoneResult, onClose: () => void) {
   for (const line of r.lines) h += `<div class="row"><span>${line}</span></div>`;
   if (r.tier === 0)
     h += `<p class="dimline">สมัครไว้แต่แทบไม่ได้ไป วันนี้คือวันที่ทั้งโรงเรียนได้เห็นพร้อมกัน</p>`;
+  open(h, onClose);
+}
+
+/** สมุดบันทึกของเทอม
+ *
+ *  `remember()` เก็บไว้ 200 บรรทัด แต่เมนูเคยโชว์แค่ 12 บรรทัดสุดท้ายและเลื่อนดูไม่ได้
+ *  ตอนนี้ทุกระบบเขียนลงสมุดนี้ (กระดาน · คำโกหก · งานชมรม · ครู · ที่บ้าน · เรื่องลับหลัง)
+ *  แปลว่าบันทึกของทั้งเทอมมีอยู่จริงแต่ผู้เล่นอ่านไม่ได้ ซึ่งเท่ากับไม่มี
+ *
+ *  กรองตามหมวดได้ เพราะ 200 บรรทัดเรียงกันรวดเดียวก็อ่านไม่ออกเหมือนกัน */
+const DIARY_TABS: { id: string; name: string; match: RegExp }[] = [
+  { id: "all", name: "ทั้งหมด", match: /./ },
+  { id: "people", name: "คน", match: /ไปตามนัด|ผิดนัด|เห็นเราอยู่กับ|พูดไม่ตรงกัน|เรื่องนี้ไปถึง|คุยกับ|ติว/ },
+  { id: "school", name: "โรงเรียน", match: /สอบ|การบ้าน|เกรด|กระดาน|ชมรม|ครู|ซ่อม|งานกลุ่ม|ผม|ปกครอง/ },
+  { id: "home", name: "ที่บ้าน", match: /ที่บ้าน|ค่าขนม|แม่|ลุกไม่ไหว|หลับในคาบ/ },
+];
+
+export function diaryPanel(s: GameState, onClose: () => void) {
+  let tab = "all";
+  const p = open("", onClose);
+  const draw = () => {
+    const re = DIARY_TABS.find((t) => t.id === tab)!.match;
+    const rows = s.history.filter((l) => re.test(l)).reverse();
+    let h = `<h2>สมุดบันทึกของเทอม<small>${rows.length} จาก ${s.history.length} เรื่อง</small></h2>
+      <div class="dtabs">` +
+      DIARY_TABS.map((t) => `<button class="dtab${t.id === tab ? " is-on" : ""}" data-tab="${t.id}">${t.name}</button>`).join("") +
+      `</div><div class="diary">`;
+    h += rows.length
+      ? rows.map((l) => `<div class="dline">${l}</div>`).join("")
+      : `<div class="sub">ยังไม่มีเรื่องในหมวดนี้</div>`;
+    h += `</div>`;
+    p.innerHTML = `<div class="pwrap">${h}<button class="pclose">ปิด</button></div>`;
+    p.querySelector<HTMLButtonElement>(".pclose")!.onclick = onClose;
+    p.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((b) =>
+      (b.onclick = () => { tab = b.dataset.tab!; draw(); }));
+  };
+  draw();
+}
+
+/** วิธีเล่น — เกมนี้มี 14 ระบบซ้อนกันอยู่ และเดิมไม่มีอะไรบอกผู้เล่นเลยสักบรรทัด
+ *  ซึ่งเป็นเหตุผลเดียวกับที่เคยต้องตัดขอบเขตของอีกเกมทิ้ง
+ *  เปิดเองครั้งแรก และเปิดซ้ำได้จากเมนูเสมอ */
+export function howToPanel(onClose: () => void) {
+  const h = `<h2>ชีวิตหนึ่งเทอม<small>วันละสี่ช่วงเวลา · ${game.term.days} วัน</small></h2>
+    <div class="howto">
+      <div class="hrow"><b>เวลาคือของที่มีจำกัด</b>
+        ทุกอย่างที่ทำกินไปหนึ่งช่วงเวลา เลือกอันหนึ่งคือไม่ได้อีกอันเสมอ</div>
+      <div class="hrow"><b>สามอย่างที่เกมยัดใส่มือ ไม่ใช่ของที่เลือกทำ</b>
+        การบ้านทุกวันเรียน · สอบซ่อมหลังประกาศผล · งานกลุ่มที่จับคู่ให้กับคนที่สนิทน้อยที่สุด
+        ทั้งสามโผล่เป็นการ์ดบนสุดของกระดาน เพราะมันมาก่อนของที่เลือกทำได้</div>
+      <div class="hrow"><b>ความสัมพันธ์มีสองแกน</b>
+        <em>ความสนิท</em> มาจากการใช้เวลาด้วยกัน · <em>ความเชื่อใจ</em> มาจากการทำสิ่งที่ยาก
+        ชอบเราได้โดยไม่กล้าฝากเรื่องสำคัญไว้กับเรา</div>
+      <div class="hrow"><b>คนอื่นมีชีวิตตอนเราไม่อยู่</b>
+        ไม่ไปหาใครนานๆ เรื่องจะเกิดขึ้นเองโดยที่เราไม่อยู่ตรงนั้น แล้วเขาจะเล่าให้เพื่อนฟัง</div>
+      <div class="hrow"><b>การเลือกมีพยาน</b>
+        ที่ที่เราไปนั่งคุยกันมีคนอื่นอยู่ด้วย คนที่นัดเราไว้แล้วเห็นเราอยู่กับอีกคน เจ็บกว่าการผิดนัดเฉยๆ</div>
+      <div class="hrow"><b>แรงเป็นทางเลือก ไม่ใช่กำแพง</b>
+        หมดแรงแล้วยังฝืนทำต่อได้ แต่ได้ผลน้อยลงและเป็นหนี้การนอน
+        ฝืนหลายคืนติดจะหลับในคาบ และมากกว่านั้นจะตื่นมาแล้วลุกไม่ไหวทั้งวัน</div>
+      <div class="hrow"><b>ครูประจำชั้นมองอยู่</b>
+        ค่านี้ขยับจากความรับผิดชอบ ไม่ใช่จากการไปหา
+        ครูที่ไว้ใจเราจะพูดแทนตอนโดนจับ ครูที่ไม่ไว้ใจจะโทรหาที่บ้าน</div>
+      <div class="hrow"><b>ผลสอบติดหน้าห้องให้ทุกคนอ่าน</b>
+        เพื่อนทุกคนมีคะแนนของตัวเอง และแรงกดดันในชีวิตที่เราปล่อยไว้ไปโผล่บนกระดานนั้นด้วย</div>
+      <div class="hrow"><b>ทางบ้านจะโทรมา</b>
+        เงินที่เก็บไว้คือเงินที่ทางบ้านต้องใช้ ให้ไปแล้วหายจริง ไม่ให้ก็มีราคาอีกแบบ</div>
+    </div>
+    <p class="dimline">เปิดหน้านี้ซ้ำได้จากเมนูตลอดเวลา</p>`;
   open(h, onClose);
 }
 

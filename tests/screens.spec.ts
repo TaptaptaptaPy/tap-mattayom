@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+// หน้าวิธีเล่นเปิดเองครั้งแรกที่เล่น ซึ่งจะบังทุกภาพในไฟล์นี้
+// เทสต์ที่อยากดูหน้านั้นจริงๆ เรียก __mattayom.showHow() เอง
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try { localStorage.setItem("mattayom:seenHow", "1"); } catch { /* โหมดส่วนตัว */ }
+  });
+});
+
 /** หน้าจอจริงของเกม — คนละเรื่องกับ art.spec.ts ที่ดูของทีละชิ้น
  *  ไฟล์นี้ดูว่า "ของทุกชิ้นวางรวมกันแล้วยังอ่านออกไหม" ซึ่งเป็นคนละคำถาม
  *  (แถบภาพฉากเคยลอยอยู่บนสุดแล้วเหลือพื้นดำเปล่าสูง 300px คั่นกลาง — ชิ้นส่วนไม่ผิดสักชิ้น) */
@@ -93,4 +101,49 @@ test("ปุ่มที่ต้องฝืนต้องดูออกว�
   // ปุ่มที่ต้องฝืนต้องยังกดได้จริง ไม่งั้นแรงกลับไปเป็นกำแพงเหมือนเดิม
   expect(await page.locator(".act.tired").first().isDisabled()).toBe(false);
   await expect(page).toHaveScreenshot("board-tired.png");
+});
+
+test("หน้าวิธีเล่นต้องอ่านออกและไม่ล้นจอ", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!(window as any).__mattayom);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom;
+    M.s.seenEvents["opening"] = true;
+    document.getElementById("scene")!.classList.add("hidden");
+    M.render();
+    M.showHow();
+  });
+  await page.waitForSelector(".howto .hrow");
+  // ทุกหัวข้อต้องมีเนื้อหาจริง ไม่ใช่หัวข้อเปล่า
+  const rows = await page.locator(".howto .hrow").count();
+  expect(rows).toBeGreaterThan(5);
+  await expect(page).toHaveScreenshot("howto.png");
+});
+
+test("สมุดบันทึกต้องอ่านได้ทั้งเทอม ไม่ใช่แค่สิบสองบรรทัดสุดท้าย", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!(window as any).__mattayom);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom;
+    M.s.seenEvents["opening"] = true;
+    document.getElementById("scene")!.classList.add("hidden");
+    // ยัดเรื่องเข้าไปให้ครบทุกหมวด เพื่อดูว่าตัวกรองทำงานจริง
+    M.s.history = [
+      "วันที่ 3: คุยกับพลอย", "วันที่ 5: ส่งการบ้าน 2 ชิ้น",
+      "วันที่ 8: ไปตามนัดกนิน", "วันที่ 12: ครูประจำชั้นโทรหาที่บ้าน",
+      "วันที่ 20: ส่งเงินให้ที่บ้าน 550 บาท", "วันที่ 30: สอบกลางภาค ได้ 74 คะแนน",
+      "วันที่ 33: ปาล์มเห็นเราอยู่กับพลอย ทั้งที่วันนี้นัดกันไว้",
+      "วันที่ 40: หลับในคาบจนครูเรียกชื่อ",
+    ];
+    M.render();
+    M.showDiary();
+  });
+  await page.waitForSelector(".diary .dline");
+  const all = await page.locator(".diary .dline").count();
+  await page.locator('[data-tab="home"]').click();
+  const home = await page.locator(".diary .dline").count();
+  expect(home).toBeGreaterThan(0);
+  expect(home).toBeLessThan(all);
+  await page.locator('[data-tab="all"]').click();
+  await expect(page).toHaveScreenshot("diary.png");
 });
