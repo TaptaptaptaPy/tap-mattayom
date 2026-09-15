@@ -1,5 +1,5 @@
 import type { Story } from "inkjs/types";
-import { portraitSVG, type Mood } from "./portrait";
+import { portraitHTML, type Mood } from "./portrait";
 import { backdrop } from "./backdrop";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -53,7 +53,7 @@ export function playScene(story: Story, speaker: string, color: string,
   (spEl as HTMLElement).style.color = color;
   box.style.setProperty("--who", color);
   hintEl.textContent = "";
-  artEl.innerHTML = portraitSVG(charId);
+  artEl.innerHTML = portraitHTML(charId);
 
   const finish = () => {
     box.classList.add("hidden");
@@ -84,7 +84,7 @@ export function playScene(story: Story, speaker: string, color: string,
     if (story.canContinue) {
       current = story.Continue()?.trim() ?? "";
       artEl.dataset.mood = moodOf(current);
-      artEl.innerHTML = portraitSVG(charId, moodOf(current));
+      artEl.innerHTML = portraitHTML(charId, moodOf(current));
       reveal(lineEl, current, () => {
         if (story.canContinue) addButton(choiceEl, "▸", step);
         else showChoices();

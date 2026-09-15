@@ -7,20 +7,25 @@ import { expect, test } from "@playwright/test";
  *  และตัวละคร/สถานที่ที่ลืมใส่ข้อมูลจะกลายเป็นภาพสำรองเงียบๆ ซึ่งเห็นทันทีบนแผ่นนี้
  */
 
-test("ภาพตัวละครทุกคนเรียงกัน — id ของ gradient ต้องไม่ชนกัน", async ({ page }) => {
+test("ภาพตัวละครทุกคน ทุกอารมณ์ เรียงกันในแผ่นเดียว", async ({ page }) => {
   await page.goto("/");
   const html = await page.evaluate(async () => {
-    const { portraitSVG } = await import("/src/ui/portrait.ts");
+    const { portraitHTML } = await import("/src/ui/portrait.ts");
     const chars = (await import("/data/characters.json")).default as { id: string; name: string }[];
-    return [...chars.map((c) => ({ id: c.id, name: c.name })), { id: "", name: "ผู้เล่น" }]
-      .map((c) => `<figure><div class="p">${portraitSVG(c.id || null)}</div>
-                   <figcaption>${c.name}</figcaption></figure>`).join("");
+    const moods = ["calm", "happy", "away", "tense"] as const;
+    // ทุกคน × ทุกอารมณ์ อยู่ในแผ่นเดียว — ถ้าไฟล์ไหนหาย จะเห็นเป็นช่องว่างทันที
+    const cells = chars.flatMap((c) =>
+      moods.map((m) => `<figure><div class="p">${portraitHTML(c.id, m)}</div>
+                        <figcaption>${c.name} · ${m}</figcaption></figure>`));
+    cells.push(`<figure><div class="p">${portraitHTML(null)}</div>
+                <figcaption>ผู้บรรยาย</figcaption></figure>`);
+    return cells.join("");
   });
   await page.setContent(`<style>
     body{margin:0;background:#16131f;font:13px system-ui;color:#f2eef7;
          display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px;align-content:start}
     figure{margin:0}.p{width:100%;border-radius:14px;overflow:hidden;line-height:0}
-    .p svg{width:100%;height:auto;display:block}
+    .p svg,.p img{width:100%;height:auto;display:block}
     figcaption{text-align:center;padding-top:5px}</style>${html}`);
   await expect(page).toHaveScreenshot("portraits.png", { fullPage: true });
 });

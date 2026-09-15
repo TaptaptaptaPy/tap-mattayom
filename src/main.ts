@@ -31,7 +31,7 @@ import { playScene, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
 import { backdrop, hasEventArt } from "./ui/backdrop";
-import { portraitSVG } from "./ui/portrait";
+import { portraitHTML } from "./ui/portrait";
 import * as P from "./ui/panels";
 import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotId } from "./core/save";
 
@@ -225,7 +225,7 @@ function renderBoard() {
       b.className = "who" + (waiting ? " is-appt" : "");
       b.style.borderColor = p.color;
       const rank = affinityRank(s.affinity[p.id] ?? 0);
-      b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
+      b.innerHTML = `<span class="avatar">${portraitHTML(p.id)}</span>
         <span class="wname" style="color:${p.color}">${p.name}<em>${
           waiting ? "ตามนัดเมื่อคืน" : "ระดับ " + rank}</em></span>`;
       b.onclick = () => talkTo(p.id, loc.id);
@@ -362,7 +362,7 @@ function renderClassroom(board: HTMLElement) {
     const b = document.createElement("button");
     b.className = "who";
     b.style.borderColor = p.color;
-    b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
+    b.innerHTML = `<span class="avatar">${portraitHTML(p.id)}</span>
       <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${affinityRank(s.affinity[p.id] ?? 0)}</em></span>`;
     b.onclick = () => talkTo(p.id, "classroom");
     acts.appendChild(b);

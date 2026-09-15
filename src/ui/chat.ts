@@ -2,7 +2,7 @@ import type { Story } from "inkjs/types";
 import chars from "../../data/characters.json";
 import { nameOf } from "../sim/chat";
 import type { ChatMsg, ChatThread, GameState } from "../sim/state";
-import { portraitSVG } from "./portrait";
+import { portraitHTML } from "./portrait";
 
 /** หน้าจอไลน์ — ฟองซ้ายคือเขา ฟองขวาคือเรา
  *  ข้อความของ "เรา" คือข้อความในวงเล็บเหลี่ยมของทางเลือกใน ink
@@ -25,7 +25,7 @@ function shell(charId: string, sub: string) {
   p.classList.remove("hidden");
   p.innerHTML = `<div class="pwrap chat">
     <div class="chead">
-      <span class="cavatar">${portraitSVG(charId)}</span>
+      <span class="cavatar">${portraitHTML(charId)}</span>
       <span class="cwho"><b style="color:${c?.color ?? "#fff"}">${nameOf(charId)}</b>
         <small>${sub}</small></span>
     </div>
@@ -123,7 +123,7 @@ export function chatListPanel(s: GameState, hx: {
   if (s.pendingChat) {
     const c = charOf(s.pendingChat);
     h += `<button class="thread is-new" data-pending="1">
-      <span class="cavatar">${portraitSVG(s.pendingChat)}</span>
+      <span class="cavatar">${portraitHTML(s.pendingChat)}</span>
       <span class="tinfo"><b style="color:${c?.color ?? "#fff"}">${nameOf(s.pendingChat)}</b>
         <small>ส่งข้อความมาเมื่อคืนนี้</small></span>
       <span class="dot"></span></button>`;
@@ -135,7 +135,7 @@ export function chatListPanel(s: GameState, hx: {
     const c = charOf(t.charId);
     const last = t.msgs[t.msgs.length - 1]?.text ?? "";
     h += `<button class="thread" data-id="${t.id}">
-      <span class="cavatar">${portraitSVG(t.charId)}</span>
+      <span class="cavatar">${portraitHTML(t.charId)}</span>
       <span class="tinfo"><b style="color:${c?.color ?? "#fff"}">${nameOf(t.charId)}</b>
         <small>${last.length > 38 ? last.slice(0, 38) + "…" : last}</small></span>
       <span class="tday">วันที่ ${t.day + 1}${t.invited ? " · นัดแล้ว" : ""}</span></button>`;

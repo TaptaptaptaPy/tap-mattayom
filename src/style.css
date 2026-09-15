@@ -176,7 +176,7 @@ button{font-family:inherit;cursor:pointer}
 #portrait{width:clamp(92px,26vw,156px);flex:0 0 auto;border-radius:18px;overflow:hidden;
   box-shadow:0 14px 40px rgba(0,0,0,.5);line-height:0;
   animation:portraitIn .32s cubic-bezier(.2,.9,.3,1)}
-#portrait svg{width:100%;height:auto;display:block}
+#portrait svg,#portrait img{width:100%;height:auto;display:block}
 @keyframes portraitIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
 #sceneText{flex:1;min-width:0;padding-bottom:4px}
 #speaker{font-family:"Bai Jamjuree",sans-serif;font-weight:700;font-size:16px;
@@ -357,7 +357,7 @@ button{font-family:inherit;cursor:pointer}
 .chead{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .cavatar{width:34px;height:34px;border-radius:50%;overflow:hidden;flex:0 0 34px;
   background:var(--bg2);display:grid;place-items:center}
-.cavatar svg{width:100%;height:100%}
+.cavatar svg,.cavatar img{width:100%;height:100%;object-fit:cover;display:block}
 .cwho{display:flex;flex-direction:column;line-height:1.3}
 .cwho b{font-family:"Bai Jamjuree",sans-serif;font-size:15px}
 .cwho small{font-size:11px;color:var(--dim)}
@@ -421,3 +421,9 @@ button{font-family:inherit;cursor:pointer}
   border:1px solid rgba(228,160,183,.55);border-radius:12px;padding:12px;
   font-family:"Bai Jamjuree",sans-serif;font-size:15px;font-weight:600;cursor:pointer}
 .nextchap:active{background:rgba(228,160,183,.28)}
+
+/* ภาพตัวละครเป็น PNG ที่ประกอบไว้ล่วงหน้า ไม่ใช่ SVG ที่วาดจากโค้ดอีกแล้ว
+   ต้องบอกขนาดให้ชัด ไม่งั้นการ์ดจะกระตุกตอนภาพโหลดเสร็จ */
+.avatar img,.avatar svg{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.avatar{overflow:hidden;border-radius:12px;display:inline-block;line-height:0}
+#portrait img{background:linear-gradient(160deg,#2c2640,#1a1628)}

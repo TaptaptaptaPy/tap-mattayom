@@ -1,0 +1,126 @@
+{
+  "_note": "หน้าตาของตัวละคร ประกอบจากชิ้นส่วน CC0 ของ Tainara-P — ดู tools/sprites.mjs",
+  "_layers": "ลำดับชั้นสำคัญมาก: ผมหลัง → ตัว → เสื้อ → หน้า → ตาขาว → ม่านตา → เปลือกตา → คิ้ว → ปาก → ผมหน้า → แว่น",
+  "_credit": "Tainara-P · Female/Male Character Sprite Creator · CC0",
+  "packs": {
+    "f": "Female Character Sprite Creator",
+    "m": "Male Character Sprite Creator"
+  },
+  "size": {
+    "w": 420,
+    "h": 420
+  },
+  "_crop": "วัดจากไฟล์จริง: ตาอยู่ที่ y 688-760 ลำตัวเริ่มที่ y 778 กึ่งกลางตัวอยู่ที่ x 700 (ใช้ tools/sprites.mjs bbox)",
+  "crop": {
+    "x": 420,
+    "y": 455,
+    "w": 560,
+    "h": 560
+  },
+  "_moods": "อารมณ์ในเกมมีสี่แบบ แต่ละแบบเลือกตา คิ้ว ปาก คนละชุด",
+  "moods": {
+    "calm": {
+      "eyes": "Normal",
+      "brows": "Neutro",
+      "mouth": "Neutro"
+    },
+    "happy": {
+      "eyes": "Spread",
+      "brows": "Curved",
+      "mouth": "Smile"
+    },
+    "away": {
+      "eyes": "Sorrow",
+      "brows": "Confused",
+      "mouth": "Uninterested"
+    },
+    "tense": {
+      "eyes": "Surprised",
+      "brows": "Angry",
+      "mouth": "Grit"
+    }
+  },
+  "characters": {
+    "ploy": {
+      "pack": "f",
+      "backHair": "Hair/Back/Back 3/Color 1.png",
+      "body": "Body/Body/Body 3.png",
+      "clothes": "Body/Clothes/Clothes 1/Color 1.png",
+      "face": "Head/Face/Face 1.png",
+      "sclera": "Head/Eyes/Eye Type 1/Sclera/{expr}/Sclera 1.png",
+      "iris": "Head/Eyes/Iris/Type 1/Iris 18.png",
+      "eyes": "Head/Eyes/Eye Type 1/{expr}.png",
+      "brows": "Head/Brows/Brow Type 1/{expr}.png",
+      "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
+      "bangs": "Hair/Bangs/Bangs 2/Color 1.png",
+      "extra": "Accessory/Glasses/Glasses 1/Color 1.png"
+    },
+    "minta": {
+      "pack": "f",
+      "backHair": "Hair/Back/Back 16/Color 7.png",
+      "body": "Body/Body/Body 2.png",
+      "clothes": "Body/Clothes/Clothes 2/Color 1.png",
+      "face": "Head/Face/Face 1.png",
+      "sclera": "Head/Eyes/Eye Type 2/Sclera/{expr}/Sclera 1.png",
+      "iris": "Head/Eyes/Iris/Type 2/Iris 15.png",
+      "eyes": "Head/Eyes/Eye Type 2/{expr}.png",
+      "brows": "Head/Brows/Brow Type 1/{expr}.png",
+      "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
+      "bangs": "Hair/Bangs/Bangs 20/Color 7.png"
+    },
+    "nun": {
+      "pack": "f",
+      "backHair": "Hair/Back/Back 14/Color 2.png",
+      "body": "Body/Body/Body 4.png",
+      "clothes": "Body/Clothes/Clothes 45/Color 1.png",
+      "face": "Head/Face/Face 1.png",
+      "sclera": "Head/Eyes/Eye Type 3/Sclera/{expr}/Sclera 1.png",
+      "iris": "Head/Eyes/Iris/Type 3/Iris 7.png",
+      "eyes": "Head/Eyes/Eye Type 3/{expr}.png",
+      "brows": "Head/Brows/Brow Type 1/{expr}.png",
+      "mouth": "Head/Mouth/Mouth Type 2/{expr}.png",
+      "bangs": "Hair/Bangs/Bangs 22/Color 2.png"
+    },
+    "kanin": {
+      "pack": "m",
+      "backHair": "Hair/Back/Back 9/Color 1.png",
+      "body": "Body/Body/Body 5.png",
+      "clothes": "Body/Clothes/Clothes 4/Color 1.png",
+      "face": "Head/Face/Face 1.png",
+      "sclera": "Head/Eyes/Eye Type 1/Sclera/{expr}/Sclera 1.png",
+      "iris": "Head/Eyes/Iris/Type 1/Iris 14.png",
+      "eyes": "Head/Eyes/Eye Type 1/{expr}.png",
+      "brows": "Head/Brows/Brow Type 1/{expr}.png",
+      "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
+      "bangs": "Hair/Bangs/Bangs 26/Color 1.png"
+    },
+    "palm": {
+      "pack": "m",
+      "backHair": "Hair/Back/Back 1/Color 2.png",
+      "body": "Body/Body/Body 4.png",
+      "clothes": "Body/Clothes/Clothes 50/Color 1.png",
+      "face": "Head/Face/Face 1.png",
+      "sclera": "Head/Eyes/Eye Type 2/Sclera/{expr}/Sclera 1.png",
+      "iris": "Head/Eyes/Iris/Type 2/Iris 8.png",
+      "eyes": "Head/Eyes/Eye Type 2/{expr}.png",
+      "brows": "Head/Brows/Brow Type 1/{expr}.png",
+      "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
+      "bangs": "Hair/Bangs/Bangs 27/Color 2.png"
+    },
+    "tar": {
+      "pack": "m",
+      "backHair": "Hair/Back/Back 1/Color 1.png",
+      "body": "Body/Body/Body 6.png",
+      "clothes": "Body/Clothes/Clothes 31/Color 1.png",
+      "face": "Head/Face/Face 1.png",
+      "sclera": "Head/Eyes/Eye Type 3/Sclera/{expr}/Sclera 1.png",
+      "iris": "Head/Eyes/Iris/Type 3/Iris 9.png",
+      "eyes": "Head/Eyes/Eye Type 3/{expr}.png",
+      "brows": "Head/Brows/Brow Type 1/{expr}.png",
+      "mouth": "Head/Mouth/Mouth Type 2/{expr}.png",
+      "bangs": "Hair/Bangs/Bangs 30/Color 1.png"
+    }
+  },
+  "_brows": "มีแต่ Brow Type 1 ที่แยกตามอารมณ์ อีกสองแบบแยกตามสี ใช้ไม่ได้กับระบบอารมณ์",
+  "_iris": "สีม่านตาให้ตรงกับสีประจำตัวใน characters.json"
+}

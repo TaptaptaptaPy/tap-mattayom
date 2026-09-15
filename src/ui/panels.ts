@@ -8,7 +8,7 @@ import { SUBJECTS, gradeOf, gpa } from "../sim/grades";
 import { EVENTS } from "../sim/calendar";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
-import { portraitSVG } from "./portrait";
+import { portraitHTML } from "./portrait";
 import { icon } from "./icons";
 
 const el = () => document.getElementById("panel")!;
@@ -40,7 +40,7 @@ export function characterPanel(s: GameState) {
     const locked = gate && s.stats[gate.stat as StatId] < gate.value;
     h += `<div class="card person" style="border-color:${c.color}44">
       <div class="prow">
-        <span class="avatar lg">${portraitSVG(c.id)}</span>
+        <span class="avatar lg">${portraitHTML(c.id)}</span>
         <div class="pinfo">
           <div class="chead"><b style="color:${c.color}">${c.name}</b>
             <small>${c.year} · ${c.tag}</small></div>
