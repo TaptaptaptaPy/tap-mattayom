@@ -28,6 +28,8 @@ export interface GameState {
   energy: number;
   stats: Record<StatId, number>;
   affinity: Record<string, number>;
+  /** ความเชื่อใจ — คนละแกนกับความสนิท ดู src/sim/bonds.ts */
+  trust: Record<string, number>;
   flags: Record<string, true>;
   metToday: Record<string, true>;
   doneToday: Record<string, number>;   // กิจกรรมไหนทำไปกี่รอบแล้ววันนี้
@@ -91,17 +93,18 @@ export interface GameState {
 // 8: เพิ่มตรวจหน้าเสาธง (grooming · inspected)
 // 9: เพิ่มภาคมหาลัย (chapter · schoolEnding · debt · rentDue)
 // 10: เพิ่มสอบซ่อมและงานกลุ่ม (retakes · project)
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
   for (const s of game.stats) stats[s.id as StatId] = 0;
   const affinity: Record<string, number> = {};
-  for (const c of chars) affinity[c.id] = 0;
+  const trust: Record<string, number> = {};
+  for (const c of chars) { affinity[c.id] = 0; trust[c.id] = 0; }
   return {
     v: SAVE_VERSION,
     dayIndex: 0, periodIndex: 0, energy: game.energy.max,
-    stats, affinity, flags: {}, metToday: {}, doneToday: {}, history: [],
+    stats, affinity, trust, flags: {}, metToday: {}, doneToday: {}, history: [],
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
     sleepDebt: 0, lastQuiz: 0, ending: null,
@@ -120,6 +123,9 @@ export const rankOf = (value: number, ladder: number[]) => {
 };
 export const statRank = (v: number) => rankOf(v, game.statRanks);
 export const affinityRank = (v: number) => rankOf(v, game.affinityRanks);
+/** ความเชื่อใจมีหกระดับ คนละสเกลกับความสนิท เพราะมันไต่ช้ากว่าและเสียเร็วกว่า */
+export const trustRank = (v: number) => rankOf(v, game.trust.ranks);
+export const trustName = (v: number) => game.trust.rankNames[trustRank(v)];
 export const statName = (id: StatId) => game.stats.find((s) => s.id === id)!.name;
 
 /** บันทึกเหตุการณ์สำคัญไว้ให้ฉากจบหยิบไปเล่า — เดิมฟิลด์นี้ประกาศไว้แต่ไม่เคยถูกเขียน */

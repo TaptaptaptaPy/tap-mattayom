@@ -276,11 +276,31 @@
     "tutorFocus": 9,
     "decayPerDay": 0.995,
     "gpaSteps": [
-      { "min": 80, "grade": 4, "name": "4" },
-      { "min": 70, "grade": 3, "name": "3" },
-      { "min": 60, "grade": 2, "name": "2" },
-      { "min": 50, "grade": 1, "name": "1" },
-      { "min": 0, "grade": 0, "name": "0" }
+      {
+        "min": 80,
+        "grade": 4,
+        "name": "4"
+      },
+      {
+        "min": 70,
+        "grade": 3,
+        "name": "3"
+      },
+      {
+        "min": 60,
+        "grade": 2,
+        "name": "2"
+      },
+      {
+        "min": 50,
+        "grade": 1,
+        "name": "1"
+      },
+      {
+        "min": 0,
+        "grade": 0,
+        "name": "0"
+      }
     ]
   },
   "tutor": {
@@ -289,5 +309,192 @@
     "study": 14,
     "energy": -16,
     "_note": "แพงแต่คุ้มถ้าเล็งคณะสูง"
+  },
+  "trust": {
+    "_note": "ความเชื่อใจเป็นคนละเรื่องกับความสนิท — ชอบเราได้โดยไม่กล้าฝากเรื่องสำคัญไว้กับเรา",
+    "_why": "แกนเดียวทำให้ 'ทำให้เขาสบายใจ' กับ 'ทำในสิ่งที่ถูก' ให้ผลเหมือนกันหมด ซึ่งไม่จริง",
+    "ranks": [
+      0,
+      3,
+      8,
+      15,
+      24,
+      35
+    ],
+    "_rankNames": "ระดับ 0-5",
+    "rankNames": [
+      "ยังไม่รู้จักนิสัยเรา",
+      "พอคุยได้",
+      "เริ่มเล่าอะไรให้ฟัง",
+      "ฝากเรื่องไว้ได้",
+      "ไว้ใจจริง",
+      "ไว้ใจแบบไม่ต้องถาม"
+    ],
+    "_ripple": "ความเชื่อใจเป็นเรื่องส่วนตัว ไม่กระจายเหมือนความสนิท ยกเว้นตอนเสีย — เรื่องแบบนั้นไปถึงหูกันเสมอ",
+    "rippleLossScale": 0.35,
+    "keptPlan": 2,
+    "missedPlan": -5,
+    "sideChosen": 4,
+    "sideRefused": -3,
+    "decayPerTerm": 0.75
+  },
+  "_trustFlags": "ธงจากบทที่แปลว่าเราทำสิ่งที่ยาก/ซื่อสัตย์/เก็บความลับ → ได้ความเชื่อใจ ส่วนธงที่แปลว่าเราเลือกทางที่สบายกว่า → เสีย ตารางนี้ทำให้ทางเลือกที่เขียนไว้แล้ว 79 อันมีน้ำหนักเพิ่มโดยไม่ต้องเขียนบทใหม่",
+  "trustFlags": {
+    "ploy_refused": [
+      "ploy",
+      6
+    ],
+    "ploy_complied": [
+      "ploy",
+      -4
+    ],
+    "ploy_alone": [
+      "ploy",
+      -3
+    ],
+    "ploy_book": [
+      "ploy",
+      5
+    ],
+    "ploy_stayed": [
+      "ploy",
+      4
+    ],
+    "ploy_called_mother": [
+      "ploy",
+      3
+    ],
+    "ploy_resigned": [
+      "ploy",
+      6
+    ],
+    "ploy_knows_pressure": [
+      "ploy",
+      4
+    ],
+    "ploy_sister_known": [
+      "ploy",
+      3
+    ],
+    "kanin_cleared": [
+      "kanin",
+      6
+    ],
+    "kanin_kept": [
+      "kanin",
+      -2
+    ],
+    "kanin_truth": [
+      "kanin",
+      5
+    ],
+    "kanin_witness": [
+      "kanin",
+      6
+    ],
+    "kanin_shop": [
+      "kanin",
+      4
+    ],
+    "kanin_sat": [
+      "kanin",
+      3
+    ],
+    "kanin_brother": [
+      "kanin",
+      4
+    ],
+    "minta_signed": [
+      "minta",
+      5
+    ],
+    "minta_skipped": [
+      "minta",
+      -3
+    ],
+    "minta_second_form": [
+      "minta",
+      6
+    ],
+    "minta_key": [
+      "minta",
+      4
+    ],
+    "minta_seen_through": [
+      "minta",
+      5
+    ],
+    "minta_quiet": [
+      "minta",
+      3
+    ],
+    "palm_spoke": [
+      "palm",
+      6
+    ],
+    "palm_choice": [
+      "palm",
+      3
+    ],
+    "palm_told": [
+      "palm",
+      4
+    ],
+    "palm_old_school": [
+      "palm",
+      5
+    ],
+    "palm_asked": [
+      "palm",
+      3
+    ],
+    "tar_key": [
+      "tar",
+      5
+    ],
+    "tar_quit": [
+      "tar",
+      6
+    ],
+    "tar_grades": [
+      "tar",
+      5
+    ],
+    "tar_repeat": [
+      "tar",
+      3
+    ],
+    "tar_home": [
+      "tar",
+      3
+    ],
+    "nun_tutored": [
+      "nun",
+      6
+    ],
+    "nun_lent": [
+      "nun",
+      4
+    ],
+    "nun_stayed": [
+      "nun",
+      5
+    ],
+    "nun_work": [
+      "nun",
+      4
+    ],
+    "nun_money": [
+      "nun",
+      2
+    ],
+    "u_spoke_up": [
+      "nun",
+      4
+    ],
+    "u_walked_out": [
+      "nun",
+      3
+    ]
   }
 }

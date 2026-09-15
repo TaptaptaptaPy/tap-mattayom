@@ -1,6 +1,6 @@
 import game from "../../data/game.json";
 import chars from "../../data/characters.json";
-import { affinityRank, type GameState } from "./state";
+import { affinityRank, trustRank, type GameState } from "./state";
 import { chapterOf, inChapter } from "./chapter";
 
 /** ฉากจบรายตัวละคร
@@ -21,6 +21,8 @@ export interface EpilogueEntry {
   color: string;
   ink: string;
   rank: number;
+  /** เขาไว้ใจเราถึงระดับไหนตอนจบ — บทฉากจบอ่านค่านี้เพื่อเลือกว่าจะเล่าอะไรให้ฟัง */
+  trust: number;
 }
 
 /** ใครมีปลายทางให้ดูบ้าง เรียงจากสนิทที่สุดไปน้อยที่สุด
@@ -35,6 +37,7 @@ export function epilogues(s: GameState): EpilogueEntry[] {
       color: c.color,
       ink: (c as { epilogue?: string }).epilogue ?? `epi_${c.id}`,
       rank: affinityRank(s.affinity[c.id] ?? 0),
+      trust: trustRank(s.trust[c.id] ?? 0),
     }))
     .filter((e) => e.rank >= E.minRank)
     .sort((a, b) => (s.affinity[b.charId] ?? 0) - (s.affinity[a.charId] ?? 0));

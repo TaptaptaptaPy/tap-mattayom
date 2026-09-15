@@ -2,7 +2,7 @@ import game from "../../data/game.json";
 import chars from "../../data/characters.json";
 import { affinityRank, remember, type ChatMsg, type ChatThread, type GameState } from "./state";
 import type { Rnd } from "../core/rng";
-import { changeAffinity } from "./bonds";
+import { changeAffinity, changeTrust } from "./bonds";
 
 /** ไลน์ตอนกลางคืน
  *
@@ -84,6 +84,8 @@ export function keepPlan(s: GameState, charId: string): number {
   if (!p || p.charId !== charId || !isPlanPeriod(s)) return 0;
   p.kept = true;
   changeAffinity(s, charId, C.keptBonus);
+  // ไปตามที่รับปากไว้คือหลักฐานชิ้นเดียวที่ไม่ต้องอธิบาย
+  changeTrust(s, charId, game.trust.keptPlan);
   remember(s, `ไปตามนัด${nameOf(charId)}`);
   return C.keptBonus;
 }
@@ -95,6 +97,8 @@ export function settleMissedPlan(s: GameState) {
   if (!p || p.day >= s.dayIndex) return;
   if (!p.kept) {
     changeAffinity(s, p.charId, -C.missedPenalty);
+    // ผิดนัดเสียความเชื่อใจหนักกว่าเสียความสนิท เพราะมันไม่ใช่เรื่องของเวลา แต่เป็นเรื่องของคำพูด
+    changeTrust(s, p.charId, game.trust.missedPlan);
     remember(s, `ผิดนัด${nameOf(p.charId)}`);
   }
   s.plan = null;

@@ -1,6 +1,6 @@
 import { Compiler } from "inkjs/full";
 import type { Story } from "inkjs/types";
-import { affinityRank, statRank, type GameState, type StatId } from "../sim/state";
+import { affinityRank, statRank, trustRank, type GameState, type StatId } from "../sim/state";
 import { clubOf } from "../sim/club";
 import { isSchoolDay } from "../sim/calendar";
 import { standingRank } from "../sim/bonds";
@@ -27,6 +27,7 @@ export function sourceOf(name: string): string {
 export interface SceneHooks {
   onStat: (id: StatId, amount: number) => void;
   onAffinity: (charId: string, amount: number) => void;
+  onTrust: (charId: string, amount: number) => void;
   onFlag: (name: string) => void;
   onHint: (text: string) => void;
   onMoney: (amount: number) => void;
@@ -40,6 +41,7 @@ export interface SceneHooks {
 export function injectVars(story: Story, s: GameState, charId: string | null) {
   for (const [k, v] of Object.entries(s.stats)) story.variablesState[k] = Math.round(v);
   story.variablesState["affinity"] = charId ? Math.round(s.affinity[charId] ?? 0) : 0;
+  story.variablesState["trust"] = charId ? trustRank(s.trust[charId] ?? 0) : 0;
   story.variablesState["rank"] = charId ? affinityRank(s.affinity[charId] ?? 0) : 0;
   story.variablesState["day"] = s.dayIndex + 1;
   story.variablesState["money"] = Math.round(s.money);
@@ -70,6 +72,11 @@ export function openScene(storyName: string, s: GameState, charId: string | null
   story.BindExternalFunction("setHint", (text: string) => { hooks.onHint(text); return null; });
   story.BindExternalFunction("spend", (amount: number) => { hooks.onMoney(-amount); return null; });
   story.BindExternalFunction("hasFlag", (name: string) => (s.flags[name] ? 1 : 0));
+  // บทถามได้ว่าคนนี้ไว้ใจเราถึงระดับไหนแล้ว ใช้เปิดทางที่คนไม่สนิทไม่มีวันได้เห็น
+  story.BindExternalFunction("trustOf", (cid: string) => trustRank(s.trust[cid] ?? 0));
+  story.BindExternalFunction("gainTrust", (cid: string, amount: number) => {
+    hooks.onTrust(cid, amount); return null;
+  });
   story.BindExternalFunction("inviteTomorrow", (cid: string) => { hooks.onInvite(cid); return null; });
   story.BindExternalFunction("standing", (amount: number, why: string) => {
     hooks.onStanding(amount, why); return null;

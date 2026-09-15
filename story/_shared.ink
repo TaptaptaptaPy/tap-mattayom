@@ -10,6 +10,9 @@ VAR kind = 0
 VAR nerve = 0
 VAR affinity = 0
 VAR rank = 0
+// ความเชื่อใจของคนที่อยู่ตรงหน้า 0-5 — คนละเรื่องกับความสนิท
+// ชอบเราได้โดยไม่กล้าฝากเรื่องสำคัญไว้กับเรา ใช้เปิดทางที่คนไม่ไว้ใจไม่มีวันได้เห็น
+VAR trust = 0
 VAR day = 1
 VAR money = 0
 VAR behaviour = 100
@@ -40,3 +43,6 @@ EXTERNAL standing(amount, why)
 EXTERNAL takeSide(charId)
 EXTERNAL sideTaken()
 EXTERNAL sidedWith(charId)
+// ความเชื่อใจ — ถามระดับของใครก็ได้ ไม่ใช่แค่คนที่อยู่ตรงหน้า
+EXTERNAL trustOf(charId)
+EXTERNAL gainTrust(charId, amount)

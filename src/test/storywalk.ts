@@ -29,6 +29,7 @@ const PROFILES: { name: string; vars: Record<string, number | string> }[] =
         heart: Math.round(t * 30), mind: Math.round(t * 30), charm: Math.round(t * 30),
         kind: Math.round(t * 30), nerve: Math.round(t * 30),
         affinity: game.affinityRanks[r], rank: r,
+        trust: Math.min(5, Math.round((r / 10) * 5)),
         day: 1 + Math.round(t * 115),
         money: 200 + Math.round(t * 1800),
         behaviour: 100 - Math.round(t * 30),
@@ -60,6 +61,8 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("takeSide", (c: string) => { note("takeSide:" + c); sides.add(c); return null; });
   story.BindExternalFunction("sideTaken", () => (sides.size ? 1 : 0));
   story.BindExternalFunction("sidedWith", (c: string) => (sides.has(c) ? 1 : 0));
+  story.BindExternalFunction("trustOf", () => 3);
+  story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   return story;
 }
 
@@ -182,7 +185,7 @@ for (const f of epiFiles) {
     const st: Stat = { lines: 0, choices: 0, endings: 0, hints: [], calls: {} };
     const story = build(src, st.calls, flags, st.hints);
     // ค่าสถานะของคนที่เล่นมาเต็มเทอม เพื่อให้กิ่งที่อ่าน behaviour/standingRank ถูกเดินด้วย
-    if (flags.size) for (const [k, v] of Object.entries({ behaviour: 68, standingRank: 4, homeworkMissed: 13 }))
+    if (flags.size) for (const [k, v] of Object.entries({ behaviour: 68, standingRank: 4, homeworkMissed: 13, trust: 5 }))
       { try { story.variablesState[k] = v; } catch { /* บทนี้ไม่ได้ประกาศ */ } }
     let text = "";
     while (story.canContinue) { text += story.Continue(); st.lines++; }

@@ -9,7 +9,8 @@
  *  ตอนนี้ใช้ mulberry32 ที่ seed ได้ เล่นหลาย seed แล้วเฉลี่ย ได้ทั้งความซ้ำได้และความสุ่มจริง */
 import game from "../../data/game.json";
 import { mulberry32, clamp01, type Rnd } from "../core/rng";
-import { newState, statRank, type GameState, type StatId, type Ending, type ExamResult } from "../sim/state";
+import { newState, statRank, affinityRank, trustRank,
+         type GameState, type StatId, type Ending, type ExamResult } from "../sim/state";
 import { advance, isLocked, isTermOver, eventNow, isSchoolDay } from "../sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
          type ActionResult, type LocationOption } from "../sim/actions";
@@ -50,6 +51,8 @@ interface Run {
   minEnergy: number; blocked: number; restPeriods: number;
   caught: number; escaped: number; troublePeriods: number;
   chats: number; invites: number; kept: number;
+  /** ผลต่างของสองแกน (สนิท − เชื่อใจ) ต่อตัวละครหนึ่งคน ตอนจบเทอม */
+  axisGap: number[];
   homeworkDone: number; homeworkMissed: number;
   haircuts: number; inspected: number;
   retakesDone: number; retakesLeft: number; projectDone: number; projectMissed: number;
@@ -216,6 +219,8 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept,
+    axisGap: Object.keys(s.affinity).map((id) =>
+      affinityRank(s.affinity[id] ?? 0) - trustRank(s.trust[id] ?? 0)),
     homeworkDone, homeworkMissed: s.homeworkMissed,
     haircuts, inspected: s.inspected,
     retakesDone, retakesLeft: s.retakes.length, projectDone,
@@ -338,6 +343,17 @@ const allRuns = [...results.values()].flat();
 const totalChats = sum(allRuns.map((r) => r.chats));
 const totalInvites = sum(allRuns.map((r) => r.invites));
 const totalKept = sum(allRuns.map((r) => r.kept));
+
+// สองแกนต้องแยกจากกันได้จริงในการเล่นจริง ไม่ใช่แค่ในทฤษฎี
+// ถ้าทุกคนได้ระดับเท่ากันทั้งสองแกนเสมอ แปลว่าแยกออกมาแล้วไม่ได้อะไร
+const gaps = allRuns.flatMap((r) => r.axisGap ?? []);
+const diverged = gaps.filter((g) => g !== 0).length;
+console.log(`สองแกนแยกกันจริงไหม: วัด ${gaps.length} คู่ · ต่างกัน ${diverged} คู่` +
+            ` (${gaps.length ? Math.round((diverged / gaps.length) * 100) : 0}%)` +
+            ` · ห่างกันมากสุด ${gaps.length ? Math.max(...gaps.map(Math.abs)) : 0} ระดับ`);
+if (gaps.length && diverged / gaps.length < 0.2)
+  console.log("  ← สองแกนขยับไปด้วยกันเกือบตลอด แยกออกมาแล้วแทบไม่ได้อะไร");
+
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
             ` · ผิดนัด ${totalInvites - totalKept}`);
 

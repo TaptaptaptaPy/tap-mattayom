@@ -6,7 +6,7 @@ import { standingLabel } from "./bonds";
 import { gpa, gradeOf, bestWorst, SUBJECTS } from "./grades";
 import { retakePenalty, retakeNames } from "./schoolwork";
 import { isUni } from "./chapter";
-import { affinityRank, statRank, type Ending, type GameState, type StatId } from "./state";
+import { affinityRank, statRank, trustRank, type Ending, type GameState, type StatId } from "./state";
 
 const EN = game.entrance;
 
@@ -64,6 +64,17 @@ export function computeUniEnding(s: GameState): Ending {
   };
   s.ending = ending;
   return ending;
+}
+
+/** คนที่ไว้ใจเรามากที่สุด — มักไม่ใช่คนเดียวกับคนที่สนิทที่สุด
+ *  ซึ่งเป็นประเด็นทั้งหมดของการแยกสองแกนนี้ออกจากกัน */
+function pickTrusting(s: GameState) {
+  let best: { name: string; rank: number } | null = null;
+  for (const c of chars) {
+    const r = trustRank(s.trust[c.id] ?? 0);
+    if (r >= 3 && (!best || r > best.rank)) best = { name: c.name, rank: r };
+  }
+  return best;
 }
 
 function pickClosest(s: GameState) {
@@ -142,6 +153,12 @@ export function computeEnding(s: GameState): Ending {
   if (closest && closestRank > 0)
     lines.push(`คนที่สนิทที่สุด: ${closest} (ความสัมพันธ์ระดับ ${closestRank})`);
   else lines.push("ผ่านไปทั้งเทอมโดยไม่สนิทกับใครเป็นพิเศษ");
+  const trusting = pickTrusting(s);
+  if (trusting && trusting.name !== closest)
+    lines.push(`คนที่ไว้ใจเรามากที่สุดคือ${trusting.name} ซึ่งไม่ใช่คนเดียวกับคนที่สนิทที่สุด`);
+  else if (trusting) lines.push(`${trusting.name}ทั้งสนิทและไว้ใจเรา — ซึ่งเกิดขึ้นไม่บ่อย`);
+  else lines.push("ไม่มีใครไว้ใจเรามากพอจะฝากเรื่องสำคัญไว้");
+
   const top = (Object.entries(s.stats) as [StatId, number][])
     .sort((a, b) => b[1] - a[1])[0];
   lines.push(`สิ่งที่โดดเด่นที่สุด: ${game.stats.find((x) => x.id === top[0])!.name} ` +

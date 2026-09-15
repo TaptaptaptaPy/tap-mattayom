@@ -35,6 +35,8 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
 
   for (const k of Object.keys(s.stats) as StatId[]) s.stats[k] *= C.statKeep;
   for (const k of Object.keys(s.affinity)) s.affinity[k] *= C.affinityKeep;
+  // ความเชื่อใจจางช้ากว่าความสนิท — คนที่เคยไว้ใจเรา ไม่ได้เลิกไว้ใจเพราะแค่ไม่ได้เจอกัน
+  for (const k of Object.keys(s.trust ?? {})) s.trust[k] *= game.trust.decayPerTerm;
 
   s.dayIndex = 0;
   s.periodIndex = 0;

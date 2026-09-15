@@ -2,7 +2,8 @@ import "./style.css";
 import game from "../data/game.json";
 import chars from "../data/characters.json";
 import game2 from "../data/game.json";
-import { newState, statRank, affinityRank, remember, type GameState, type StatId } from "./sim/state";
+import { newState, statRank, affinityRank, trustRank, remember,
+         type GameState, type StatId } from "./sim/state";
 import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
          nextEvent, periodId, type TermEvent } from "./sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
@@ -23,7 +24,8 @@ import { haircut, needsHaircut, groomingLabel } from "./sim/grooming";
 import { hasRetake, retakeNames, retakeCost, doRetake, projectPartner, projectName,
          projectNeeded, workProject, assignProject } from "./sim/schoolwork";
 import { startUni, isUni, chapterName, chapterDef, rentPerWeek } from "./sim/chapter";
-import { changeAffinity, shiftStanding, takeSide, standingLabel } from "./sim/bonds";
+import { changeAffinity, changeTrust, trustFromFlag, shiftStanding, takeSide,
+         standingLabel } from "./sim/bonds";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
@@ -225,9 +227,10 @@ function renderBoard() {
       b.className = "who" + (waiting ? " is-appt" : "");
       b.style.borderColor = p.color;
       const rank = affinityRank(s.affinity[p.id] ?? 0);
+      const tr = trustRank(s.trust[p.id] ?? 0);
       b.innerHTML = `<span class="avatar">${portraitHTML(p.id)}</span>
         <span class="wname" style="color:${p.color}">${p.name}<em>${
-          waiting ? "ตามนัดเมื่อคืน" : "ระดับ " + rank}</em></span>`;
+          waiting ? "ตามนัดเมื่อคืน" : `สนิท ${rank} · เชื่อใจ ${tr}`}</em></span>`;
       b.onclick = () => talkTo(p.id, loc.id);
       acts.appendChild(b);
     }
@@ -363,7 +366,8 @@ function renderClassroom(board: HTMLElement) {
     b.className = "who";
     b.style.borderColor = p.color;
     b.innerHTML = `<span class="avatar">${portraitHTML(p.id)}</span>
-      <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${affinityRank(s.affinity[p.id] ?? 0)}</em></span>`;
+      <span class="wname" style="color:${p.color}">${p.name}<em>สนิท ${
+        affinityRank(s.affinity[p.id] ?? 0)} · เชื่อใจ ${trustRank(s.trust[p.id] ?? 0)}</em></span>`;
     b.onclick = () => talkTo(p.id, "classroom");
     acts.appendChild(b);
   }
@@ -390,7 +394,9 @@ function hooks() {
   return {
     onStat: (id: StatId, n: number) => { s.stats[id] += n; },
     onAffinity: (cid: string, n: number) => changeAffinity(s, cid, n),
-    onFlag: (name: string) => { s.flags[name] = true; },
+    onTrust: (cid: string, n: number) => changeTrust(s, cid, n),
+    // ธงบางอันแปลว่าเราทำสิ่งที่ยากหรือซื่อสัตย์ ตารางใน game.json แปลงเป็นความเชื่อใจให้เอง
+    onFlag: (name: string) => { s.flags[name] = true; trustFromFlag(s, name); },
     onHint: (text: string) => showHint(text),
     onMoney: (amount: number) => { s.money = Math.max(0, s.money + amount); },
     onInvite: (cid: string) => { acceptInvite(s, cid); invitedThisChat = true; },
