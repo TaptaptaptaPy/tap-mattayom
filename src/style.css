@@ -446,3 +446,7 @@ button{font-family:inherit;cursor:pointer}
 .bdt.tod-dark img{filter:saturate(.6) brightness(.5)}
 .bdt.tod-dark::after{background:rgba(12,16,44,.6)}
 .locbg .bdt{transform:scale(1.02)}
+
+/* รับนัดซ้อนกันไว้ — ต้องเห็นก่อนถึงเวลา ไม่ใช่รู้ตอนผิดนัดไปแล้ว */
+.appt .clash{display:block;font-style:normal;font-size:12px;margin-top:4px;
+  color:#e0a45c;border-top:1px solid rgba(224,164,92,.3);padding-top:4px}

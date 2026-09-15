@@ -17,6 +17,12 @@ INCLUDE _shared.ink
     พี่ก็เคยขยัน
     -> DONE
 
++ {tomorrowSchool && plansBooked() > 0} [รับไว้ทั้งที่พรุ่งนี้มีนัดคนอื่นแล้ว]
+    ~ inviteTomorrow("tar")
+    ~ gainAffinity("tar", 3)
+    เรารับปากไปทั้งที่รู้อยู่แก่ใจว่าพรุ่งนี้มีอีกคนรออยู่เหมือนกัน
+    พรุ่งนี้จะมีใครสักคนยืนรอเก้อ และเราเป็นคนเลือกเองว่าใคร
+    -> DONE
 + {tomorrowSchool} ["พรุ่งนี้เย็นเจอกันที่ห้องชุมนุมไหมครับ"]
     ~ gainAffinity("tar", 3)
     ~ inviteTomorrow("tar")

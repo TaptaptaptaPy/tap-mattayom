@@ -16,7 +16,8 @@ import { behaviourLabel } from "./sim/discipline";
 import { buy, use, gift } from "./sim/shop";
 import { escapeCatch } from "./sim/discipline";
 import { openMinigame } from "./ui/minigame";
-import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
+import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
+         keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
 import { hasHomework, doHomework } from "./sim/homework";
 import { studyOne, subjectById } from "./sim/grades";
@@ -122,12 +123,18 @@ function renderBoard() {
 
   // รับนัดไว้เมื่อคืนแล้วลืม = เสียความสัมพันธ์ฟรีๆ เตือนไว้ทั้งวันจนกว่าจะไป
   const plan = planToday(s);
+  const clash = planClash(s);
   if (plan) {
     const pc = chars.find((c) => c.id === plan.charId);
     const note = document.createElement("div");
     note.className = "appt";
+    const others = plansToday(s).slice(1)
+      .map((p) => chars.find((c) => c.id === p.charId)?.name ?? p.charId);
     note.innerHTML = `<b style="color:${pc?.color ?? "#fff"}">${pc?.name ?? plan.charId}</b>
-      ${isPlanPeriod(s) ? "รออยู่แล้ว ไปหาเลย" : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`;
+      ${isPlanPeriod(s) ? "รออยู่แล้ว ไปหาเลย" : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`
+      + (clash > 1
+        ? `<i class="clash">รับ${others.join(" กับ ")}ไว้ช่วงเดียวกันด้วย — ไปได้คนเดียว</i>`
+        : "");
     board.appendChild(note);
   }
 
@@ -435,6 +442,9 @@ function openPendingChat(charId: string) {
   playChat(story, charId, (msgs) => {
     recordThread(s, charId, msgs, invitedThisChat);
     if (invitedThisChat) { flash(`นัดกับ${nameOf(charId)}ไว้พรุ่งนี้หลังเลิกเรียนแล้ว`); sfx.plan(); }
+    // คืนเดียวกันอาจมีคนที่สองทักมาอีก ถ้าเราสนิทกับหลายคน — นั่นคือจุดที่นัดเริ่มซ้อนกันได้
+    const second = offerSecondChat(s, Math.random, charId);
+    if (second) { flash(`${nameOf(second)}ส่งข้อความมาด้วย`); sfx.chat(); }
     save();
     openChatList();
   });

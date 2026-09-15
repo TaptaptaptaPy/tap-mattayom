@@ -26,6 +26,12 @@ INCLUDE _shared.ink
     เออ ได้
     -> DONE
 
++ {tomorrowSchool && plansBooked() > 0} [รับไว้ทั้งที่พรุ่งนี้มีนัดคนอื่นแล้ว]
+    ~ inviteTomorrow("nun")
+    ~ gainAffinity("nun", 3)
+    เรารับปากไปทั้งที่รู้อยู่แก่ใจว่าพรุ่งนี้มีอีกคนรออยู่เหมือนกัน
+    พรุ่งนี้จะมีใครสักคนยืนรอเก้อ และเราเป็นคนเลือกเองว่าใคร
+    -> DONE
 + {tomorrowSchool} ["พรุ่งนี้เย็นติวด้วยกันไหม"]
     ~ gainAffinity("nun", 3)
     ~ inviteTomorrow("nun")

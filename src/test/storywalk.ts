@@ -62,6 +62,7 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("sideTaken", () => (sides.size ? 1 : 0));
   story.BindExternalFunction("sidedWith", (c: string) => (sides.has(c) ? 1 : 0));
   story.BindExternalFunction("trustOf", () => 3);
+  story.BindExternalFunction("plansBooked", () => 1);
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   return story;
 }

@@ -56,7 +56,7 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
   s.behaviour = game.behaviour.start;
   s.club = null;
   s.sided = null;
-  s.plan = null;
+  s.plans = [];
   s.pendingChat = null;
   s.chatDay = -1;
   s.ending = null;

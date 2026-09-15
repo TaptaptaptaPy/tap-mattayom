@@ -49,6 +49,12 @@ INCLUDE _shared.ink
     ไม่ต้องคิดมาก ถ่ายทีเดียวสองชุดมันไม่ต่างกัน
     -> DONE
 
++ {tomorrowSchool && plansBooked() > 0} [รับไว้ทั้งที่พรุ่งนี้มีนัดคนอื่นแล้ว]
+    ~ inviteTomorrow("ploy")
+    ~ gainAffinity("ploy", 3)
+    เรารับปากไปทั้งที่รู้อยู่แก่ใจว่าพรุ่งนี้มีอีกคนรออยู่เหมือนกัน
+    พรุ่งนี้จะมีใครสักคนยืนรอเก้อ และเราเป็นคนเลือกเองว่าใคร
+    -> DONE
 + {tomorrowSchool} ["พรุ่งนี้มารับที่ห้องสมุดได้ไหม"]
     ~ gainAffinity("ploy", 2)
     ~ inviteTomorrow("ploy")

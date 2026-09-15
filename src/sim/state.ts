@@ -81,7 +81,9 @@ export interface GameState {
   pendingChat: string | null;
   /** คืนล่าสุดที่ทอยว่ามีคนทักไหมไปแล้ว กันไม่ให้ทอยซ้ำหลายรอบในคืนเดียว */
   chatDay: number;
-  plan: Plan | null;
+  /** นัดที่รับไว้ — เป็นรายการ ไม่ใช่ช่องเดียว
+   *  รับนัดสองคนในวันเดียวกันได้ แต่ไปได้คนเดียว นั่นคือทั้งหมดของความหมายมัน */
+  plans: Plan[];
   lastQuiz: number;
   ending: Ending | null;
 }
@@ -93,7 +95,7 @@ export interface GameState {
 // 8: เพิ่มตรวจหน้าเสาธง (grooming · inspected)
 // 9: เพิ่มภาคมหาลัย (chapter · schoolEnding · debt · rentDue)
 // 10: เพิ่มสอบซ่อมและงานกลุ่ม (retakes · project)
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -112,7 +114,7 @@ export function newState(): GameState {
     grooming: game.grooming.start, inspected: 0, retakes: [], project: null,
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
-    chats: [], pendingChat: null, chatDay: -1, plan: null,
+    chats: [], pendingChat: null, chatDay: -1, plans: [],
   };
 }
 

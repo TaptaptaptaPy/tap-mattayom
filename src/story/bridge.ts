@@ -78,6 +78,8 @@ export function openScene(storyName: string, s: GameState, charId: string | null
     hooks.onTrust(cid, amount); return null;
   });
   story.BindExternalFunction("inviteTomorrow", (cid: string) => { hooks.onInvite(cid); return null; });
+  story.BindExternalFunction("plansBooked", () =>
+    s.plans.filter((p) => p.day === s.dayIndex + 1 && !p.kept).length);
   story.BindExternalFunction("standing", (amount: number, why: string) => {
     hooks.onStanding(amount, why); return null;
   });

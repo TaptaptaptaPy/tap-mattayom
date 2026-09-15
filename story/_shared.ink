@@ -46,3 +46,5 @@ EXTERNAL sidedWith(charId)
 // ความเชื่อใจ — ถามระดับของใครก็ได้ ไม่ใช่แค่คนที่อยู่ตรงหน้า
 EXTERNAL trustOf(charId)
 EXTERNAL gainTrust(charId, amount)
+// พรุ่งนี้รับนัดใครไว้แล้วกี่คน — รับซ้อนได้ แต่ไปได้คนเดียว
+EXTERNAL plansBooked()

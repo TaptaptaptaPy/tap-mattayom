@@ -17,7 +17,8 @@ import { availableLocations, doAction, doRest, attendClass, skipClass,
 import { takeExam } from "../sim/exam";
 import { joinClub, clubToday, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
-import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod } from "../sim/chat";
+import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
+         planClash } from "../sim/chat";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -51,6 +52,8 @@ interface Run {
   minEnergy: number; blocked: number; restPeriods: number;
   caught: number; escaped: number; troublePeriods: number;
   chats: number; invites: number; kept: number;
+  /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
+  clashDays: number;
   /** ผลต่างของสองแกน (สนิท − เชื่อใจ) ต่อตัวละครหนึ่งคน ตอนจบเทอม */
   axisGap: number[];
   homeworkDone: number; homeworkMissed: number;
@@ -98,7 +101,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   const mg = () => clamp01(skill + (rnd() - 0.5) * 0.3);
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
-  let chats = 0, invites = 0, kept = 0, homeworkDone = 0, haircuts = 0;
+  let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -139,8 +142,18 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       const invited = canMeet && takesInvite && rnd() < 0.7;
       if (invited) { acceptInvite(s, who); invites++; }
       recordThread(s, who, [], invited);
+
+      // คืนเดียวกันอาจมีคนที่สองทักมา ถ้าสนิทกับหลายคน — นี่คือทางที่นัดจะซ้อนกัน
+      const who2 = offerSecondChat(s, rnd, who);
+      if (who2) {
+        chats++;
+        const inv2 = canMeet && takesInvite && rnd() < 0.7;
+        if (inv2) { acceptInvite(s, who2); invites++; }
+        recordThread(s, who2, [], inv2);
+      }
     }
 
+    if (planClash(s) > 1) clashDays++;
     const appt = planToday(s);
     if (appt && isPlanPeriod(s) && keepsInvite) {
       // ไปตามนัดกินช่วงเวลานั้นไปทั้งช่วง เหมือนไปนั่งคุยกับเขาจริงๆ
@@ -218,7 +231,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   return {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
-    caught: s.caught, escaped, troublePeriods, chats, invites, kept,
+    caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
     axisGap: Object.keys(s.affinity).map((id) =>
       affinityRank(s.affinity[id] ?? 0) - trustRank(s.trust[id] ?? 0)),
     homeworkDone, homeworkMissed: s.homeworkMissed,
@@ -354,8 +367,11 @@ console.log(`สองแกนแยกกันจริงไหม: วั�
 if (gaps.length && diverged / gaps.length < 0.2)
   console.log("  ← สองแกนขยับไปด้วยกันเกือบตลอด แยกออกมาแล้วแทบไม่ได้อะไร");
 
+const totalClash = sum(allRuns.map((r) => r.clashDays));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
-            ` · ผิดนัด ${totalInvites - totalKept}`);
+            ` · ผิดนัด ${totalInvites - totalKept} · วันที่รับนัดซ้อนกัน ${totalClash}`);
+if (totalClash === 0)
+  console.log("  ← ไม่เคยรับนัดซ้อนกันเลยสักครั้ง ระบบนัดซ้อนไม่ได้ถูกทดสอบ");
 
 const rt = sum(allRuns.map((r) => r.retakesDone));
 const rtLeft = sum(allRuns.map((r) => r.retakesLeft));
