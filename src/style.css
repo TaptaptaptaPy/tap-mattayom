@@ -340,3 +340,56 @@ button{font-family:inherit;cursor:pointer}
   mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.65) 45%,transparent 92%)}
 #sceneBg .bd{height:62vh;min-height:280px}
 #scene{isolation:isolate}
+
+/* ───────────────── ไลน์ ─────────────────
+   ฟองซ้ายคือเขา ฟองขวาคือเรา คลาสที่เป็นสถานะขึ้นต้นด้วย is- ตามกติกาในไฟล์นี้ */
+.pwrap.chat{display:flex;flex-direction:column;max-height:82dvh}
+.chead{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.cavatar{width:34px;height:34px;border-radius:50%;overflow:hidden;flex:0 0 34px;
+  background:var(--bg2);display:grid;place-items:center}
+.cavatar svg{width:100%;height:100%}
+.cwho{display:flex;flex-direction:column;line-height:1.3}
+.cwho b{font-family:"Bai Jamjuree",sans-serif;font-size:15px}
+.cwho small{font-size:11px;color:var(--dim)}
+
+.bubbles{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;
+  padding:12px 2px;min-height:180px;scroll-behavior:smooth}
+.bub{max-width:78%;padding:9px 13px;border-radius:16px;font-size:14.5px;line-height:1.6;
+  white-space:pre-wrap;animation:bubIn .18s ease}
+.bub.them{align-self:flex-start;background:var(--bg2);border-bottom-left-radius:5px}
+.bub.me{align-self:flex-end;background:rgba(228,160,183,.2);border-bottom-right-radius:5px}
+.bub.is-typing{display:flex;gap:4px;align-items:center;padding:12px 14px}
+.bub.is-typing i{width:6px;height:6px;border-radius:50%;background:var(--dim);
+  animation:typing 1s infinite ease-in-out}
+.bub.is-typing i:nth-child(2){animation-delay:.16s}
+.bub.is-typing i:nth-child(3){animation-delay:.32s}
+@keyframes bubIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes typing{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
+.replies{display:grid;gap:7px;padding-top:10px;border-top:1px solid var(--line)}
+.reply{background:none;color:var(--ink);border:1px solid rgba(228,160,183,.45);
+  border-radius:12px;padding:9px 13px;font-size:13.5px;min-height:40px;text-align:left}
+.reply:active{background:rgba(228,160,183,.14)}
+.reply.close{text-align:center;border-color:var(--line);color:var(--dim)}
+
+.thread{display:flex;align-items:center;gap:10px;width:100%;margin-top:8px;text-align:left;
+  background:none;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.thread .tinfo{flex:1;display:flex;flex-direction:column;min-width:0}
+.thread .tinfo b{font-family:"Bai Jamjuree",sans-serif;font-size:14px}
+.thread .tinfo small{font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread .tday{font-size:10.5px;color:var(--dim);flex:0 0 auto}
+.thread.is-new{border-color:rgba(228,160,183,.55)}
+.thread .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+.dimline{color:var(--dim);font-size:13px;line-height:1.7}
+
+/* ตัวเลขบนปุ่มไลน์ในแถบบน — ต้องเห็นได้โดยไม่ต้องเปิดเข้าไปดู */
+.tbtn.is-unread{border-color:rgba(228,160,183,.6);color:var(--accent)}
+.tbtn .badge{display:inline-block;margin-left:5px;min-width:16px;padding:0 4px;border-radius:999px;
+  background:var(--accent);color:#2a1620;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.appt{border:1px solid rgba(228,160,183,.5);border-radius:14px;padding:10px 14px;
+  font-size:13.5px;color:var(--dim);background:rgba(228,160,183,.07)}
+.appt b{font-family:"Bai Jamjuree",sans-serif;font-size:14px;margin-right:6px}
+.who.is-appt{border-color:var(--accent);background:rgba(228,160,183,.12)}
+.who.is-appt em{color:var(--accent)}
+/* บนจอกว้าง #board เป็นกริดสองคอลัมน์ แถบเตือนนัดต้องกินเต็มแถว ไม่งั้นจะกลายเป็นกล่องเปล่าสูงเท่าการ์ด */
+.appt{grid-column:1/-1;align-self:start}

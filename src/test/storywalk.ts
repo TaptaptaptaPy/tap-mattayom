@@ -12,9 +12,11 @@ const shared = readFileSync(join(dir, "_shared.ink"), "utf8");
 
 /** โปรไฟล์ผู้เล่นหลายแบบ เพื่อให้เส้นทางที่ล็อกด้วยค่าสถานะถูกเดินจริง */
 const PROFILES: { name: string; vars: Record<string, number | string> }[] = [
-  { name: "เพิ่งเปิดเทอม", vars: { heart: 0, mind: 0, charm: 0, kind: 0, nerve: 0, affinity: 0, rank: 0, day: 1, money: 200, behaviour: 100, caught: 0, club: "", mindRank: 0 } },
-  { name: "กลางเทอม", vars: { heart: 14, mind: 14, charm: 14, kind: 14, nerve: 14, affinity: 12, rank: 3, day: 60, money: 800, behaviour: 70, caught: 2, club: "music", mindRank: 3 } },
-  { name: "ปลายเทอมทุ่มสุดตัว", vars: { heart: 30, mind: 30, charm: 30, kind: 30, nerve: 30, affinity: 40, rank: 8, day: 115, money: 2000, behaviour: 100, caught: 0, club: "sport", mindRank: 5 } },
+  { name: "เพิ่งเปิดเทอม", vars: { heart: 0, mind: 0, charm: 0, kind: 0, nerve: 0, affinity: 0, rank: 0, day: 1, money: 200, behaviour: 100, caught: 0, club: "", mindRank: 0, tomorrowSchool: 1 } },
+  { name: "กลางเทอม", vars: { heart: 14, mind: 14, charm: 14, kind: 14, nerve: 14, affinity: 12, rank: 3, day: 60, money: 800, behaviour: 70, caught: 2, club: "music", mindRank: 3, tomorrowSchool: 1 } },
+  { name: "ปลายเทอมทุ่มสุดตัว", vars: { heart: 30, mind: 30, charm: 30, kind: 30, nerve: 30, affinity: 40, rank: 8, day: 115, money: 2000, behaviour: 100, caught: 0, club: "sport", mindRank: 5, tomorrowSchool: 1 } },
+  // โปรไฟล์นี้มีไว้เดินฝั่ง "พรุ่งนี้โรงเรียนปิด" ของบทแชทโดยเฉพาะ
+  { name: "สนิทแต่พรุ่งนี้โรงเรียนปิด", vars: { heart: 30, mind: 30, charm: 30, kind: 30, nerve: 30, affinity: 40, rank: 8, day: 116, money: 2000, behaviour: 100, caught: 0, club: "sport", mindRank: 5, tomorrowSchool: 0 } },
 ];
 
 interface Stat { lines: number; choices: number; endings: number; hints: string[]; calls: Record<string, number>; }
@@ -28,6 +30,7 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("setHint", (t: string) => { note("setHint"); hints.push(t); return null; });
   story.BindExternalFunction("spend", () => { note("spend"); return null; });
   story.BindExternalFunction("hasFlag", (n: string) => (flags.has(n) ? 1 : 0));
+  story.BindExternalFunction("inviteTomorrow", (c: string) => { note("inviteTomorrow:" + c); return null; });
   return story;
 }
 
@@ -108,6 +111,9 @@ for (const f of files) {
 
   const gains = Object.entries(stat.calls).filter(([k]) => k.startsWith("gain"))
     .map(([k, n]) => `${k.replace("gainStat:", "").replace("gainAffinity:", "+")}×${n}`).join(" ");
+  // ทางที่ชวนนัดถูกกั้นด้วย {tomorrowSchool} ถ้าโปรไฟล์ไหนไม่ตั้งค่าไว้ เส้นทางนี้จะไม่เคยถูกเดินเลย
+  const invites = Object.entries(stat.calls)
+    .filter(([k]) => k.startsWith("inviteTomorrow")).reduce((a, [, n]) => a + n, 0);
   const uniqueHints = [...new Set(stat.hints)];
 
   if (stat.endings === 0) problems.push("ไม่มีเส้นทางไหนจบเลย");
@@ -119,6 +125,9 @@ for (const f of files) {
               `${stat.endings} ปลายทาง${mode}`);
   console.log(`         ${perProfile.join(" | ")}`);
   if (gains) console.log(`         ให้ค่า: ${gains}`);
+  if (invites) console.log(`         ชวนนัดพรุ่งนี้: ${invites} ครั้ง`);
+  if (f.startsWith("chat_") && !invites)
+    problems.push("บทแชทนี้ไม่มีเส้นทางไหนชวนนัดเลย ระบบนัดจะไม่ถูกทดสอบ");
   if (uniqueHints.length) console.log(`         คำใบ้ที่บทบอกเอง: ${uniqueHints.length} ข้อ`);
   for (const p of problems) console.log(`         ← ${p}`);
 }

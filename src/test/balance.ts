@@ -10,12 +10,13 @@
 import game from "../../data/game.json";
 import { mulberry32, clamp01, type Rnd } from "../core/rng";
 import { newState, statRank, type GameState, type StatId, type Ending, type ExamResult } from "../sim/state";
-import { advance, isLocked, isTermOver, eventNow } from "../sim/calendar";
+import { advance, isLocked, isTermOver, eventNow, isSchoolDay } from "../sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
          type ActionResult, type LocationOption } from "../sim/actions";
 import { takeExam } from "../sim/exam";
 import { joinClub, clubToday, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
+import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod } from "../sim/chat";
 import { computeEnding } from "../sim/ending";
 import { buy, use } from "../sim/shop";
 
@@ -42,6 +43,7 @@ interface Run {
   exams: Record<string, ExamResult>;
   minEnergy: number; blocked: number; restPeriods: number;
   caught: number; escaped: number; troublePeriods: number;
+  chats: number; invites: number; kept: number;
   behaviour: number; money: number;
   ending: Ending;
 }
@@ -81,6 +83,10 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   const mg = () => clamp01(skill + (rnd() - 0.5) * 0.3);
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
+  let chats = 0, invites = 0, kept = 0;
+  /** ใครรับนัดแล้วไปจริง — คนที่ทุ่มเรียนกับเด็กหลังห้องเบี้ยวบ้าง จะได้เห็นราคาของการผิดนัด */
+  const takesInvite = strat === "social" || strat === "spread" || strat === "rebel";
+  const keepsInvite = strat === "social" || strat === "spread";
   const maxedAt: Partial<Record<StatId, number>> = {};
 
   /** โดนจับแล้วได้เล่นมินิเกมหลบ — ทางเดียวกับ runDodge() ใน main.ts */
@@ -99,7 +105,24 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       if (ev.pickClub && !s.club) joinClub(s, clubFor(strat));
     }
 
-    if (isLocked(s)) {
+    // ไลน์ตอนกลางคืน — ฝั่งตัวเลขล้วน คำพูดอยู่ใน ink ซึ่ง `npm run story` คุมอยู่แล้ว
+    // จึงบันทึกบทสนทนาเปล่าไว้ เพื่อให้ตรรกะคูลดาวน์กับประวัติแชทถูกเดินจริง
+    const who = offerChat(s, rnd);
+    if (who) {
+      chats++;
+      // บทกั้นทางเลือกชวนนัดไว้ด้วย {tomorrowSchool} เทสต์ต้องเคารพเงื่อนไขเดียวกัน
+      const canMeet = isSchoolDay({ ...s, dayIndex: s.dayIndex + 1 });
+      const invited = canMeet && takesInvite && rnd() < 0.7;
+      if (invited) { acceptInvite(s, who); invites++; }
+      recordThread(s, who, [], invited);
+    }
+
+    const appt = planToday(s);
+    if (appt && isPlanPeriod(s) && keepsInvite) {
+      // ไปตามนัดกินช่วงเวลานั้นไปทั้งช่วง เหมือนไปนั่งคุยกับเขาจริงๆ
+      keepPlan(s, appt.charId);
+      kept++;
+    } else if (isLocked(s)) {
       if (strat === "rebel") afterCatch(skipClass(s, rnd));
       else attendClass(s);
     } else if (strat === "lazy") {
@@ -141,7 +164,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   return {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
-    caught: s.caught, escaped, troublePeriods,
+    caught: s.caught, escaped, troublePeriods, chats, invites, kept,
     behaviour: s.behaviour, money: s.money,
     ending: computeEnding(s),
   };
@@ -183,6 +206,12 @@ function report(strat: Strategy, runs: Run[]) {
   console.log(`    ฝ่ายปกครอง: โดนจับ ${r0(caught)} ครั้ง · หลบรอด ${r0(mean(runs.map((r) => r.escaped)))}` +
               ` · โดนห้ามเข้าที่เสี่ยง ${r0(mean(runs.map((r) => r.troublePeriods)))} ช่วง` +
               ` · ความประพฤติ ${r0(mean(runs.map((r) => r.behaviour)))}`);
+
+  const ch = mean(runs.map((r) => r.chats));
+  if (ch >= 0.5)
+    console.log(`    ไลน์: มีคนทักมา ${r0(ch)} คืน · รับนัด ${r0(mean(runs.map((r) => r.invites)))}` +
+                ` · ไปตามนัด ${r0(mean(runs.map((r) => r.kept)))}` +
+                ` · ผิดนัด ${r0(mean(runs.map((r) => r.invites - r.kept)))}`);
 
   const scores = runs.map((r) => r.ending.score);
   const tiers = [...new Set(runs.map((r) => r.ending.tier))];
@@ -226,8 +255,15 @@ for (const [, rs] of results)
   }
 console.log(maxLines.length ? `ค่าที่แตะเพดาน: ${maxLines.join(" · ")}` : "ไม่มีค่าสถานะไหนแตะเพดานเลยทั้งเทอม");
 
-const totalCaught = sum([...results.values()].flat().map((r) => r.caught + r.escaped));
-const totalEscaped = sum([...results.values()].flat().map((r) => r.escaped));
+const allRuns = [...results.values()].flat();
+const totalChats = sum(allRuns.map((r) => r.chats));
+const totalInvites = sum(allRuns.map((r) => r.invites));
+const totalKept = sum(allRuns.map((r) => r.kept));
+console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
+            ` · ผิดนัด ${totalInvites - totalKept}`);
+
+const totalCaught = sum(allRuns.map((r) => r.caught + r.escaped));
+const totalEscaped = sum(allRuns.map((r) => r.escaped));
 console.log(`ฝ่ายปกครองทำงานจริงไหม: โดนจับรวม ${totalCaught} ครั้ง · หลบรอด ${totalEscaped} ครั้ง`);
 
 const early = [...results.values()].flat()
@@ -242,6 +278,8 @@ if (!tiring.length) console.log("เตือน: ไม่มีกลยุท
 if (serious <= idle) console.log("เตือน: เล่นจริงจังได้ผลไม่ต่างจากไม่ทำอะไรเลย");
 if (totalCaught === 0) console.log("เตือน: ไม่มีใครโดนฝ่ายปกครองจับเลยสักครั้ง ทั้งระบบความประพฤติไม่ถูกทดสอบ");
 if (totalEscaped === 0) console.log("เตือน: มินิเกมหลบฝ่ายปกครองไม่เคยช่วยใครรอดเลย");
+if (totalChats === 0) console.log("เตือน: ไม่มีใครส่งไลน์มาเลยสักคืน ระบบไลน์ไม่ถูกทดสอบ");
+if (totalInvites === totalKept) console.log("เตือน: ไม่มีใครผิดนัดเลย บทลงโทษการผิดนัดไม่ถูกทดสอบ");
 if (skillSwing < 3) console.log(`เตือน: ฝีมือมินิเกมแทบไม่มีผลกับปลายทาง (ต่างกันแค่ ${skillSwing.toFixed(1)} คะแนน)`);
-if (!early.length && tiring.length && serious > idle && totalCaught > 0 && skillSwing >= 3)
+if (!early.length && tiring.length && serious > idle && totalCaught > 0 && skillSwing >= 3 && totalChats > 0)
   console.log("เศรษฐกิจของเกมอยู่ในเกณฑ์ที่ตั้งใจไว้");

@@ -4,6 +4,15 @@ import chars from "../../data/characters.json";
 export type StatId = "heart" | "mind" | "charm" | "kind" | "nerve";
 
 export interface ExamResult { score: number; rank: number; }
+
+/** หนึ่งฟองข้อความในแชท — `mine` คือฝั่งเรา (ข้อความที่เราเลือกตอบ) */
+export interface ChatMsg { text: string; mine: boolean; }
+/** บทสนทนาไลน์หนึ่งคืน เก็บไว้ทั้งก้อนเพื่อให้ย้อนอ่านได้เหมือนแชทจริง */
+export interface ChatThread {
+  id: string; charId: string; day: number; invited: boolean; msgs: ChatMsg[];
+}
+/** นัดที่รับไว้ — `day` คือวันที่ต้องไป ไม่ไปแล้วมีราคาต้องจ่าย */
+export interface Plan { charId: string; day: number; kept: boolean; }
 export interface Ending {
   tier: string; tone: string; score: number;
   closest: string | null; closestRank: number;
@@ -32,11 +41,19 @@ export interface GameState {
   seenEvents: Record<string, true>;
   caught: number;
   sleepDebt: number;
+
+  chats: ChatThread[];
+  /** ใครทักมาแล้วยังไม่ได้เปิดอ่าน — ตัวข้อความจะถูกสร้างตอนเปิดจริง เพราะคำพูดเป็นของ ink */
+  pendingChat: string | null;
+  /** คืนล่าสุดที่ทอยว่ามีคนทักไหมไปแล้ว กันไม่ให้ทอยซ้ำหลายรอบในคืนเดียว */
+  chatDay: number;
+  plan: Plan | null;
   lastQuiz: number;
   ending: Ending | null;
 }
 
-export const SAVE_VERSION = 3;
+// 4: เพิ่มระบบไลน์ (chats · pendingChat · chatDay · plan)
+export const SAVE_VERSION = 4;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -50,6 +67,7 @@ export function newState(): GameState {
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
     sleepDebt: 0, lastQuiz: 0, ending: null,
+    chats: [], pendingChat: null, chatDay: -1, plan: null,
   };
 }
 

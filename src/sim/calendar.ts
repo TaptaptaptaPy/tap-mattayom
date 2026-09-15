@@ -1,5 +1,6 @@
 import game from "../../data/game.json";
 import events from "../../data/events.json";
+import { settleMissedPlan } from "./chat";
 import { remember, type GameState } from "./state";
 
 const DOW = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -63,6 +64,8 @@ export function advance(s: GameState): void {
     s.energy = Math.min(game.energy.max, s.energy + restore);
     s.sleepDebt = 0;
     s.study *= game.examModel.studyDecayPerDay;
+    // นัดที่รับไว้เมื่อวานแล้วไม่ไป คิดบัญชีตรงนี้ — อยู่ในทางเดินหลักเพื่อให้เทสต์สมดุลเดินผ่านเอง
+    settleMissedPlan(s);
     // ค่าขนมออกทุกวันจันทร์ ความประพฤติค่อยๆ ฟื้นถ้าไม่ก่อเรื่องซ้ำ
     if (weekdayOf(s) === 1) payAllowance(s);
   }

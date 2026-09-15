@@ -108,6 +108,17 @@
     "behaviourPenalty": 120,
     "_note": "ได้ค่าขนมทุกวันจันทร์ ผลสอบดีได้เพิ่ม ความประพฤติแย่โดนหัก"
   },
+  "chat": {
+    "_note": "ไลน์ตอนกลางคืน — ตัวละครทักมาเอง แทนที่จะรอให้ผู้เล่นเดินไปหาเสมอ",
+    "period": "night",
+    "planPeriod": "after",
+    "chancePerNight": 0.45,
+    "minRank": 1,
+    "cooldownDays": 3,
+    "keptBonus": 3,
+    "missedPenalty": 4,
+    "maxThreads": 40
+  },
   "behaviour": {
     "start": 100,
     "warnAt": 72,

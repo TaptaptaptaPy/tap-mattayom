@@ -16,6 +16,8 @@ VAR behaviour = 100
 VAR caught = 0
 VAR club = ""
 VAR mindRank = 0
+// พรุ่งนี้โรงเรียนเปิดไหม (1/0) — ใช้กั้นทางเลือกที่ชวนเจอกันที่โรงเรียน
+VAR tomorrowSchool = 1
 
 // สะพานไปฝั่ง TypeScript — ดู src/story/bridge.ts
 EXTERNAL gainStat(id, amount)
@@ -24,3 +26,5 @@ EXTERNAL setFlag(name)
 EXTERNAL setHint(text)
 EXTERNAL spend(amount)
 EXTERNAL hasFlag(name)
+// ชวนเจอกันพรุ่งนี้หลังเลิกเรียน — จองช่วงเวลาของวันพรุ่งนี้ไว้จริง ดู src/sim/chat.ts
+EXTERNAL inviteTomorrow(charId)

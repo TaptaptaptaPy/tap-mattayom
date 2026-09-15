@@ -13,7 +13,10 @@ import { behaviourLabel } from "./sim/discipline";
 import { buy, use, gift } from "./sim/shop";
 import { escapeCatch } from "./sim/discipline";
 import { openMinigame } from "./ui/minigame";
-import { openScene } from "./story/bridge";
+import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
+         nameOf } from "./sim/chat";
+import { openScene, storyNames } from "./story/bridge";
+import { playChat, viewThread, chatListPanel } from "./ui/chat";
 import { playScene, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
@@ -37,6 +40,10 @@ function renderTop() {
   $("date").innerHTML = parts.map((p) => `<span class="dseg">${p}</span>`).join('<i class="dsep">·</i>') +
     `<small class="dseg">เหลืออีก ${daysLeft(s)} วัน</small>`;
   $("periodStrip").innerHTML = periodStrip(s);
+
+  const chatBtn = $("bChat");
+  chatBtn.classList.toggle("is-unread", !!s.pendingChat);
+  chatBtn.innerHTML = s.pendingChat ? 'ไลน์<span class="badge">1</span>' : "ไลน์";
 
   const energyPct = (s.energy / game.energy.max) * 100;
   const low = s.energy < game.energy.lowThreshold;
@@ -89,6 +96,17 @@ function renderBoard() {
     return;
   }
 
+  // รับนัดไว้เมื่อคืนแล้วลืม = เสียความสัมพันธ์ฟรีๆ เตือนไว้ทั้งวันจนกว่าจะไป
+  const plan = planToday(s);
+  if (plan) {
+    const pc = chars.find((c) => c.id === plan.charId);
+    const note = document.createElement("div");
+    note.className = "appt";
+    note.innerHTML = `<b style="color:${pc?.color ?? "#fff"}">${pc?.name ?? plan.charId}</b>
+      ${isPlanPeriod(s) ? "รออยู่แล้ว ไปหาเลย" : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`;
+    board.appendChild(note);
+  }
+
   if (isLocked(s)) { renderClassroom(board); return; }
 
   for (const loc of availableLocations(s)) {
@@ -102,11 +120,13 @@ function renderBoard() {
 
     for (const p of loc.present) {
       const b = document.createElement("button");
-      b.className = "who";
+      const waiting = !!plan && plan.charId === p.id && isPlanPeriod(s);
+      b.className = "who" + (waiting ? " is-appt" : "");
       b.style.borderColor = p.color;
       const rank = affinityRank(s.affinity[p.id] ?? 0);
       b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
-        <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${rank}</em></span>`;
+        <span class="wname" style="color:${p.color}">${p.name}<em>${
+          waiting ? "ตามนัดเมื่อคืน" : "ระดับ " + rank}</em></span>`;
       b.onclick = () => talkTo(p.id, loc.id);
       acts.appendChild(b);
     }
@@ -238,13 +258,55 @@ function hooks() {
     onFlag: (name: string) => { s.flags[name] = true; },
     onHint: (text: string) => showHint(text),
     onMoney: (amount: number) => { s.money = Math.max(0, s.money + amount); },
+    onInvite: (cid: string) => { acceptInvite(s, cid); invitedThisChat = true; },
   };
+}
+
+// ───────────────────────── ไลน์ ─────────────────────────
+
+/** บทแชทรอบนี้จบด้วยการนัดไหม — ตั้งโดย hook onInvite ตอน ink เรียก inviteTomorrow() */
+let invitedThisChat = false;
+
+function openChatList() {
+  chatListPanel(s, {
+    onOpenPending: (cid) => openPendingChat(cid),
+    onOpenThread: (t) => viewThread(t, openChatList),
+    onClose: () => { P.closePanel(); render(); },
+  });
+}
+
+function openPendingChat(charId: string) {
+  const name = `chat_${charId}`;
+  if (!storyNames().includes(name)) {
+    // ตัวละครที่เพิ่มใหม่แต่ยังไม่มีไฟล์แชท — อย่าให้เกมค้าง
+    s.pendingChat = null;
+    flash(`ยังไม่มีบทแชทของ${nameOf(charId)}`, "bad");
+    openChatList();
+    return;
+  }
+  invitedThisChat = false;
+  const story = openScene(name, s, charId, hooks());
+  playChat(story, charId, (msgs) => {
+    recordThread(s, charId, msgs, invitedThisChat);
+    if (invitedThisChat) flash(`นัดกับ${nameOf(charId)}ไว้พรุ่งนี้หลังเลิกเรียนแล้ว`);
+    save();
+    openChatList();
+  });
+}
+
+/** คืนนี้มีใครทักมาไหม — เรียกทุกครั้งที่ขยับช่วงเวลา */
+function rollChat() {
+  const who = offerChat(s, Math.random);
+  if (who) flash(`${nameOf(who)}ส่งข้อความมา`);
 }
 
 function talkTo(charId: string, where?: string) {
   const c = chars.find((x) => x.id === charId)!;
   const story = openScene(c.story, s, charId, hooks());
   s.metToday[charId] = true;
+  // ไปตามนัดที่รับไว้ทางไลน์เมื่อคืน — ได้ใจเพิ่มจากการที่ไปจริง ไม่ใช่จากบทสนทนา
+  const bonus = keepPlan(s, charId);
+  if (bonus) flash(`ไปตามนัด${c.name} · สนิทขึ้น +${bonus}`);
   remember(s, `คุยกับ${c.name}`);
   playScene(story, c.name, c.color, charId, () => next(), where);
 }
@@ -311,6 +373,7 @@ function next() {
 }
 
 function afterStep() {
+  rollChat();
   save();
   const e = isTermOver(s) ? null : eventNow(s);
   if (e && handleEvent(e)) { renderTop(); return; }
@@ -355,6 +418,7 @@ function openMenu() {
   });
 }
 
+$("bChat").onclick = () => openChatList();
 $("bChars").onclick = () => P.characterPanel(s);
 $("bCal").onclick = () => P.calendarPanel(s);
 $("bMenu").onclick = () => openMenu();
@@ -386,6 +450,12 @@ function flash(msg: string, kind: "ok" | "bad" = "ok") {
   setTimeout(() => el.classList.add("out"), 2000);
   setTimeout(() => el.remove(), 2600);
 }
+
+// เปิดทางให้ตรวจสอบสถานะจาก console ตอนพัฒนา — เกมเดินทีละช่วงเวลา
+// ถ้าต้องเล่นจริงทุกครั้งกว่าจะถึงจุดที่อยากดู จะดีบั๊กไม่ไหว (ฝั่ง genesis ใช้ __genesis เหมือนกัน)
+if (import.meta.env.DEV)
+  (window as unknown as Record<string, unknown>).__mattayom =
+    { get s() { return s; }, render, next, save, openChatList, rollChat };
 
 // เปิดเกมมา ถ้ามีเหตุการณ์ค้างอยู่ตรงช่วงเวลานี้ ให้เล่นก่อน
 const startEvent = isTermOver(s) ? null : eventNow(s);
