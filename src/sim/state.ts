@@ -102,6 +102,8 @@ export interface GameState {
   board: Record<string, BoardRow[]>;
   /** เราติวให้ใครไปกี่ครั้ง */
   tutored: Record<string, number>;
+  /** ให้ของชิ้นไหนกับใครไปแล้วกี่ครั้ง คีย์คือ "คน:ของ" */
+  gifted: Record<string, number>;
   /** คนอื่นที่กำลังสนิทกับเขาเหมือนกัน 0-100 — ดู src/sim/rival.ts */
   rivals: Record<string, number>;
   /** คนที่เรายินดีด้วยแล้ว เรื่องนั้นจบไปแล้ว */
@@ -140,7 +142,8 @@ export interface GameState {
 // 18: เพิ่มเรื่องที่บ้าน (home)
 // 19: เพิ่มครูประจำชั้น (teacher)
 // 20: เพิ่มคู่แข่ง (rivals · conceded)
-export const SAVE_VERSION = 20;
+// 21: เพิ่มรสนิยมของฝากรายคน (gifted)
+export const SAVE_VERSION = 21;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -161,7 +164,7 @@ export function newState(): GameState {
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plans: [],
     lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {}, clubDays: 0, milestoneDone: false, seenToday: {},
-    home: { strain: 0, gave: 0, refused: 0, given: 0 }, teacher: game.teacher.start, teacherCalled: -99, rivals: {}, conceded: {},
+    home: { strain: 0, gave: 0, refused: 0, given: 0 }, teacher: game.teacher.start, teacherCalled: -99, rivals: {}, conceded: {}, gifted: {},
   };
 }
 

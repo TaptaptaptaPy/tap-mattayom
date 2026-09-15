@@ -1,7 +1,8 @@
 import game from "../../data/game.json";
 import chars from "../../data/characters.json";
 import { CLUBS, clubOf } from "../sim/club";
-import { ITEMS, giftable, usable } from "../sim/shop";
+import { ITEMS, giftable, giftedTimes, usable, wantsOf } from "../sim/shop";
+import { inChapter } from "../sim/chapter";
 import { behaviourLabel } from "../sim/discipline";
 import { standingLabel } from "../sim/bonds";
 import { SUBJECTS, gradeOf, gpa } from "../sim/grades";
@@ -73,10 +74,20 @@ export function bagPanel(s: GameState, hx: BagHandlers) {
   for (const it of mine)
     h += `<div class="row"><span>${it.icon} ${it.name} ×${s.inventory[it.id]}</span>
       <button data-use="${it.id}">ใช้</button></div>`;
+  // ปุ่มบอกเองว่าให้คนนี้แล้วจะเป็นยังไง — ของฝากที่ต้องเดาเป็นการสุ่ม ไม่ใช่การเลือก
+  // แต่บอกได้เฉพาะคนที่เราสนิทพอจะรู้จักเขาจริงๆ เท่านั้น
   for (const it of gifts)
     h += `<div class="row"><span>${it.icon} ${it.name} ×${s.inventory[it.id]}</span>
-      <span class="giftrow">${chars.map((c) =>
-        `<button data-gift="${it.id}" data-char="${c.id}" style="border-color:${c.color}66">ให้${c.name}</button>`).join("")}</span></div>`;
+      <span class="giftrow">${chars.filter((c) => inChapter(c as { chapter?: string }, s.chapter)).map((c) => {
+        const known = affinityRank(s.affinity[c.id] ?? 0) >= game.gift.knowAtRank;
+        const w = wantsOf(c.id);
+        const tag = !known ? "" : w?.item?.id === it.id ? " ♥"
+                  : giftedTimes(s, c.id, it.id) > 0 ? " ↺" : "";
+        const tip = known && w?.item?.id === it.id ? w.why
+                  : known && giftedTimes(s, c.id, it.id) > 0 ? `เคยให้ไปแล้ว ${giftedTimes(s, c.id, it.id)} ครั้ง` : "";
+        return `<button data-gift="${it.id}" data-char="${c.id}" title="${tip}"
+          style="border-color:${c.color}66">ให้${c.name}${tag}</button>`;
+      }).join("")}</span></div>`;
 
   h += "<h3>ร้านหน้าโรงเรียน</h3>";
   for (const it of ITEMS) {

@@ -1,7 +1,7 @@
 import shop from "../../data/shop.json";
 import chars from "../../data/characters.json";
 import game from "../../data/game.json";
-import { changeAffinity } from "./bonds";
+import { changeAffinity, changeTrust } from "./bonds";
 import { remember, type GameState, type StatId } from "./state";
 
 export type Item = (typeof shop)[number];
@@ -38,6 +38,22 @@ export function use(s: GameState, id: string): string {
   return `${it.name} · ${parts.join(" · ")}`;
 }
 
+/** ของที่คนคนนั้นอยากได้จริงๆ และของที่ผิดฝาผิดตัวสำหรับเขา
+ *  เดิมจับคู่ด้วย `likes` ซึ่งเป็นค่าสถานะ แปลว่าคนที่ค่าสถานะคล้ายกันชอบของเหมือนกันหมด
+ *  ทั้งที่สิ่งที่ทำให้ของฝากมีความหมายคือมันเจาะจงกับ *คนคนนั้น* ไม่ใช่กับประเภทของคน */
+type Taste = { wants?: string; dislikes?: string; wantsWhy?: string };
+const tasteOf = (id: string) => (chars.find((c) => c.id === id) as Taste | undefined) ?? {};
+
+/** เขาอยากได้อะไร — บทกับ UI ใช้บอกใบ้ได้ */
+export const wantsOf = (id: string) => {
+  const t = tasteOf(id);
+  return t.wants ? { item: itemById(t.wants), why: t.wantsWhy ?? "" } : null;
+};
+
+/** ให้ของชิ้นเดิมกับคนเดิมไปแล้วกี่ครั้ง */
+export const giftedTimes = (s: GameState, charId: string, itemId: string) =>
+  s.gifted[`${charId}:${itemId}`] ?? 0;
+
 /** ของฝากที่ตรงกับสิ่งที่เขาให้ค่า ได้ใจมากกว่าของแพง */
 export function gift(s: GameState, id: string, charId: string): string {
   const it = itemById(id);
@@ -46,15 +62,38 @@ export function gift(s: GameState, id: string, charId: string): string {
   if (!("gift" in it) || !it.gift) return "ของชิ้นนี้ไม่เหมาะจะเอาไปให้ใคร";
   if (!(s.inventory[id] > 0)) return "ไม่มีของชิ้นนี้ในกระเป๋า";
   s.inventory[id]--;
+
+  const G = game.gift;
+  const t = tasteOf(charId);
   const base = "giftValue" in it && typeof it.giftValue === "number" ? it.giftValue : 1;
   const likes = ("likes" in it ? (it.likes as string[]) : []) ?? [];
   const match = likes.some((l) => (ch.likes as StatId[]).includes(l as StatId));
-  const amount = match ? base + 2 : base;
+
+  // ของเดิมซ้ำๆ ได้ใจน้อยลงทุกครั้ง — ครั้งแรกคือความตั้งใจ ครั้งที่สี่คือความเคยชิน
+  const key = `${charId}:${id}`;
+  const again = s.gifted[key] ?? 0;
+  s.gifted[key] = again + 1;
+  const worn = Math.max(G.repeatFloor, 1 - again * G.repeatDrop);
+
+  if (t.dislikes === id) {
+    // ผิดฝาผิดตัวไม่ได้แค่ได้น้อย มันบอกเขาว่าเราไม่ได้ดูเลยว่าเขาเป็นคนยังไง
+    changeAffinity(s, charId, G.wrongAffinity);
+    changeTrust(s, charId, G.wrongTrust);
+    s.flags["wrong_gift"] = true;
+    remember(s, `ให้${it.name}กับ${ch.name} ซึ่งเขาไม่ได้อยากได้เลย`);
+    return `${ch.name}รับ${it.name}ไปแบบไม่รู้จะเอาไปทำอะไร`;
+  }
+
+  const amount = (t.wants === id ? base + G.wantsBonus : match ? base + G.likesBonus : base) * worn;
   changeAffinity(s, charId, amount);
+  if (t.wants === id) { s.flags["perfect_gift"] = true; changeTrust(s, charId, G.wantsTrust); }
   remember(s, `ให้${it.name}กับ${ch.name}`);
-  return match
-    ? `${ch.name}รับ${it.name}ไป · ตรงใจพอดี (ความสัมพันธ์ +${amount})`
-    : `${ch.name}รับ${it.name}ไป (ความสัมพันธ์ +${amount})`;
+  const tail = again > 0 ? " (ของเดิมอีกแล้ว)" : "";
+  return t.wants === id
+    ? `${ch.name}รับ${it.name}ไป · เขาอยากได้ชิ้นนี้มานานแล้ว (ความสัมพันธ์ +${amount.toFixed(1)})${tail}`
+    : match
+    ? `${ch.name}รับ${it.name}ไป · ตรงใจพอดี (ความสัมพันธ์ +${amount.toFixed(1)})${tail}`
+    : `${ch.name}รับ${it.name}ไป (ความสัมพันธ์ +${amount.toFixed(1)})${tail}`;
 }
 
 export const giftable = (s: GameState) =>

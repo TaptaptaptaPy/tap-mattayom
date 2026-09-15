@@ -14,6 +14,9 @@
       "mind",
       "kind"
     ],
+    "wants": "pen",
+    "dislikes": "cassette",
+    "wantsWhy": "เธอใช้ปากกาด้ามเดียวจนหมึกหมดแล้วซื้อรุ่นเดิมอีก",
     "smart": 0.86,
     "proudOfGrades": true,
     "club": "academic",
@@ -51,6 +54,9 @@
       "nerve",
       "heart"
     ],
+    "wants": "kanom",
+    "dislikes": "sheet",
+    "wantsWhy": "เขากินขนมครกเจ้าเดิมมาตั้งแต่ ป.4",
     "smart": 0.44,
     "club": "sport",
     "story": "kanin",
@@ -86,6 +92,9 @@
       "charm",
       "heart"
     ],
+    "wants": "cassette",
+    "dislikes": "pen",
+    "wantsWhy": "เธอเก็บเทปทุกม้วนที่มีคนอัดให้ไว้ในกล่องเดียวกัน",
     "smart": 0.62,
     "club": "music",
     "story": "minta",
@@ -123,6 +132,9 @@
       "kind",
       "heart"
     ],
+    "wants": "bracelet",
+    "dislikes": "kanom",
+    "wantsWhy": "เขาใส่กำไลเส้นเดิมจนสีซีดไปแล้วก็ยังใส่",
     "smart": 0.58,
     "club": "volunteer",
     "story": "palm",
@@ -159,6 +171,9 @@
       "nerve",
       "charm"
     ],
+    "wants": "cassette",
+    "dislikes": "bracelet",
+    "wantsWhy": "เขายังฟังเทปอยู่ ทั้งที่ไม่มีใครฟังแล้ว",
     "smart": 0.66,
     "proudOfGrades": true,
     "club": "sport",
@@ -194,6 +209,9 @@
       "mind",
       "kind"
     ],
+    "wants": "kanom",
+    "dislikes": "pen",
+    "wantsWhy": "เธอกินอะไรก็ได้ที่ไม่ต้องเข้าครัวเอง",
     "smart": 0.5,
     "club": "academic",
     "story": "nun",
