@@ -28,8 +28,11 @@ const $ = (id: string) => document.getElementById(id)!;
 function renderTop() {
   applyTheme(s);
   const club = clubOf(s);
-  $("date").innerHTML = `${dateLabel(s)}${isLocked(s) ? " · คาบเรียน" : ""}` +
-    `<small> · เหลืออีก ${daysLeft(s)} วัน</small>`;
+  // แยกเป็นชิ้นๆ แล้วห้ามตัดคำกลางชิ้น ไม่งั้นบนจอมือถือจะได้ "กลาง / คืน" คนละบรรทัด
+  const parts = dateLabel(s).split(" · ");
+  if (isLocked(s)) parts.push("คาบเรียน");
+  $("date").innerHTML = parts.map((p) => `<span class="dseg">${p}</span>`).join('<i class="dsep">·</i>') +
+    `<small class="dseg">เหลืออีก ${daysLeft(s)} วัน</small>`;
   $("periodStrip").innerHTML = periodStrip(s);
 
   const energyPct = (s.energy / game.energy.max) * 100;
