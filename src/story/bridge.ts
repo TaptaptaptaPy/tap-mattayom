@@ -4,6 +4,7 @@ import { affinityRank, statRank, trustRank, type GameState, type StatId } from "
 import { clubOf } from "../sim/club";
 import { isSchoolDay } from "../sim/calendar";
 import { lastMemory, memoryCount, standingRank } from "../sim/bonds";
+import { toldCount } from "../sim/claims";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
@@ -28,6 +29,7 @@ export interface SceneHooks {
   onStat: (id: StatId, amount: number) => void;
   onAffinity: (charId: string, amount: number) => void;
   onTrust: (charId: string, amount: number) => void;
+  onClaim: (topic: string, version: string, charId: string) => void;
   onFlag: (name: string) => void;
   onHint: (text: string) => void;
   onMoney: (amount: number) => void;
@@ -81,6 +83,12 @@ export function openScene(storyName: string, s: GameState, charId: string | null
   // ตัวละครจำเรื่องที่เราทำกับเขาได้ แล้วหยิบมาพูดเองโดยเราไม่ได้ถาม
   story.BindExternalFunction("recalls", (cid: string) => memoryCount(s, cid));
   story.BindExternalFunction("memoryOf", (cid: string) => lastMemory(s, cid));
+  // บอกคนที่อยู่ตรงหน้าไปว่าอะไร — ถ้าบอกคนอื่นไม่ตรงกัน วันหนึ่งจะโป๊ะ
+  story.BindExternalFunction("tellThem", (topic: string, version: string) => {
+    if (charId) hooks.onClaim(topic, version, charId);
+    return null;
+  });
+  story.BindExternalFunction("toldAlready", (topic: string) => toldCount(s, topic));
   story.BindExternalFunction("plansBooked", () =>
     s.plans.filter((p) => p.day === s.dayIndex + 1 && !p.kept).length);
   story.BindExternalFunction("standing", (amount: number, why: string) => {

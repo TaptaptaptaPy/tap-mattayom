@@ -51,3 +51,6 @@ EXTERNAL plansBooked()
 // เขาจำเรื่องที่เราทำกับเขาได้กี่เรื่อง และเรื่องล่าสุดคืออะไร
 EXTERNAL recalls(charId)
 EXTERNAL memoryOf(charId)
+// บอกคนที่อยู่ตรงหน้าไปว่าอะไรเรื่องนั้น — บอกคนอื่นไม่ตรงกันแล้วจะโป๊ะ
+EXTERNAL tellThem(topic, version)
+EXTERNAL toldAlready(topic)

@@ -64,6 +64,8 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("trustOf", () => 3);
   story.BindExternalFunction("plansBooked", () => 1);
   story.BindExternalFunction("recalls", () => 1);
+  story.BindExternalFunction("tellThem", (t: string, v: string) => { note("tellThem:" + v); return null; });
+  story.BindExternalFunction("toldAlready", () => 1);
   story.BindExternalFunction("memoryOf", () => "เรื่องที่เขายังจำได้");
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   return story;
@@ -216,15 +218,31 @@ const tsFiles: string[] = [];
     if (e.isDirectory()) collect(join(d, e.name));
     else if (e.name.endsWith(".ts")) tsFiles.push(join(d, e.name));
 })(tsDir);
-const tsAll = tsFiles.map((f) => readFileSync(f, "utf8")).join("\n");
+// ตัดบรรทัดคอมเมนต์ทิ้งก่อนสแกน ไม่งั้นตัวอย่างในคอมเมนต์จะถูกนับเป็นธงจริง
+// (คอมเมนต์ในไฟล์นี้เองเคยทำให้มีธงผีชื่อ x โผล่ในรายงาน)
+const tsAll = tsFiles
+  .map((f) => readFileSync(f, "utf8"))
+  .join("\n")
+  .split("\n")
+  .filter((l) => !l.trimStart().startsWith("//"))
+  .join("\n");
 
 const grab = (re: RegExp, text: string) =>
   new Set([...text.matchAll(re)].map((m) => m[1]));
 
-const setFlags = grab(/setFlag\("([a-z0-9_]+)"\)/g, srcAll);
+const setFlags = new Set([
+  ...grab(/setFlag\("([a-z0-9_]+)"\)/g, srcAll),
+  // ธงที่ตั้งจากฝั่ง TS ก็ต้องมีคนอ่านเหมือนกัน (เช่นเรื่องที่เกิดลับหลัง คำโกหกที่โป๊ะ)
+  ...grab(/s\.flags\[["']([a-z0-9_]+)["']\]\s*=[^=]/g, tsAll),
+  // เหตุการณ์ลับหลังตั้งธงจากตารางใน game.json ช่องแรกของแต่ละแถวคือชื่อธง
+  ...Object.values(game.offscreenEvents as unknown as Record<string, [string, string, number][]>)
+      .flat().map((e) => e[0]),
+]);
 const readInk = grab(/hasFlag\("([a-z0-9_]+)"\)/g, srcAll);
 const readTs = new Set([
-  ...grab(/s\.flags\[["']([a-z0-9_]+)["']\]/g, tsAll),
+  // ต้องไม่นับการ *เขียน* เป็นการ *อ่าน* — `s.flags["x"] = true` คือการตั้งธงจากฝั่ง TS
+  // ไม่ใช่การอ่านมันไปใช้ ถ้านับรวมกัน ธงที่ตั้งจาก TS แล้วไม่มีใครอ่านจะรอดสายตาไป
+  ...grab(/s\.flags\[["']([a-z0-9_]+)["']\](?!\s*=[^=])/g, tsAll),
   ...grab(/^\s*\[\s*"([a-z0-9_]+)",\s*"/gm, tsAll),   // ตาราง deep ใน ending.ts
 ]);
 const readAll = new Set([...readInk, ...readTs]);

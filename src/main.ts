@@ -28,6 +28,7 @@ import { startUni, isUni, chapterName, chapterDef, rentPerWeek } from "./sim/cha
 import { changeAffinity, changeTrust, trustFromFlag, shiftStanding, takeSide,
          standingLabel } from "./sim/bonds";
 import { takeNews, visited } from "./sim/offscreen";
+import { claim } from "./sim/claims";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { Bgm } from "./core/bgm";
 import { openScene, storyNames } from "./story/bridge";
@@ -404,6 +405,7 @@ function hooks() {
     onStat: (id: StatId, n: number) => { s.stats[id] += n; },
     onAffinity: (cid: string, n: number) => changeAffinity(s, cid, n),
     onTrust: (cid: string, n: number) => { changeTrust(s, cid, n); if (n > 0) sfx.trust(); else if (n < 0) sfx.broke(); },
+    onClaim: (topic: string, version: string, cid: string) => claim(s, topic, version, cid),
     // ธงบางอันแปลว่าเราทำสิ่งที่ยากหรือซื่อสัตย์ ตารางใน game.json แปลงเป็นความเชื่อใจให้เอง
     onFlag: (name: string) => { s.flags[name] = true; trustFromFlag(s, name); },
     onHint: (text: string) => showHint(text),

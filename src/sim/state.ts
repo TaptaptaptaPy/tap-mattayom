@@ -90,6 +90,8 @@ export interface GameState {
   offscreenNews: string[];
   /** สิ่งที่แต่ละคนจำได้เกี่ยวกับเรา แล้วหยิบมาพูดเองทีหลัง */
   memories: Record<string, string[]>;
+  /** เรื่องไหนเราบอกใครไปว่าอะไร — ดู src/sim/claims.ts */
+  claims: Record<string, Record<string, string>>;
   lastQuiz: number;
   ending: Ending | null;
 }
@@ -101,7 +103,7 @@ export interface GameState {
 // 8: เพิ่มตรวจหน้าเสาธง (grooming · inspected)
 // 9: เพิ่มภาคมหาลัย (chapter · schoolEnding · debt · rentDue)
 // 10: เพิ่มสอบซ่อมและงานกลุ่ม (retakes · project)
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -121,7 +123,7 @@ export function newState(): GameState {
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plans: [],
-    lives: {}, offscreenNews: [], memories: {},
+    lives: {}, offscreenNews: [], memories: {}, claims: {},
   };
 }
 

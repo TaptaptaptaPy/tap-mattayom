@@ -2,6 +2,8 @@ import game from "../../data/game.json";
 import events from "../../data/events.json";
 import { settleMissedPlan } from "./chat";
 import { stepLives } from "./offscreen";
+import { checkClaims } from "./claims";
+import type { Rnd } from "../core/rng";
 import { settleHomework } from "./homework";
 import { decayGrades } from "./grades";
 import { chapterDef, chapterOf, inChapter, isUni, payRent } from "./chapter";
@@ -67,7 +69,7 @@ export const eventsOnDay = (day: number, s?: GameState) =>
 export const nextEvent = (s: GameState) =>
   eventsFor(s).filter((e) => e.day > s.dayIndex).sort((a, b) => a.day - b.day)[0] ?? null;
 
-export function advance(s: GameState): void {
+export function advance(s: GameState, rnd: Rnd = Math.random): void {
   s.energy = Math.max(0, s.energy + game.energy.perPeriod);
   s.periodIndex++;
   if (s.periodIndex >= game.periods.length) {
@@ -87,6 +89,8 @@ export function advance(s: GameState): void {
     settleMissedPlan(s);
     // ตัวละครมีชีวิตของตัวเองตอนเราไม่อยู่ — เดินต่อไม่ว่าเราจะแวะไปหรือไม่
     stepLives(s);
+    // คนที่สนิทกันเอาเรื่องที่เราเล่ามาเทียบกันบ้าง — คำพูดที่ไม่ตรงกันมีวันโป๊ะ
+    checkClaims(s, rnd);
     // ครูเก็บการบ้านเช้าวันเปิดเรียน แล้วสั่งของวันใหม่ — อยู่ในทางเดินหลักเพื่อให้เทสต์เดินผ่านเอง
     // ไม่เก็บข้อความไว้ใน state ฝั่ง UI ดูจาก s.homeworkMissed ที่ขยับแทน
     settleHomework(s, isSchoolDay(s));

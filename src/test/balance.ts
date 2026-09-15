@@ -21,6 +21,7 @@ import { changeAffinity, trustFromFlag } from "../sim/bonds";
 import { visited } from "../sim/offscreen";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          planClash } from "../sim/chat";
+import { claim } from "../sim/claims";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -54,6 +55,8 @@ interface Run {
   minEnergy: number; blocked: number; restPeriods: number;
   caught: number; escaped: number; troublePeriods: number;
   chats: number; invites: number; kept: number;
+  /** กี่คืนที่บอกสองคนไม่ตรงกัน และกี่ครั้งที่โดนจับได้ */
+  lied: number; caughtLying: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -106,6 +109,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
   let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
+  let lied = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -116,6 +120,12 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   /** ใครรับนัดแล้วไปจริง — คนที่ทุ่มเรียนกับเด็กหลังห้องเบี้ยวบ้าง จะได้เห็นราคาของการผิดนัด */
   const takesInvite = strat === "social" || strat === "spread" || strat === "rebel";
   const keepsInvite = strat === "social" || strat === "spread";
+  /** ใครเลี่ยงความจริงเวลาถูกถามว่าเมื่อวานหายไปไหน
+   *  คนที่คุยกับทุกคนมีเหตุให้เลี่ยงที่สุด เพราะคำตอบจริงคือ "ไปหาอีกคน"
+   *  ถ้าไม่มีกลยุทธ์ไหนโกหกเลย ระบบคำพูดไม่ตรงกันจะไม่เคยถูกเดินผ่าน */
+  const lies = strat === "social" || strat === "rebel";
+  const VERSIONS = ["busy", "other", "tired"];
+  const pick = () => VERSIONS[Math.floor(rnd() * VERSIONS.length)];
   const maxedAt: Partial<Record<StatId, number>> = {};
 
   /** โดนจับแล้วได้เล่นมินิเกมหลบ — ทางเดียวกับ runDodge() ใน main.ts */
@@ -141,6 +151,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     const who = offerChat(s, rnd);
     if (who) {
       chats++;
+      // ถูกถามว่าเมื่อวานหายไปไหน — คนซื่อตอบเหมือนกันทุกคน คนเลี่ยงตอบไปเรื่อย
+      const tonight = pick();
+      claim(s, "yesterday", tonight, who);
       // บทกั้นทางเลือกชวนนัดไว้ด้วย {tomorrowSchool} เทสต์ต้องเคารพเงื่อนไขเดียวกัน
       const canMeet = isSchoolDay({ ...s, dayIndex: s.dayIndex + 1 });
       const invited = canMeet && takesInvite && rnd() < 0.7;
@@ -151,6 +164,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       const who2 = offerSecondChat(s, rnd, who);
       if (who2) {
         chats++;
+        const second = lies ? pick() : tonight;
+        if (second !== tonight) lied++;
+        claim(s, "yesterday", second, who2);
         const inv2 = canMeet && takesInvite && rnd() < 0.7;
         if (inv2) { acceptInvite(s, who2); invites++; }
         recordThread(s, who2, [], inv2);
@@ -221,7 +237,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       if (statRank(s.stats[id]) === game.statRankNames.length - 1 && maxedAt[id] === undefined)
         maxedAt[id] = s.dayIndex + 1;
     }
-    advance(s);
+    advance(s, rnd);
   }
   };
 
@@ -241,6 +257,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
+    lied, caughtLying: s.history.filter((h) => h.includes("พูดไม่ตรงกัน")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
     axisGap: Object.keys(s.affinity).map((id) =>
@@ -408,10 +425,17 @@ if (gaps.length && diverged / gaps.length < 0.2)
   console.log("  ← สองแกนขยับไปด้วยกันเกือบตลอด แยกออกมาแล้วแทบไม่ได้อะไร");
 
 const totalClash = sum(allRuns.map((r) => r.clashDays));
+const totalLied = sum(allRuns.map((r) => r.lied));
+const totalCaughtLying = sum(allRuns.map((r) => r.caughtLying));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
             ` · ผิดนัด ${totalInvites - totalKept} · วันที่รับนัดซ้อนกัน ${totalClash}`);
 if (totalClash === 0)
   console.log("  ← ไม่เคยรับนัดซ้อนกันเลยสักครั้ง ระบบนัดซ้อนไม่ได้ถูกทดสอบ");
+console.log(`คำพูดไม่ตรงกัน: บอกสองคนไม่ตรงกัน ${totalLied} คืน · โป๊ะ ${totalCaughtLying} ครั้ง`);
+if (totalLied === 0)
+  console.log("  ← ไม่มีใครบอกสองคนไม่ตรงกันเลย ระบบคำโกหกไม่ได้ถูกทดสอบ");
+else if (totalCaughtLying === 0)
+  console.log("  ← โกหกแล้วไม่เคยโป๊ะเลยสักครั้ง โกหกจึงไม่มีราคา — ดู claims.minBond กับ checkChance");
 
 const offTotal = sum(allRuns.map((r) => r.offscreen));
 const memTotal = sum(allRuns.map((r) => r.memories));
