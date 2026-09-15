@@ -17,6 +17,7 @@ import { takeExam } from "../sim/exam";
 import { joinClub, clubToday, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
 import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod } from "../sim/chat";
+import { hasHomework, doHomework } from "../sim/homework";
 import { computeEnding } from "../sim/ending";
 import { buy, use } from "../sim/shop";
 
@@ -44,6 +45,7 @@ interface Run {
   minEnergy: number; blocked: number; restPeriods: number;
   caught: number; escaped: number; troublePeriods: number;
   chats: number; invites: number; kept: number;
+  homeworkDone: number; homeworkMissed: number;
   behaviour: number; money: number;
   ending: Ending;
 }
@@ -83,7 +85,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   const mg = () => clamp01(skill + (rnd() - 0.5) * 0.3);
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
-  let chats = 0, invites = 0, kept = 0;
+  let chats = 0, invites = 0, kept = 0, homeworkDone = 0;
+  /** ใครส่งการบ้าน — คนขี้เกียจกับเด็กหลังห้องไม่ส่ง จะได้เห็นราคาของการไม่ส่งจริง */
+  const doesHomework = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครรับนัดแล้วไปจริง — คนที่ทุ่มเรียนกับเด็กหลังห้องเบี้ยวบ้าง จะได้เห็นราคาของการผิดนัด */
   const takesInvite = strat === "social" || strat === "spread" || strat === "rebel";
   const keepsInvite = strat === "social" || strat === "spread";
@@ -122,6 +126,10 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       // ไปตามนัดกินช่วงเวลานั้นไปทั้งช่วง เหมือนไปนั่งคุยกับเขาจริงๆ
       keepPlan(s, appt.charId);
       kept++;
+    } else if (!isLocked(s) && doesHomework && hasHomework(s) && s.energy + game.homework.energy >= 0) {
+      // การบ้านกินหนึ่งช่วงเวลาเต็มๆ เหมือนในเกมจริง
+      doHomework(s);
+      homeworkDone++;
     } else if (isLocked(s)) {
       if (strat === "rebel") afterCatch(skipClass(s, rnd));
       else attendClass(s);
@@ -165,6 +173,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept,
+    homeworkDone, homeworkMissed: s.homeworkMissed,
     behaviour: s.behaviour, money: s.money,
     ending: computeEnding(s),
   };
@@ -206,6 +215,9 @@ function report(strat: Strategy, runs: Run[]) {
   console.log(`    ฝ่ายปกครอง: โดนจับ ${r0(caught)} ครั้ง · หลบรอด ${r0(mean(runs.map((r) => r.escaped)))}` +
               ` · โดนห้ามเข้าที่เสี่ยง ${r0(mean(runs.map((r) => r.troublePeriods)))} ช่วง` +
               ` · ความประพฤติ ${r0(mean(runs.map((r) => r.behaviour)))}`);
+
+  console.log(`    การบ้าน: ส่ง ${r0(mean(runs.map((r) => r.homeworkDone)))} ครั้ง` +
+              ` · ไม่ได้ส่ง ${r0(mean(runs.map((r) => r.homeworkMissed)))} ชิ้น`);
 
   const ch = mean(runs.map((r) => r.chats));
   if (ch >= 0.5)
@@ -262,6 +274,10 @@ const totalKept = sum(allRuns.map((r) => r.kept));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
             ` · ผิดนัด ${totalInvites - totalKept}`);
 
+const hwDone = sum(allRuns.map((r) => r.homeworkDone));
+const hwMissed = sum(allRuns.map((r) => r.homeworkMissed));
+console.log(`การบ้านทำงานจริงไหม: ส่งรวม ${hwDone} ครั้ง · ไม่ได้ส่งรวม ${hwMissed} ชิ้น`);
+
 const totalCaught = sum(allRuns.map((r) => r.caught + r.escaped));
 const totalEscaped = sum(allRuns.map((r) => r.escaped));
 console.log(`ฝ่ายปกครองทำงานจริงไหม: โดนจับรวม ${totalCaught} ครั้ง · หลบรอด ${totalEscaped} ครั้ง`);
@@ -279,7 +295,10 @@ if (serious <= idle) console.log("เตือน: เล่นจริงจ�
 if (totalCaught === 0) console.log("เตือน: ไม่มีใครโดนฝ่ายปกครองจับเลยสักครั้ง ทั้งระบบความประพฤติไม่ถูกทดสอบ");
 if (totalEscaped === 0) console.log("เตือน: มินิเกมหลบฝ่ายปกครองไม่เคยช่วยใครรอดเลย");
 if (totalChats === 0) console.log("เตือน: ไม่มีใครส่งไลน์มาเลยสักคืน ระบบไลน์ไม่ถูกทดสอบ");
+if (hwDone === 0) console.log("เตือน: ไม่มีใครส่งการบ้านเลย ระบบการบ้านไม่ถูกทดสอบ");
+if (hwMissed === 0) console.log("เตือน: ไม่มีใครพลาดส่งการบ้านเลย บทลงโทษไม่ถูกทดสอบ");
 if (totalInvites === totalKept) console.log("เตือน: ไม่มีใครผิดนัดเลย บทลงโทษการผิดนัดไม่ถูกทดสอบ");
 if (skillSwing < 3) console.log(`เตือน: ฝีมือมินิเกมแทบไม่มีผลกับปลายทาง (ต่างกันแค่ ${skillSwing.toFixed(1)} คะแนน)`);
-if (!early.length && tiring.length && serious > idle && totalCaught > 0 && skillSwing >= 3 && totalChats > 0)
+if (!early.length && tiring.length && serious > idle && totalCaught > 0 && skillSwing >= 3 &&
+    totalChats > 0 && hwDone > 0 && hwMissed > 0)
   console.log("เศรษฐกิจของเกมอยู่ในเกณฑ์ที่ตั้งใจไว้");

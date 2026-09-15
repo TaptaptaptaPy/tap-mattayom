@@ -15,6 +15,8 @@ import { escapeCatch } from "./sim/discipline";
 import { openMinigame } from "./ui/minigame";
 import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
+import { hasHomework, doHomework } from "./sim/homework";
+import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
 import { playScene, showHint } from "./ui/scene";
@@ -105,6 +107,31 @@ function renderBoard() {
     note.innerHTML = `<b style="color:${pc?.color ?? "#fff"}">${pc?.name ?? plan.charId}</b>
       ${isPlanPeriod(s) ? "รออยู่แล้ว ไปหาเลย" : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`;
     board.appendChild(note);
+  }
+
+  if (hasHomework(s)) {
+    const card = document.createElement("div");
+    card.className = "loc wide hw";
+    card.innerHTML = `<div class="ico">${icon("library")}</div>
+      <div class="nm">การบ้านค้างอยู่ ${s.homework} ชิ้น</div>`;
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    const b = document.createElement("button");
+    b.className = "act";
+    b.innerHTML = `ทำการบ้าน<em>ความพร้อมสอบ + · ปัญญา + · แรง ${game.homework.energy}</em>`;
+    b.onclick = () => {
+      const msg = doHomework(s);
+      const ok = s.homework === 0;
+      flash(msg, ok ? "ok" : "bad");
+      if (ok) { sfx.homework(); next(); } else { sfx.deny(); }
+    };
+    acts.appendChild(b);
+    const warn = document.createElement("div");
+    warn.className = "warn";
+    warn.textContent = "ไม่ส่งเช้าวันเปิดเรียนถัดไป ครูหักคะแนนความประพฤติ";
+    acts.appendChild(warn);
+    card.appendChild(acts);
+    board.appendChild(card);
   }
 
   if (isLocked(s)) { renderClassroom(board); return; }
@@ -288,7 +315,7 @@ function openPendingChat(charId: string) {
   const story = openScene(name, s, charId, hooks());
   playChat(story, charId, (msgs) => {
     recordThread(s, charId, msgs, invitedThisChat);
-    if (invitedThisChat) flash(`นัดกับ${nameOf(charId)}ไว้พรุ่งนี้หลังเลิกเรียนแล้ว`);
+    if (invitedThisChat) { flash(`นัดกับ${nameOf(charId)}ไว้พรุ่งนี้หลังเลิกเรียนแล้ว`); sfx.plan(); }
     save();
     openChatList();
   });
@@ -297,7 +324,7 @@ function openPendingChat(charId: string) {
 /** คืนนี้มีใครทักมาไหม — เรียกทุกครั้งที่ขยับช่วงเวลา */
 function rollChat() {
   const who = offerChat(s, Math.random);
-  if (who) flash(`${nameOf(who)}ส่งข้อความมา`);
+  if (who) { flash(`${nameOf(who)}ส่งข้อความมา`); sfx.chat(); }
 }
 
 function talkTo(charId: string, where?: string) {
@@ -368,7 +395,13 @@ function handleEvent(e: TermEvent): boolean {
 // ───────────────────────── ลูปหลัก ─────────────────────────
 
 function next() {
+  const missedBefore = s.homeworkMissed;
   advance(s);
+  const missed = s.homeworkMissed - missedBefore;
+  if (missed > 0) {
+    flash(`ไม่ได้ส่งการบ้าน ${missed} ชิ้น · ความประพฤติ -${game.homework.behaviourPenalty * missed}`, "bad");
+    sfx.caught();
+  }
   afterStep();
 }
 
@@ -418,6 +451,12 @@ function openMenu() {
   });
 }
 
+document.addEventListener("pointerdown", () => unlockAudio(), { once: true });
+$("bSound").onclick = () => {
+  unlockAudio();
+  setMuted(!isMuted());
+  $("bSound").textContent = isMuted() ? "เสียงปิด" : "เสียงเปิด";
+};
 $("bChat").onclick = () => openChatList();
 $("bChars").onclick = () => P.characterPanel(s);
 $("bCal").onclick = () => P.calendarPanel(s);
@@ -436,8 +475,8 @@ function openBag() {
 async function runDodge(message: string, penalty: number) {
   flash("ครูปกครองเห็นแล้ว!", "bad");
   const res = await openMinigame("dodge");
-  if (res.score >= 0.6) { escapeCatch(s, penalty); flash("เอาตัวรอดมาได้ ไม่โดนตัดคะแนน"); }
-  else flash(message, "bad");
+  if (res.score >= 0.6) { escapeCatch(s, penalty); flash("เอาตัวรอดมาได้ ไม่โดนตัดคะแนน"); sfx.escape(); }
+  else { flash(message, "bad"); sfx.caught(); }
   renderTop();
 }
 

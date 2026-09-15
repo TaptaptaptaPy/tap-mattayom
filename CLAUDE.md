@@ -33,6 +33,12 @@ npm run check     # tsc --noEmit
 รายการตัวแปรและ external ทั้งหมดอยู่ใน `story/_shared.ink` คู่กับ `src/story/bridge.ts`
 
 **ตัวเลขสมดุลทั้งหมดอยู่ใน `data/*.json`** — game, locations, characters, clubs, shop, events
+**การบ้านอยู่ในทางเดินของ `advance()`** ครูสั่งทุกวันเปิดเรียนและเก็บเช้าวันเปิดเรียนถัดไป
+ทำให้ช่วง "กลางคืน" ที่เคยเกือบฟรีมีของที่ *ต้อง* ทำ ไม่ใช่ของที่เลือกทำ
+ระวังตอนปรับ `homework.behaviourPenalty` — มันซ้อนกับการโดนจับของฝ่ายปกครอง
+ตอนนี้เด็กหลังห้องที่ไม่ส่งการบ้านเลยจบเทอมด้วยความประพฤติ 17 และโดนห้ามเข้าที่เสี่ยง 254 ช่วง
+ซึ่งสมจริงแต่แรง ถ้ารู้สึกว่ามากไปให้ปรับที่ `behaviourPenalty` ก่อน `recoverPerWeek`
+
 **หลังแก้ `data/game.json` ให้รัน `npm run balance`** ห้าอย่างที่ต้องดู:
 ไม่มีค่าสถานะไหนเต็มก่อน 1 ใน 4 ของเทอม · แรงลงต่ำกว่าขีดล่างอย่างน้อยหนึ่งกลยุทธ์ ·
 เล่นจริงจังต้องได้ผลต่างจากไม่ทำอะไรเลยอย่างชัดเจน · ต้องมีคนโดนฝ่ายปกครองจับบ้าง ·
@@ -114,13 +120,15 @@ UI จะโชว์เป็นบรรทัดจางใต้ตัว�
 ## แผนที่ไฟล์
 
 ```
-src/sim/      ตรรกะเกมล้วน — state, calendar, economy, actions, exam, club, shop, discipline, chat, ending
+src/sim/      ตรรกะเกมล้วน — state, calendar, economy, actions, exam, club, shop, discipline,
+              chat, homework, ending
 src/story/    bridge.ts — สะพาน ink ↔ TS (ฉีดตัวแปรเข้า, external function กลับออก)
 src/ui/       scene.ts (กล่องบทสนทนา + ไล่ตัวอักษร) · panels.ts (คนรู้จัก กระเป๋า ปฏิทิน เมนู ผลสอบ สรุปเทอม)
               portrait.ts (ภาพตัวละคร SVG) · backdrop.ts (ฉากหลังสถานที่/เหตุการณ์ SVG)
               icons.ts (ไอคอน) · theme.ts (บรรยากาศตามช่วงเวลา) · minigame.ts (มินิเกมทั้งสี่)
               chat.ts (หน้าจอไลน์ ฟองซ้ายคือเขา ฟองขวาคือเรา)
 src/core/     save.ts (เซฟ 4 ช่องลง localStorage) · rng.ts (mulberry32 สำหรับเทสต์ที่ต้องซ้ำได้)
+              audio.ts (เสียงสังเคราะห์สด ไม่มีไฟล์เสียง — ไฟล์เดียวกับฝั่ง genesis)
 src/test/     inkcheck.ts (lint:ink) · storywalk.ts (story) · balance.ts (balance)
 story/        บททั้งหมด — ตัวละคร 3 ไฟล์ · แชท 3 ไฟล์ · เหตุการณ์ 9 ไฟล์ · assembly.ink (เข้าแถว)
 ```

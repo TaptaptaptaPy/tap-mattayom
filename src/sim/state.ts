@@ -42,6 +42,11 @@ export interface GameState {
   caught: number;
   sleepDebt: number;
 
+  /** การบ้านที่ยังไม่ได้ส่ง (ชิ้น) */
+  homework: number;
+  /** ส่งไม่ทันมากี่ชิ้นแล้วทั้งเทอม — ฉากจบกับเทสต์ใช้ดู */
+  homeworkMissed: number;
+
   chats: ChatThread[];
   /** ใครทักมาแล้วยังไม่ได้เปิดอ่าน — ตัวข้อความจะถูกสร้างตอนเปิดจริง เพราะคำพูดเป็นของ ink */
   pendingChat: string | null;
@@ -53,7 +58,8 @@ export interface GameState {
 }
 
 // 4: เพิ่มระบบไลน์ (chats · pendingChat · chatDay · plan)
-export const SAVE_VERSION = 4;
+// 5: เพิ่มการบ้าน (homework · homeworkMissed)
+export const SAVE_VERSION = 5;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -67,6 +73,7 @@ export function newState(): GameState {
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
     sleepDebt: 0, lastQuiz: 0, ending: null,
+    homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plan: null,
   };
 }

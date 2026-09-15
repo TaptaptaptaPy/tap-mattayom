@@ -393,3 +393,5 @@ button{font-family:inherit;cursor:pointer}
 .who.is-appt em{color:var(--accent)}
 /* บนจอกว้าง #board เป็นกริดสองคอลัมน์ แถบเตือนนัดต้องกินเต็มแถว ไม่งั้นจะกลายเป็นกล่องเปล่าสูงเท่าการ์ด */
 .appt{grid-column:1/-1;align-self:start}
+/* การ์ดการบ้าน — เป็นของที่ "ต้องทำ" ไม่ใช่ของที่เลือกทำ จึงต้องเด่นกว่าการ์ดสถานที่ */
+.loc.hw{border-color:rgba(228,160,183,.5);background:linear-gradient(180deg,rgba(228,160,183,.1),var(--bg2))}

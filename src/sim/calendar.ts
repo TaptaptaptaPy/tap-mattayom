@@ -1,6 +1,7 @@
 import game from "../../data/game.json";
 import events from "../../data/events.json";
 import { settleMissedPlan } from "./chat";
+import { settleHomework } from "./homework";
 import { remember, type GameState } from "./state";
 
 const DOW = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -66,6 +67,9 @@ export function advance(s: GameState): void {
     s.study *= game.examModel.studyDecayPerDay;
     // นัดที่รับไว้เมื่อวานแล้วไม่ไป คิดบัญชีตรงนี้ — อยู่ในทางเดินหลักเพื่อให้เทสต์สมดุลเดินผ่านเอง
     settleMissedPlan(s);
+    // ครูเก็บการบ้านเช้าวันเปิดเรียน แล้วสั่งของวันใหม่ — อยู่ในทางเดินหลักเพื่อให้เทสต์เดินผ่านเอง
+    // ไม่เก็บข้อความไว้ใน state ฝั่ง UI ดูจาก s.homeworkMissed ที่ขยับแทน
+    settleHomework(s, isSchoolDay(s));
     // ค่าขนมออกทุกวันจันทร์ ความประพฤติค่อยๆ ฟื้นถ้าไม่ก่อเรื่องซ้ำ
     if (weekdayOf(s) === 1) payAllowance(s);
   }
