@@ -5,6 +5,7 @@ import { ITEMS, giftable, usable } from "../sim/shop";
 import { behaviourLabel } from "../sim/discipline";
 import { standingLabel } from "../sim/bonds";
 import { SUBJECTS, gradeOf, gpa } from "../sim/grades";
+import type { BoardRow } from "../sim/state";
 import { EVENTS } from "../sim/calendar";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
@@ -199,6 +200,24 @@ export function gradePanel(s: GameState) {
   h += `</div><p class="dimline">เข้าเรียนได้ทุกวิชานิดหน่อย ส่งการบ้านได้เพิ่ม
     และติวที่โรงเรียนกวดวิชาได้เจาะวิชาเดียว · ความรู้จางลงทุกวันถ้าไม่ได้ทบทวน</p>`;
   open(h);
+}
+
+/** กระดานประกาศผลสอบหน้าห้อง — ของที่ทั้งห้องยืนอ่าน ไม่ใช่สมุดพกของเราคนเดียว
+ *  เรียงตามคะแนน ชื่อเราถูกไฮไลต์ และมีลูกศรบอกว่าใครขึ้นใครร่วงจากรอบก่อน */
+export function boardPanel(rows: BoardRow[], onClose: () => void) {
+  const me = rows.find((r) => r.me);
+  let h = `<h2>ประกาศผลสอบ<small>${me ? `เราอยู่อันดับ ${me.rank} ของห้อง` : ""}</small></h2>
+    <div class="board">`;
+  for (const r of rows) {
+    const mv = r.move > 0 ? `<em class="up">▲${r.move}</em>`
+             : r.move < 0 ? `<em class="down">▼${-r.move}</em>` : "";
+    h += `<div class="brow${r.me ? " is-me" : ""}">
+      <span class="brank">${r.rank}</span>
+      <b>${r.name}</b>${r.tutored ? '<span class="btut">ติวให้</span>' : ""}
+      ${mv}<span class="bscore">${r.score}</span></div>`;
+  }
+  h += `</div><p class="dimline">กระดานติดอยู่หน้าห้องทั้งสัปดาห์ ทุกคนที่เดินผ่านอ่านได้หมด</p>`;
+  open(h, onClose);
 }
 
 /** เลือกวิชาที่จะติว — นี่คือสิ่งที่ทำให้โรงเรียนกวดวิชา 320 บาทมีความหมาย */

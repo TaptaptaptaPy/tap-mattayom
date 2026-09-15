@@ -11,7 +11,7 @@ import game from "../../data/game.json";
 import { mulberry32, clamp01, type Rnd } from "../core/rng";
 import { newState, statRank, affinityRank, trustRank,
          type GameState, type StatId, type Ending, type ExamResult } from "../sim/state";
-import { advance, isLocked, isTermOver, eventNow, isSchoolDay } from "../sim/calendar";
+import { advance, isLocked, isTermOver, eventNow, eventsFor, isSchoolDay } from "../sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
          type ActionResult, type LocationOption } from "../sim/actions";
 import { takeExam } from "../sim/exam";
@@ -22,6 +22,7 @@ import { visited } from "../sim/offscreen";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          planClash } from "../sim/chat";
 import { claim } from "../sim/claims";
+import { postBoard, tutor, myBoardRank } from "../sim/board";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
 import { hasRetake, doRetake, projectPartner, workProject, assignProject,
@@ -57,6 +58,8 @@ interface Run {
   chats: number; invites: number; kept: number;
   /** กี่คืนที่บอกสองคนไม่ตรงกัน และกี่ครั้งที่โดนจับได้ */
   lied: number; caughtLying: number;
+  /** กระดานประกาศผล: อันดับสุดท้ายของเรา · ติวให้เพื่อนกี่ครั้ง · เพื่อนร่วงกี่ครั้ง */
+  boardRank: number; tutored: number; slipped: number;
   /** กี่วันที่รับนัดไว้ซ้อนกันเกินหนึ่งคน */
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
@@ -101,6 +104,12 @@ function choose(strat: Strategy, locs: LocationOption[], s: GameState): Location
 
 // ───────────────────────── เล่นหนึ่งเทอม ─────────────────────────
 
+/** อีกกี่วันถึงวันสอบถัดไป — สะท้อน examSoon ที่บทใช้กั้นทางเลือกติวให้ */
+function nextExamIn(s: GameState): number {
+  const days = eventsFor(s).filter((e) => e.exam && e.day > s.dayIndex).map((e) => e.day - s.dayIndex);
+  return days.length ? Math.min(...days) : -1;
+}
+
 function play(strat: Strategy, seed: number, skill: number): Run {
   const s = newState();
   const rnd: Rnd = mulberry32(seed);
@@ -109,7 +118,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
   let chats = 0, invites = 0, kept = 0, clashDays = 0, homeworkDone = 0, haircuts = 0;
-  let lied = 0;
+  let lied = 0, tutored = 0;
   let retakesDone = 0, projectDone = 0;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
@@ -124,6 +133,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
    *  คนที่คุยกับทุกคนมีเหตุให้เลี่ยงที่สุด เพราะคำตอบจริงคือ "ไปหาอีกคน"
    *  ถ้าไม่มีกลยุทธ์ไหนโกหกเลย ระบบคำพูดไม่ตรงกันจะไม่เคยถูกเดินผ่าน */
   const lies = strat === "social" || strat === "rebel";
+  /** ใครยอมเสียเวลาทบทวนของตัวเองไปติวให้เพื่อน
+   *  ถ้าไม่มีกลยุทธ์ไหนติวเลย ทั้งระบบกระดาน (ช่องติวให้ + ธง lifted_*) จะไม่ถูกเดินผ่าน */
+  const tutors = strat === "social" || strat === "spread";
   const VERSIONS = ["busy", "other", "tired"];
   const pick = () => VERSIONS[Math.floor(rnd() * VERSIONS.length)];
   const maxedAt: Partial<Record<StatId, number>> = {};
@@ -141,7 +153,11 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     const ev = eventNow(s);
     if (ev) {
       s.seenEvents[ev.id] = true;
-      if (ev.exam) takeExam(s, ev.exam, mg());
+      if (ev.exam) {
+        takeExam(s, ev.exam, mg());
+        // กระดานติดหน้าห้องทันทีหลังรู้ผล — ผลข้างเคียงทั้งหมดของมันเกิดตรงนี้
+        postBoard(s, ev.exam);
+      }
       if (ev.pickClub && !s.club) joinClub(s, clubFor(strat));
       if (ev.assignProject && !s.project) assignProject(s, s.chapter);
     }
@@ -154,6 +170,11 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       // ถูกถามว่าเมื่อวานหายไปไหน — คนซื่อตอบเหมือนกันทุกคน คนเลี่ยงตอบไปเรื่อย
       const tonight = pick();
       claim(s, "yesterday", tonight, who);
+      // สอบใกล้แล้วเขาขอให้ติว — บทกั้นด้วย examSoon เทสต์ต้องเคารพเงื่อนไขเดียวกัน
+      const nx = nextExamIn(s);
+      if (tutors && nx >= 0 && nx <= game.board.tutorWindow && !(s.tutored[who] ?? 0)) {
+        tutor(s, who); tutored++;
+      }
       // บทกั้นทางเลือกชวนนัดไว้ด้วย {tomorrowSchool} เทสต์ต้องเคารพเงื่อนไขเดียวกัน
       const canMeet = isSchoolDay({ ...s, dayIndex: s.dayIndex + 1 });
       const invited = canMeet && takesInvite && rnd() < 0.7;
@@ -258,6 +279,8 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept, clashDays,
     lied, caughtLying: s.history.filter((h) => h.includes("พูดไม่ตรงกัน")).length,
+    boardRank: myBoardRank(s), tutored,
+    slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
     axisGap: Object.keys(s.affinity).map((id) =>
@@ -426,11 +449,22 @@ if (gaps.length && diverged / gaps.length < 0.2)
 
 const totalClash = sum(allRuns.map((r) => r.clashDays));
 const totalLied = sum(allRuns.map((r) => r.lied));
+const totalTutored = sum(allRuns.map((r) => r.tutored));
+const totalSlipped = sum(allRuns.map((r) => r.slipped));
 const totalCaughtLying = sum(allRuns.map((r) => r.caughtLying));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
             ` · ผิดนัด ${totalInvites - totalKept} · วันที่รับนัดซ้อนกัน ${totalClash}`);
 if (totalClash === 0)
   console.log("  ← ไม่เคยรับนัดซ้อนกันเลยสักครั้ง ระบบนัดซ้อนไม่ได้ถูกทดสอบ");
+const rankOfStrat = (st: Strategy) => mean((results.get(st) ?? []).map((r) => r.boardRank));
+console.log(`กระดานหน้าห้อง: อันดับเฉลี่ยตอนจบ ทุ่มเรียน ${r0(rankOfStrat("mind"))}` +
+            ` · เฉลี่ยทุกอย่าง ${r0(rankOfStrat("spread"))} · เด็กหลังห้อง ${r0(rankOfStrat("rebel"))}` +
+            ` · ติวให้เพื่อนรวม ${totalTutored} ครั้ง · เพื่อนร่วงอันดับรวม ${totalSlipped} ครั้ง`);
+if (rankOfStrat("mind") >= rankOfStrat("rebel"))
+  console.log("  ← ทุ่มเรียนแล้วอันดับไม่ดีกว่าเด็กหลังห้อง กระดานไม่ได้สะท้อนอะไรเลย");
+if (totalTutored === 0) console.log("  ← ไม่มีใครติวให้เพื่อนเลย ช่องติวให้ไม่ถูกทดสอบ");
+if (totalSlipped === 0)
+  console.log("  ← ไม่มีใครร่วงอันดับเลย ชีวิตที่เราปล่อยไว้ไม่เคยโผล่บนกระดาน");
 console.log(`คำพูดไม่ตรงกัน: บอกสองคนไม่ตรงกัน ${totalLied} คืน · โป๊ะ ${totalCaughtLying} ครั้ง`);
 if (totalLied === 0)
   console.log("  ← ไม่มีใครบอกสองคนไม่ตรงกันเลย ระบบคำโกหกไม่ได้ถูกทดสอบ");

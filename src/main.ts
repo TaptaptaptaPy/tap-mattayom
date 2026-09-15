@@ -10,6 +10,7 @@ import { availableLocations, doAction, doRest, attendClass, skipClass,
          morningInspect } from "./sim/actions";
 import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
 import { takeExam } from "./sim/exam";
+import { postBoard, tutor } from "./sim/board";
 import { computeEnding } from "./sim/ending";
 import { epilogues, selfEpilogue } from "./sim/epilogue";
 import { behaviourLabel } from "./sim/discipline";
@@ -406,6 +407,7 @@ function hooks() {
     onAffinity: (cid: string, n: number) => changeAffinity(s, cid, n),
     onTrust: (cid: string, n: number) => { changeTrust(s, cid, n); if (n > 0) sfx.trust(); else if (n < 0) sfx.broke(); },
     onClaim: (topic: string, version: string, cid: string) => claim(s, topic, version, cid),
+    onTutor: (cid: string) => { tutor(s, cid); flash(`ติวให้${nameOf(cid)} — เวลาทบทวนของเราหายไปส่วนหนึ่ง`); },
     // ธงบางอันแปลว่าเราทำสิ่งที่ยากหรือซื่อสัตย์ ตารางใน game.json แปลงเป็นความเชื่อใจให้เอง
     onFlag: (name: string) => { s.flags[name] = true; trustFromFlag(s, name); },
     onHint: (text: string) => showHint(text),
@@ -515,7 +517,12 @@ function handleEvent(e: TermEvent): boolean {
     void (async () => {
       const mg = await openMinigame("quiz", e.exam === "final" ? 2 : 1);
       const r = takeExam(s, e.exam!, mg.score);
-      P.examPanel(r, () => { P.closePanel(); skipToNextDay(); afterStep(); });
+      // ผลสอบของเราคือเลขของเราคนเดียว กระดานหน้าห้องคือเลขที่ทั้งห้องเห็น
+      const rows = postBoard(s, e.exam!);
+      P.examPanel(r, () => {
+        P.closePanel();
+        P.boardPanel(rows, () => { P.closePanel(); skipToNextDay(); afterStep(); });
+      });
     })();
     return true;
   }

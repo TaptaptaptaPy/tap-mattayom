@@ -5,6 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Compiler } from "inkjs/full";
 import game from "../../data/game.json";
+import chars from "../../data/characters.json";
 import type { Story } from "inkjs/types";
 
 const dir = join(process.cwd(), "story");
@@ -66,6 +67,9 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("recalls", () => 1);
   story.BindExternalFunction("tellThem", (t: string, v: string) => { note("tellThem:" + v); return null; });
   story.BindExternalFunction("toldAlready", () => 1);
+  story.BindExternalFunction("tutorThem", () => { note("tutor"); return null; });
+  story.BindExternalFunction("tutoredTimes", () => 0);
+  story.BindExternalFunction("myRank", () => 12);
   story.BindExternalFunction("memoryOf", () => "เรื่องที่เขายังจำได้");
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   return story;
@@ -234,6 +238,10 @@ const setFlags = new Set([
   ...grab(/setFlag\("([a-z0-9_]+)"\)/g, srcAll),
   // ธงที่ตั้งจากฝั่ง TS ก็ต้องมีคนอ่านเหมือนกัน (เช่นเรื่องที่เกิดลับหลัง คำโกหกที่โป๊ะ)
   ...grab(/s\.flags\[["']([a-z0-9_]+)["']\]\s*=[^=]/g, tsAll),
+  // ธงที่ประกอบชื่อจากตัวแปร เช่น s.flags[`beat_${r.id}`] — กางออกตามรายชื่อตัวละครจริง
+  // ถ้าไม่กาง ธงพวกนี้จะไม่มีใครตรวจเลย ทั้งที่มันคือธงที่ระบบใหม่ตั้งเยอะที่สุด
+  ...[...tsAll.matchAll(/s\.flags\[`([a-z0-9_]*)\$\{[^}]+\}([a-z0-9_]*)`\]\s*=[^=]/g)]
+     .flatMap((m) => chars.map((c) => m[1] + c.id + m[2])),
   // เหตุการณ์ลับหลังตั้งธงจากตารางใน game.json ช่องแรกของแต่ละแถวคือชื่อธง
   ...Object.values(game.offscreenEvents as unknown as Record<string, [string, string, number][]>)
       .flat().map((e) => e[0]),

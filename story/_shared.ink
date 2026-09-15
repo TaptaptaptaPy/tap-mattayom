@@ -27,6 +27,8 @@ VAR standingRank = 2
 VAR homeworkMissed = 0
 // ช่วงของเทอม 1=ต้นเทอม 2=หลังสอบกลางภาค 3=ปลายเทอม
 VAR term = 1
+// สอบอยู่ในระยะที่การติวยังทัน (1/0)
+VAR examSoon = 0
 
 // สะพานไปฝั่ง TypeScript — ดู src/story/bridge.ts
 EXTERNAL gainStat(id, amount)
@@ -54,3 +56,6 @@ EXTERNAL memoryOf(charId)
 // บอกคนที่อยู่ตรงหน้าไปว่าอะไรเรื่องนั้น — บอกคนอื่นไม่ตรงกันแล้วจะโป๊ะ
 EXTERNAL tellThem(topic, version)
 EXTERNAL toldAlready(topic)
+EXTERNAL tutorThem()
+EXTERNAL tutoredTimes()
+EXTERNAL myRank()

@@ -61,6 +61,10 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
   s.chatDay = -1;
   s.ending = null;
   s.rentDue = C.rentPerWeek;
+  // เพื่อนคนละกลุ่ม ห้องคนละห้อง — ติวให้เพื่อน ม.ปลาย ไม่ช่วยใครในกระดานของปีหนึ่ง
+  // และคำพูดค้างจากเทอมก่อนต้องล้าง ไม่งั้นมันจะไม่มีวันหมดอายุ (วันถูกรีเซ็ตเป็น 0)
+  s.tutored = {};
+  s.claims = {};
 
   remember(s, `เข้าเรียนปีหนึ่ง · ${schoolEnding.tier}`);
 }

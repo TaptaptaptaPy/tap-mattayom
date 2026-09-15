@@ -14,6 +14,8 @@
       "mind",
       "kind"
     ],
+    "smart": 0.86,
+    "proudOfGrades": true,
     "club": "academic",
     "story": "ploy",
     "blurb": "เก็บทุกอย่างไว้ในตาราง รวมถึงเรื่องที่ไม่ควรเก็บ",
@@ -45,6 +47,7 @@
       "nerve",
       "heart"
     ],
+    "smart": 0.44,
     "club": "sport",
     "story": "kanin",
     "blurb": "โดนหมายหัวมาตั้งแต่ ม.4 แต่ไม่เคยมีใครถามว่าทำไม",
@@ -75,6 +78,7 @@
       "charm",
       "heart"
     ],
+    "smart": 0.62,
     "club": "music",
     "story": "minta",
     "blurb": "ซ้อมอยู่คนเดียวทุกเย็น ไม่เคยบอกว่าซ้อมเพื่ออะไร",
@@ -107,6 +111,7 @@
       "kind",
       "heart"
     ],
+    "smart": 0.58,
     "club": "volunteer",
     "story": "palm",
     "blurb": "ย้ายมาจากโรงเรียนเก่ากลางเทอม และยังไม่พูดกับใครเลยสักคน",
@@ -138,6 +143,8 @@
       "nerve",
       "charm"
     ],
+    "smart": 0.66,
+    "proudOfGrades": true,
     "club": "sport",
     "story": "tar",
     "blurb": "คนที่ทุกคนในคณะรู้จัก แต่ไม่มีใครรู้ว่าเขาเรียนอยู่ปีไหนกันแน่",
@@ -167,6 +174,7 @@
       "mind",
       "kind"
     ],
+    "smart": 0.5,
     "club": "academic",
     "story": "nun",
     "blurb": "มาจากต่างจังหวัดเหมือนกัน และกลัวเหมือนกันแต่ไม่พูด",

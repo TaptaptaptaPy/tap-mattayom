@@ -21,6 +21,11 @@ export interface Ending {
   lines: string[];
 }
 
+/** หนึ่งบรรทัดบนกระดานประกาศผล — นิยามอยู่ที่นี่เพื่อไม่ให้ state กับ board import วนกัน */
+export interface BoardRow {
+  id: string; name: string; score: number; rank: number; me: boolean; move: number; tutored: boolean;
+}
+
 export interface GameState {
   v: number;
   dayIndex: number;          // 0 = วันเปิดเทอม
@@ -92,6 +97,11 @@ export interface GameState {
   memories: Record<string, string[]>;
   /** เรื่องไหนเราบอกใครไปว่าอะไร — ดู src/sim/claims.ts */
   claims: Record<string, Record<string, string>>;
+  /** กระดานประกาศผลสอบที่ติดไปแล้ว รอบละหนึ่งตาราง — ดู src/sim/board.ts
+   *  เก็บไว้เพราะกระดานต้องเปิดดูซ้ำได้และต้องเทียบกับรอบก่อนได้ */
+  board: Record<string, BoardRow[]>;
+  /** เราติวให้ใครไปกี่ครั้ง */
+  tutored: Record<string, number>;
   lastQuiz: number;
   ending: Ending | null;
 }
@@ -103,7 +113,9 @@ export interface GameState {
 // 8: เพิ่มตรวจหน้าเสาธง (grooming · inspected)
 // 9: เพิ่มภาคมหาลัย (chapter · schoolEnding · debt · rentDue)
 // 10: เพิ่มสอบซ่อมและงานกลุ่ม (retakes · project)
-export const SAVE_VERSION = 14;
+// 14: เพิ่มคำพูดที่ไม่ตรงกัน (claims)
+// 15: เพิ่มกระดานประกาศผลและการติวให้เพื่อน (board · tutored)
+export const SAVE_VERSION = 15;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -123,7 +135,7 @@ export function newState(): GameState {
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plans: [],
-    lives: {}, offscreenNews: [], memories: {}, claims: {},
+    lives: {}, offscreenNews: [], memories: {}, claims: {}, board: {}, tutored: {},
   };
 }
 

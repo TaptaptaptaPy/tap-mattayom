@@ -1,10 +1,13 @@
 import { Compiler } from "inkjs/full";
+import game from "../../data/game.json";
+import events from "../../data/events.json";
 import type { Story } from "inkjs/types";
 import { affinityRank, statRank, trustRank, type GameState, type StatId } from "../sim/state";
 import { clubOf } from "../sim/club";
 import { isSchoolDay } from "../sim/calendar";
 import { lastMemory, memoryCount, standingRank } from "../sim/bonds";
 import { toldCount } from "../sim/claims";
+import { myBoardRank, tutoredCount } from "../sim/board";
 
 // โหลดบททั้งหมดเป็นข้อความดิบ แล้วคอมไพล์ตอนรัน
 // ข้อดี: แก้ไฟล์ .ink แล้ว Vite HMR รีโหลดทันที ไม่ต้อง build ใหม่
@@ -30,6 +33,7 @@ export interface SceneHooks {
   onAffinity: (charId: string, amount: number) => void;
   onTrust: (charId: string, amount: number) => void;
   onClaim: (topic: string, version: string, charId: string) => void;
+  onTutor: (charId: string) => void;
   onFlag: (name: string) => void;
   onHint: (text: string) => void;
   onMoney: (amount: number) => void;
@@ -40,6 +44,15 @@ export interface SceneHooks {
 
 /** ตัวแปรทุกตัวที่บทอ่านได้ — ประกาศคู่กันไว้ใน story/_shared.ink
  *  กติกา: ink อ่านค่าเหล่านี้เพื่อตั้งเงื่อนไขเท่านั้น การ "เปลี่ยน" ค่าต้องผ่าน external function */
+/** อีกกี่วันถึงวันสอบถัดไป — -1 ถ้าสอบครบแล้ว */
+function nextExamDay(s: GameState): number {
+  const days = (events as { id: string; day: number; exam?: string; chapter?: string }[])
+    .filter((e) => e.exam && (e.chapter ?? "school") === s.chapter && e.day > s.dayIndex)
+    .map((e) => e.day - s.dayIndex)
+    .sort((a, b) => a - b);
+  return days.length ? days[0] : -1;
+}
+
 export function injectVars(story: Story, s: GameState, charId: string | null) {
   for (const [k, v] of Object.entries(s.stats)) story.variablesState[k] = Math.round(v);
   story.variablesState["affinity"] = charId ? Math.round(s.affinity[charId] ?? 0) : 0;
@@ -57,6 +70,9 @@ export function injectVars(story: Story, s: GameState, charId: string | null) {
   story.variablesState["standingRank"] = standingRank(s.standing);
   story.variablesState["homeworkMissed"] = s.homeworkMissed;
   story.variablesState["term"] = s.dayIndex >= 95 ? 3 : s.dayIndex >= 49 ? 2 : 1;
+  // สอบใกล้แค่ไหน — ทางเลือก "ติวให้ไหม" ต้องโผล่ตอนที่มันมีความหมายเท่านั้น
+  const nx = nextExamDay(s);
+  story.variablesState["examSoon"] = nx >= 0 && nx <= game.board.tutorWindow ? 1 : 0;
 }
 
 /** สร้าง story พร้อมฉีดสถานะปัจจุบันเข้าไป และต่อสะพานกลับมาที่ TS */
@@ -89,6 +105,10 @@ export function openScene(storyName: string, s: GameState, charId: string | null
     return null;
   });
   story.BindExternalFunction("toldAlready", (topic: string) => toldCount(s, topic));
+  // ติวให้เขาก่อนสอบ — ราคาคือเวลาทบทวนของเราเอง ผลไปโผล่บนกระดานหน้าห้องรอบหน้า
+  story.BindExternalFunction("tutorThem", () => { if (charId) hooks.onTutor(charId); return null; });
+  story.BindExternalFunction("tutoredTimes", () => (charId ? tutoredCount(s, charId) : 0));
+  story.BindExternalFunction("myRank", () => myBoardRank(s));
   story.BindExternalFunction("plansBooked", () =>
     s.plans.filter((p) => p.day === s.dayIndex + 1 && !p.kept).length);
   story.BindExternalFunction("standing", (amount: number, why: string) => {

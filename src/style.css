@@ -450,3 +450,17 @@ button{font-family:inherit;cursor:pointer}
 /* รับนัดซ้อนกันไว้ — ต้องเห็นก่อนถึงเวลา ไม่ใช่รู้ตอนผิดนัดไปแล้ว */
 .appt .clash{display:block;font-style:normal;font-size:12px;margin-top:4px;
   color:#e0a45c;border-top:1px solid rgba(224,164,92,.3);padding-top:4px}
+
+/* กระดานประกาศผลสอบหน้าห้อง — ของที่ทั้งห้องยืนอ่าน
+   แถวของเราต้องเด่นกว่าแถวอื่นชัดเจน ไม่งั้นต้องไล่หาชื่อตัวเองทุกครั้งที่เปิด */
+.board{display:grid;gap:5px;margin-top:8px}
+.brow{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:10px;
+  border:1px solid var(--line);font-size:14px}
+.brow.is-me{border-color:rgba(228,160,183,.6);background:rgba(228,160,183,.13)}
+.brow b{font-family:"Bai Jamjuree",sans-serif;font-weight:600}
+.brank{font-family:"Bai Jamjuree",sans-serif;color:var(--dim);width:2.2em;flex:0 0 auto;
+  text-align:right;font-variant-numeric:tabular-nums}
+.bscore{margin-left:auto;font-family:"Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.brow em{font-style:normal;font-size:12px}
+.brow .up{color:#8fd6a6}.brow .down{color:#d67878}
+.btut{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
