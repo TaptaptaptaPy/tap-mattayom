@@ -415,3 +415,8 @@ export function backdrop(id: string): string {
 }
 
 export const hasEventArt = (ink: string) => ink in EVENT_SCENES;
+
+/** ชื่อฉากทั้งหมดที่มีอยู่ — ใช้โดยเทสต์ภาพเพื่อวาดทุกฉากลงแผ่นเดียวแล้วเทียบ
+ *  ถ้าเพิ่มฉากใหม่แล้วลืมอะไรไป จะเห็นบนแผ่นนั้นทันทีโดยไม่ต้องไล่เปิดทีละที่ */
+export const allBackdropIds = (): string[] =>
+  [...Object.keys(SCENES), ...Object.keys(EVENT_SCENES)];
