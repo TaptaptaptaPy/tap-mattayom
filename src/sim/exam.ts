@@ -1,4 +1,5 @@
 import game from "../../data/game.json";
+import { SUBJECTS } from "./grades";
 import { remember, type GameState } from "./state";
 
 const E = game.examModel;
@@ -18,7 +19,10 @@ export function examById(id: string) {
  *  ความรู้ที่สะสมมาทั้งเทอมยังเป็นฐานหลัก มินิเกมเป็นตัวคูณ ไม่ใช่ตัวตัดสินทั้งหมด */
 export function takeExam(s: GameState, id: string, quizScore = 0.5): ExamReport {
   const def = examById(id);
-  let raw = (s.stats.mind * E.mindWeight + s.study * E.studyWeight) * (0.72 + quizScore * 0.56);
+  // เกรดรายวิชาเฉลี่ยคือ "ความรู้ที่สะสมมาจริง" ต่างจาก study ที่เป็นการอ่านช่วงใกล้สอบ
+  const known = SUBJECTS.reduce((a, x) => a + (s.grades[x.id] ?? 0), 0) / Math.max(1, SUBJECTS.length);
+  let raw = (s.stats.mind * E.mindWeight + s.study * E.studyWeight + known * E.gradeWeight) *
+            (0.72 + quizScore * 0.56);
   const tired = s.energy < game.energy.lowThreshold;
   if (tired) raw *= 1 - E.energyPenalty;
 

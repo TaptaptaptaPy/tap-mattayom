@@ -142,6 +142,131 @@ const SCENES: Record<string, string> = {
       <rect x="100" y="60" width="62" height="8" fill="#eef0f6"/>
       <rect x="100" y="68" width="62" height="10" fill="#d05a5a"/></g>
     <g fill="#3c4457">${Array.from({ length: 9 }, (_, i) => `<rect x="${196 + (i % 5) * 34}" y="${80 + Math.floor(i / 5) * 16}" width="12" height="26" rx="5"/>`).join("")}</g>`,
+  // ───────── ภาคมหาลัย ─────────
+  lecture: `
+    <defs>${sky("g", "#2c3348", "#1a1e2e")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="30" y="18" width="150" height="62" rx="3" fill="#1e3a2e"/>
+    <path d="M42 34h110M42 46h80M42 58h96" stroke="#cfe0d4" stroke-width="2" opacity=".42"/>
+    <g fill="#3a4258">
+      <rect x="20" y="96" width="110" height="7" rx="2"/><rect x="150" y="96" width="110" height="7" rx="2"/>
+      <rect x="280" y="96" width="100" height="7" rx="2"/>
+      <rect x="20" y="118" width="110" height="7" rx="2"/><rect x="150" y="118" width="110" height="7" rx="2"/>
+      <rect x="280" y="118" width="100" height="7" rx="2"/>
+    </g>
+    <g fill="#4a5470" opacity=".8">
+      <circle cx="58" cy="88" r="7"/><circle cx="188" cy="88" r="7"/><circle cx="318" cy="88" r="7"/>
+      <circle cx="104" cy="110" r="7"/><circle cx="236" cy="110" r="7"/>
+    </g>`,
+
+  unilib: `
+    <defs>${sky("g", "#2a2c40", "#181a28")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <g fill="#3c4058">
+      <rect x="14" y="16" width="86" height="118" rx="3"/><rect x="300" y="16" width="86" height="118" rx="3"/>
+    </g>
+    <g fill="#5a5f7e">
+      <rect x="22" y="26" width="10" height="34" rx="2"/><rect x="36" y="22" width="9" height="38" rx="2"/>
+      <rect x="49" y="28" width="11" height="32" rx="2"/><rect x="64" y="24" width="8" height="36" rx="2"/>
+      <rect x="308" y="24" width="10" height="36" rx="2"/><rect x="322" y="28" width="9" height="32" rx="2"/>
+      <rect x="335" y="22" width="11" height="38" rx="2"/>
+    </g>
+    <rect x="130" y="96" width="140" height="8" rx="3" fill="#4a4230"/>
+    <rect x="140" y="104" width="8" height="30" fill="#3c3628"/><rect x="252" y="104" width="8" height="30" fill="#3c3628"/>
+    <rect x="176" y="80" width="48" height="16" rx="3" fill="#6b6f8e" opacity=".7"/>`,
+
+  faccant: `
+    <defs>${sky("g", "#33303e", "#1e1c26")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="92" width="400" height="58" fill="#2b2833"/>
+    <g fill="#4a4554">
+      <rect x="20" y="86" width="96" height="8" rx="3"/><rect x="150" y="86" width="96" height="8" rx="3"/>
+      <rect x="280" y="86" width="96" height="8" rx="3"/>
+    </g>
+    <g fill="#3a3644">
+      <rect x="28" y="94" width="7" height="34"/><rect x="101" y="94" width="7" height="34"/>
+      <rect x="158" y="94" width="7" height="34"/><rect x="231" y="94" width="7" height="34"/>
+    </g>
+    <g fill="#6b5f48" opacity=".85">
+      <rect x="40" y="18" width="320" height="54" rx="4"/>
+    </g>
+    <g fill="#d8c9a4" opacity=".55">
+      <circle cx="90" cy="45" r="11"/><circle cx="150" cy="45" r="11"/><circle cx="210" cy="45" r="11"/>
+      <circle cx="270" cy="45" r="11"/><circle cx="330" cy="45" r="11"/>
+    </g>`,
+
+  parttime: `
+    <defs>${sky("g", "#342a2a", "#1e1818")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="104" width="400" height="46" fill="#3b2f28"/>
+    <rect x="30" y="96" width="340" height="10" rx="3" fill="#6b5240"/>
+    <g fill="#8a6a4a">
+      <rect x="60" y="30" width="90" height="60" rx="4"/><rect x="250" y="30" width="90" height="60" rx="4"/>
+    </g>
+    <g fill="#e0c48a" opacity=".5">
+      <rect x="72" y="42" width="66" height="7" rx="2"/><rect x="72" y="56" width="50" height="7" rx="2"/>
+      <rect x="262" y="42" width="66" height="7" rx="2"/><rect x="262" y="56" width="42" height="7" rx="2"/>
+    </g>
+    <path d="M186 60q8-14 0-26M204 60q8-14 0-26" stroke="#d8c9a4" stroke-width="3" fill="none" opacity=".45"/>
+    <rect x="178" y="62" width="40" height="30" rx="4" fill="#c9a06a" opacity=".8"/>`,
+
+  bar: `
+    <defs>${sky("g", "#2a1e28", "#150f16")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="108" width="400" height="42" fill="#2e222c"/>
+    <rect x="24" y="100" width="352" height="10" rx="3" fill="#5c3f4e"/>
+    <g fill="#7a5468" opacity=".9">
+      <rect x="44" y="22" width="312" height="66" rx="4"/>
+    </g>
+    <g fill="#e8a0b8" opacity=".35">
+      <circle cx="90" cy="46" r="9"/><circle cx="140" cy="40" r="9"/><circle cx="190" cy="48" r="9"/>
+      <circle cx="240" cy="40" r="9"/><circle cx="290" cy="46" r="9"/>
+    </g>
+    <g fill="#c9b08a">
+      <path d="M120 100l-8-16h16zM200 100l-8-16h16zM280 100l-8-16h16z"/>
+    </g>`,
+
+  clubroom: `
+    <defs>${sky("g", "#2e2a42", "#1b1828")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="110" width="400" height="40" fill="#292538"/>
+    <g fill="#4a4260">
+      <rect x="40" y="34" width="120" height="76" rx="4"/><rect x="250" y="44" width="100" height="66" rx="4"/>
+    </g>
+    <g stroke="#cfc8e8" stroke-width="2.5" fill="none" opacity=".45">
+      <path d="M60 60h80M60 74h60M60 88h72"/>
+      <circle cx="300" cy="78" r="16"/><path d="M300 62v32M284 78h32"/>
+    </g>
+    <path d="M180 110V52l48-9v58" stroke="#e8c98a" stroke-width="3" fill="none" opacity=".7"/>
+    <circle cx="180" cy="110" r="7" fill="#e8c98a" opacity=".7"/>
+    <circle cx="228" cy="101" r="7" fill="#e8c98a" opacity=".7"/>`,
+
+  dorm: `
+    <defs>${sky("g", "#262a3c", "#151723")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="116" width="400" height="34" fill="#232634"/>
+    <rect x="34" y="20" width="150" height="96" rx="4" fill="#333a50"/>
+    <g fill="#e8c98a" opacity=".38">
+      <rect x="48" y="32" width="26" height="20" rx="2"/><rect x="86" y="32" width="26" height="20" rx="2"/>
+      <rect x="124" y="32" width="26" height="20" rx="2"/>
+      <rect x="48" y="62" width="26" height="20" rx="2"/><rect x="124" y="62" width="26" height="20" rx="2"/>
+      <rect x="86" y="92" width="26" height="20" rx="2"/>
+    </g>
+    <rect x="228" y="70" width="140" height="10" rx="3" fill="#5c4f6a"/>
+    <rect x="234" y="80" width="128" height="30" rx="4" fill="#443a52"/>
+    <rect x="244" y="56" width="42" height="16" rx="4" fill="#6b5f7e" opacity=".8"/>`,
+
+  barber: `
+    <defs>${sky("g", "#2a2e3c", "#171a24")}</defs>
+    <rect width="400" height="150" fill="url(#g)"/>
+    <rect x="0" y="112" width="400" height="38" fill="#252936"/>
+    <rect x="60" y="26" width="280" height="86" rx="4" fill="#333a4a"/>
+    <rect x="86" y="42" width="100" height="56" rx="3" fill="#4d5468" opacity=".8"/>
+    <rect x="214" y="42" width="100" height="56" rx="3" fill="#4d5468" opacity=".8"/>
+    <g fill="#e8e0d0" opacity=".5"><circle cx="136" cy="62" r="13"/><circle cx="264" cy="62" r="13"/></g>
+    <rect x="34" y="34" width="14" height="70" rx="7" fill="#c85a5a" opacity=".8"/>
+    <rect x="34" y="34" width="14" height="70" rx="7" fill="none" stroke="#e8e0d0" stroke-width="3"
+      stroke-dasharray="9 9" opacity=".7"/>`,
 };
 
 const EVENT_SCENES: Record<string, string> = {

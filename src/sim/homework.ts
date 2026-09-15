@@ -1,5 +1,6 @@
 import game from "../../data/game.json";
 import { applyStat } from "./economy";
+import { studyAll, gradePerHomework } from "./grades";
 import { remember, type GameState } from "./state";
 
 /** การบ้าน
@@ -24,6 +25,7 @@ export function doHomework(s: GameState): string {
   s.energy = Math.max(0, s.energy + H.energy);
   s.study += H.study * pieces;
   const got = applyStat(s, "mind", H.mind * pieces, s.doneToday["_homework"] ?? 0);
+  studyAll(s, gradePerHomework * pieces);
   s.doneToday["_homework"] = (s.doneToday["_homework"] ?? 0) + 1;
   remember(s, `ส่งการบ้าน ${pieces} ชิ้น`);
   return `ทำการบ้าน ${pieces} ชิ้น · ความพร้อมสอบ +${H.study * pieces} · ปัญญา +${got.toFixed(1)}`;

@@ -25,7 +25,8 @@
     "bonds": {
       "kanin": -0.3,
       "minta": 0.12
-    }
+    },
+    "chapter": "school"
   },
   {
     "id": "kanin",
@@ -53,7 +54,8 @@
     "bonds": {
       "ploy": -0.3,
       "minta": 0.06
-    }
+    },
+    "chapter": "school"
   },
   {
     "id": "minta",
@@ -80,6 +82,63 @@
     "bonds": {
       "ploy": 0.12,
       "kanin": 0.06
+    },
+    "chapter": "school"
+  },
+  {
+    "id": "tar",
+    "name": "ต้าร์",
+    "year": "ปี 3",
+    "tag": "รุ่นพี่คณะ",
+    "color": "#8fd6a6",
+    "chapter": "uni",
+    "where": {
+      "noon": "faccant",
+      "after": "clubroom",
+      "night": "bar"
+    },
+    "likes": [
+      "nerve",
+      "charm"
+    ],
+    "club": "sport",
+    "story": "tar",
+    "blurb": "คนที่ทุกคนในคณะรู้จัก แต่ไม่มีใครรู้ว่าเขาเรียนอยู่ปีไหนกันแน่",
+    "bonds": {
+      "nun": 0.1
+    },
+    "gate": {
+      "stat": "nerve",
+      "value": 10,
+      "hint": "ถ้าความซ่าถึง 10 ต้าร์จะพาไปที่ที่รุ่นพี่เขาไปกัน"
+    }
+  },
+  {
+    "id": "nun",
+    "name": "นุ่น",
+    "year": "ปี 1",
+    "tag": "เพื่อนร่วมคณะ",
+    "color": "#e8c98a",
+    "chapter": "uni",
+    "where": {
+      "morning": "lecture",
+      "noon": "faccant",
+      "after": "unilib"
+    },
+    "likes": [
+      "mind",
+      "kind"
+    ],
+    "club": "academic",
+    "story": "nun",
+    "blurb": "มาจากต่างจังหวัดเหมือนกัน และกลัวเหมือนกันแต่ไม่พูด",
+    "bonds": {
+      "tar": 0.1
+    },
+    "gate": {
+      "stat": "kind",
+      "value": 9,
+      "hint": "ถ้าน้ำใจถึง 9 นุ่นจะเล่าว่าที่บ้านเป็นยังไง"
     }
   }
 ]

@@ -18,7 +18,10 @@ import { joinClub, clubToday, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
 import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod } from "../sim/chat";
 import { hasHomework, doHomework } from "../sim/homework";
+import { inspect, needsHaircut, haircut } from "../sim/grooming";
+import { gpa, gradeOf, SUBJECTS } from "../sim/grades";
 import { computeEnding } from "../sim/ending";
+import { startUni } from "../sim/chapter";
 import { buy, use } from "../sim/shop";
 
 const SEEDS = [11, 23, 47, 91, 137];
@@ -46,8 +49,12 @@ interface Run {
   caught: number; escaped: number; troublePeriods: number;
   chats: number; invites: number; kept: number;
   homeworkDone: number; homeworkMissed: number;
-  behaviour: number; money: number; standing: number;
+  haircuts: number; inspected: number;
+  behaviour: number; money: number; standing: number; gpa: number;
+  grades: Record<string, number>;
   ending: Ending;
+  /** ปีหนึ่ง — null ถ้าคะแนนไม่ถึงเกณฑ์เข้ามหาลัย */
+  uni: { ending: Ending; gpa: number; debt: number; money: number } | null;
 }
 
 // ───────────────────────── เลือกที่จะไป ─────────────────────────
@@ -85,7 +92,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
   const mg = () => clamp01(skill + (rnd() - 0.5) * 0.3);
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
-  let chats = 0, invites = 0, kept = 0, homeworkDone = 0;
+  let chats = 0, invites = 0, kept = 0, homeworkDone = 0, haircuts = 0;
+  /** ใครใส่ใจทรงผม — เด็กหลังห้องกับคนขี้เกียจไม่ตัด จะได้เห็นราคาของการปล่อยไว้ */
+  const cutsHair = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครส่งการบ้าน — คนขี้เกียจกับเด็กหลังห้องไม่ส่ง จะได้เห็นราคาของการไม่ส่งจริง */
   const doesHomework = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครรับนัดแล้วไปจริง — คนที่ทุ่มเรียนกับเด็กหลังห้องเบี้ยวบ้าง จะได้เห็นราคาของการผิดนัด */
@@ -99,6 +108,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     if (mg() >= DODGE_PASS) { escapeCatch(s, r.penalty); escaped++; }
   };
 
+  const runTerm = () => {
   while (!isTermOver(s)) {
     // เหตุการณ์ตามปฏิทินถูกข้ามในโหมดจำลอง เพราะเนื้อหาอยู่ใน ink ที่ต้องมีคนเลือก
     // (`npm run story` เป็นตัวที่คุมฝั่งนั้น) ยกเว้นวันสอบซึ่งต้องเข้าสอบจริง
@@ -130,9 +140,15 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       // การบ้านกินหนึ่งช่วงเวลาเต็มๆ เหมือนในเกมจริง
       doHomework(s);
       homeworkDone++;
+    } else if (!isLocked(s) && cutsHair && needsHaircut(s) && s.money >= game.grooming.cutCost) {
+      // ตัดผมกินหนึ่งช่วงเวลากับเงินก้อนหนึ่ง เหมือนในเกมจริง
+      s.money -= game.grooming.cutCost;
+      s.energy = Math.max(0, s.energy + game.grooming.cutEnergy);
+      haircut(s);
+      haircuts++;
     } else if (isLocked(s)) {
       if (strat === "rebel") afterCatch(skipClass(s, rnd));
-      else attendClass(s);
+      else { inspect(s, rnd); attendClass(s); }
     } else if (strat === "lazy") {
       const home = availableLocations(s).find((l) => l.rest);
       if (home) { doRest(s, home); restPeriods++; }
@@ -168,14 +184,29 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     }
     advance(s);
   }
+  };
+
+  runTerm();
+  const schoolEnding = computeEnding(s);
+
+  // เล่นต่อถึงปีหนึ่ง — ถ้าเทสต์ไม่เดินภาคนี้ ทุกอย่างที่เพิ่งเขียนจะไม่มีอะไรคุมเลย
+  let uni: Run["uni"] = null;
+  if (schoolEnding.score >= game.carryOver.minScoreToUni) {
+    startUni(s, schoolEnding);
+    runTerm();
+    const ue = computeEnding(s);
+    uni = { ending: ue, gpa: gpa(s), debt: s.debt, money: s.money };
+  }
 
   return {
     stats: { ...s.stats }, maxedAt, exams: { ...s.exams },
     minEnergy, blocked, restPeriods,
     caught: s.caught, escaped, troublePeriods, chats, invites, kept,
     homeworkDone, homeworkMissed: s.homeworkMissed,
+    haircuts, inspected: s.inspected,
     behaviour: s.behaviour, money: s.money, standing: s.standing,
-    ending: computeEnding(s),
+    gpa: gpa(s), grades: { ...s.grades },
+    ending: schoolEnding, uni,
   };
 }
 
@@ -217,14 +248,28 @@ function report(strat: Strategy, runs: Run[]) {
               ` · ความประพฤติ ${r0(mean(runs.map((r) => r.behaviour)))}` +
               ` · ชื่อเสียง ${r0(mean(runs.map((r) => r.standing)))}`);
 
+  const sheet = SUBJECTS.map((x) =>
+    `${x.short}${gradeOf(mean(runs.map((r) => r.grades[x.id] ?? 0))).name}`).join(" ");
+  console.log(`    เกรดเฉลี่ย ${mean(runs.map((r) => r.gpa)).toFixed(2)} · ${sheet}`);
   console.log(`    การบ้าน: ส่ง ${r0(mean(runs.map((r) => r.homeworkDone)))} ครั้ง` +
               ` · ไม่ได้ส่ง ${r0(mean(runs.map((r) => r.homeworkMissed)))} ชิ้น`);
+
+  console.log(`    ทรงผม: ตัด ${r0(mean(runs.map((r) => r.haircuts)))} ครั้ง` +
+              ` · โดนเรียกหน้าแถว ${r0(mean(runs.map((r) => r.inspected)))} ครั้ง`);
 
   const ch = mean(runs.map((r) => r.chats));
   if (ch >= 0.5)
     console.log(`    ไลน์: มีคนทักมา ${r0(ch)} คืน · รับนัด ${r0(mean(runs.map((r) => r.invites)))}` +
                 ` · ไปตามนัด ${r0(mean(runs.map((r) => r.kept)))}` +
                 ` · ผิดนัด ${r0(mean(runs.map((r) => r.invites - r.kept)))}`);
+
+  const withUni = runs.filter((r) => r.uni);
+  if (withUni.length)
+    console.log(`    ปีหนึ่ง: เกรดเฉลี่ย ${mean(withUni.map((r) => r.uni!.gpa)).toFixed(2)}` +
+                ` · เงินเหลือ ${r0(mean(withUni.map((r) => r.uni!.money)))}` +
+                ` · หนี้ ${r0(mean(withUni.map((r) => r.uni!.debt)))}` +
+                ` · ${[...new Set(withUni.map((r) => r.uni!.ending.tier))].join(" / ")}`);
+  else console.log(`    ปีหนึ่ง: คะแนนไม่ถึงเกณฑ์ ไม่ได้เรียนต่อ`);
 
   const scores = runs.map((r) => r.ending.score);
   const tiers = [...new Set(runs.map((r) => r.ending.tier))];
@@ -275,6 +320,15 @@ const totalKept = sum(allRuns.map((r) => r.kept));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
             ` · ผิดนัด ${totalInvites - totalKept}`);
 
+const uniRuns = allRuns.filter((r) => r.uni);
+console.log(`ภาคมหาลัยเดินจริงไหม: ${uniRuns.length}/${allRuns.length} รอบได้เรียนต่อ` +
+            (uniRuns.length ? ` · เกรดเฉลี่ยปีหนึ่ง ${mean(uniRuns.map((r) => r.uni!.gpa)).toFixed(2)}` +
+              ` · ติดหนี้ ${uniRuns.filter((r) => r.uni!.debt > 0).length} รอบ` : ""));
+
+const cuts = sum(allRuns.map((r) => r.haircuts));
+const inspected = sum(allRuns.map((r) => r.inspected));
+console.log(`ตรวจหน้าเสาธงทำงานจริงไหม: ตัดผมรวม ${cuts} ครั้ง · โดนเรียกรวม ${inspected} ครั้ง`);
+
 const hwDone = sum(allRuns.map((r) => r.homeworkDone));
 const hwMissed = sum(allRuns.map((r) => r.homeworkMissed));
 console.log(`การบ้านทำงานจริงไหม: ส่งรวม ${hwDone} ครั้ง · ไม่ได้ส่งรวม ${hwMissed} ชิ้น`);
@@ -297,6 +351,10 @@ if (totalCaught === 0) console.log("เตือน: ไม่มีใครโ
 if (totalEscaped === 0) console.log("เตือน: มินิเกมหลบฝ่ายปกครองไม่เคยช่วยใครรอดเลย");
 if (totalChats === 0) console.log("เตือน: ไม่มีใครส่งไลน์มาเลยสักคืน ระบบไลน์ไม่ถูกทดสอบ");
 if (hwDone === 0) console.log("เตือน: ไม่มีใครส่งการบ้านเลย ระบบการบ้านไม่ถูกทดสอบ");
+if (inspected === 0) console.log("เตือน: ไม่มีใครโดนเรียกหน้าแถวเลย ระบบตรวจทรงผมไม่ถูกทดสอบ");
+if (cuts === 0) console.log("เตือน: ไม่มีใครไปตัดผมเลย ทางแก้ไม่ถูกทดสอบ");
+if (uniRuns.length === 0) console.log("เตือน: ไม่มีรอบไหนได้เรียนต่อเลย ภาคมหาลัยไม่ถูกทดสอบ");
+if (uniRuns.length === allRuns.length) console.log("เตือน: ทุกรอบได้เรียนต่อ เกณฑ์เข้ามหาลัยไม่ได้กั้นอะไร");
 if (hwMissed === 0) console.log("เตือน: ไม่มีใครพลาดส่งการบ้านเลย บทลงโทษไม่ถูกทดสอบ");
 if (totalInvites === totalKept) console.log("เตือน: ไม่มีใครผิดนัดเลย บทลงโทษการผิดนัดไม่ถูกทดสอบ");
 if (skillSwing < 3) console.log(`เตือน: ฝีมือมินิเกมแทบไม่มีผลกับปลายทาง (ต่างกันแค่ ${skillSwing.toFixed(1)} คะแนน)`);

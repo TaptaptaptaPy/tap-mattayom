@@ -4,16 +4,164 @@
     "id": "_note",
     "skip": true
   },
-  { "id": "opening", "day": 0, "period": "morning", "name": "วันเปิดเทอม", "ink": "ev_opening" },
-  { "id": "club_pick", "day": 3, "period": "after", "name": "วันสมัครชมรม", "ink": "ev_club", "pickClub": true },
-  { "id": "wai_kru", "day": 10, "period": "morning", "name": "วันไหว้ครู", "ink": "ev_wai_kru" },
-  { "id": "midterm", "day": 49, "period": "morning", "name": "สอบกลางภาค", "exam": "midterm" },
-  { "id": "field_trip", "day": 63, "period": "morning", "name": "ทัศนศึกษา", "ink": "ev_field_trip", "wholeDay": true },
-  { "id": "king_day", "day": 71, "period": "morning", "name": "วันเฉลิมพระชนมพรรษา", "holiday": true, "ink": "ev_holiday" },
-  { "id": "sports_day", "day": 77, "period": "morning", "name": "กีฬาสี", "ink": "ev_sports_day", "wholeDay": true },
-  { "id": "mothers_day", "day": 85, "period": "morning", "name": "พิธีวันแม่", "ink": "ev_mothers_day" },
-  { "id": "mothers_holiday", "day": 86, "period": "morning", "name": "วันแม่แห่งชาติ", "holiday": true },
-  { "id": "scout_camp", "day": 95, "period": "morning", "name": "เข้าค่ายลูกเสือ", "ink": "ev_scout_camp", "wholeDay": true },
-  { "id": "final", "day": 112, "period": "morning", "name": "สอบปลายภาค", "exam": "final" },
-  { "id": "farewell", "day": 119, "period": "morning", "name": "ปัจฉิมนิเทศ", "ink": "ev_farewell", "ending": true }
+  {
+    "id": "opening",
+    "day": 0,
+    "period": "morning",
+    "name": "วันเปิดเทอม",
+    "ink": "ev_opening",
+    "chapter": "school"
+  },
+  {
+    "id": "club_pick",
+    "day": 3,
+    "period": "after",
+    "name": "วันสมัครชมรม",
+    "ink": "ev_club",
+    "pickClub": true,
+    "chapter": "school"
+  },
+  {
+    "id": "wai_kru",
+    "day": 10,
+    "period": "morning",
+    "name": "วันไหว้ครู",
+    "ink": "ev_wai_kru",
+    "chapter": "school"
+  },
+  {
+    "id": "midterm",
+    "day": 49,
+    "period": "morning",
+    "name": "สอบกลางภาค",
+    "exam": "midterm",
+    "chapter": "school"
+  },
+  {
+    "id": "field_trip",
+    "day": 63,
+    "period": "morning",
+    "name": "ทัศนศึกษา",
+    "ink": "ev_field_trip",
+    "wholeDay": true,
+    "chapter": "school"
+  },
+  {
+    "id": "king_day",
+    "day": 71,
+    "period": "morning",
+    "name": "วันเฉลิมพระชนมพรรษา",
+    "holiday": true,
+    "ink": "ev_holiday",
+    "chapter": "school"
+  },
+  {
+    "id": "sports_day",
+    "day": 77,
+    "period": "morning",
+    "name": "กีฬาสี",
+    "ink": "ev_sports_day",
+    "wholeDay": true,
+    "chapter": "school"
+  },
+  {
+    "id": "mothers_day",
+    "day": 85,
+    "period": "morning",
+    "name": "พิธีวันแม่",
+    "ink": "ev_mothers_day",
+    "chapter": "school"
+  },
+  {
+    "id": "mothers_holiday",
+    "day": 86,
+    "period": "morning",
+    "name": "วันแม่แห่งชาติ",
+    "holiday": true,
+    "chapter": "school"
+  },
+  {
+    "id": "scout_camp",
+    "day": 95,
+    "period": "morning",
+    "name": "เข้าค่ายลูกเสือ",
+    "ink": "ev_scout_camp",
+    "wholeDay": true,
+    "chapter": "school"
+  },
+  {
+    "id": "final",
+    "day": 112,
+    "period": "morning",
+    "name": "สอบปลายภาค",
+    "exam": "final",
+    "chapter": "school"
+  },
+  {
+    "id": "farewell",
+    "day": 119,
+    "period": "morning",
+    "name": "ปัจฉิมนิเทศ",
+    "ink": "ev_farewell",
+    "ending": true,
+    "chapter": "school"
+  },
+  {
+    "id": "u_open",
+    "day": 0,
+    "period": "morning",
+    "name": "วันปฐมนิเทศ",
+    "chapter": "uni",
+    "ink": "u_open"
+  },
+  {
+    "id": "u_hazing",
+    "day": 4,
+    "period": "after",
+    "name": "รับน้อง",
+    "chapter": "uni",
+    "ink": "u_hazing"
+  },
+  {
+    "id": "u_club",
+    "day": 7,
+    "period": "after",
+    "name": "วันรับสมัครชุมนุม",
+    "chapter": "uni",
+    "pickClub": true,
+    "ink": "ev_club"
+  },
+  {
+    "id": "u_mid",
+    "day": 35,
+    "period": "morning",
+    "name": "สอบกลางภาค",
+    "chapter": "uni",
+    "exam": "midterm"
+  },
+  {
+    "id": "u_fest",
+    "day": 49,
+    "period": "night",
+    "name": "งานคณะ",
+    "chapter": "uni",
+    "ink": "u_fest"
+  },
+  {
+    "id": "u_final",
+    "day": 76,
+    "period": "morning",
+    "name": "สอบปลายภาค",
+    "chapter": "uni",
+    "exam": "final"
+  },
+  {
+    "id": "u_close",
+    "day": 83,
+    "period": "after",
+    "name": "ปิดเทอมแรก",
+    "chapter": "uni",
+    "ink": "u_close",
+    "ending": true
+  }
 ]

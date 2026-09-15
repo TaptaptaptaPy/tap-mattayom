@@ -16,6 +16,15 @@ const P: Record<string, string> = {
   sport:     'M12 3a9 9 0 100 18 9 9 0 000-18zM12 3v18M3 12h18M6 6l12 12M18 6L6 18',
   academic:  'M4 5h11a2 2 0 012 2v13H6a2 2 0 01-2-2zM8 9h7M8 13h7M19 5v15',
   volunteer: 'M12 20s-7-4.5-7-9a4 4 0 017-2.5A4 4 0 0119 11c0 4.5-7 9-7 9z',
+  // ภาคมหาลัย
+  lecture:   'M3 6h18M4 6v12M20 6v12M3 18h18M7 10h10M7 13h7M9 3v3M15 3v3',
+  unilib:    'M3 4h7v16H3zM14 4h7v16h-7zM5 8h3M5 12h3M16 8h3M16 12h3M12 4v16',
+  faccant:   'M3 5v6a3 3 0 003 3v5M6 5v6M9 5v6M15 5c-1.5 0-2.5 2.5-2.5 5.5S14 15 15 15v4M18 5v14',
+  parttime:  'M4 9h13v7a3 3 0 01-3 3H7a3 3 0 01-3-3zM17 11h2a2 2 0 010 4h-2M7 5c0-1 1-1 1-2M11 5c0-1 1-1 1-2',
+  bar:       'M5 4h14l-6 7v7M13 18h4M9 18h4M8 7h8',
+  clubroom:  'M4 6h16v10H4zM8 16v4M16 16v4M6 20h12M9 9v4M12 8v5M15 10v3',
+  dorm:      'M4 21V7l8-4 8 4v14M9 21v-6h6v6M8 10h2M14 10h2',
+  barber:    'M6 5l12 12M18 5L6 17M7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z',
 };
 
 export function icon(name: string, cls = ""): string {

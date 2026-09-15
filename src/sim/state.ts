@@ -1,5 +1,6 @@
 import game from "../../data/game.json";
 import chars from "../../data/characters.json";
+import { newGrades } from "./grades";
 
 export type StatId = "heart" | "mind" | "charm" | "kind" | "nerve";
 
@@ -47,6 +48,22 @@ export interface GameState {
   /** เลือกยืนข้างใครไปแล้ว เลือกแล้วอีกฝั่งปิดถาวร */
   sided: string | null;
 
+  /** ภาคที่กำลังเล่นอยู่ — "school" คือมัธยม "uni" คือปีหนึ่ง */
+  chapter: "school" | "uni";
+  /** ฉากจบของมัธยม เก็บไว้เพราะปีหนึ่งอ้างถึงมันตลอด */
+  schoolEnding: Ending | null;
+  /** หนี้ค่าหอที่ค้างอยู่ (เฉพาะภาคมหาลัย) */
+  debt: number;
+  rentDue: number;
+
+  /** ความเรียบร้อยของทรงผม/เครื่องแบบ 0-100 ลดลงทุกวัน */
+  grooming: number;
+  /** โดนเรียกหน้าแถวไปกี่ครั้งแล้วทั้งเทอม */
+  inspected: number;
+
+  /** เกรดรายวิชา 0-100 สะสมทั้งเทอม แล้วแปลงเป็นเกรด 4 ขั้นตอนจบ */
+  grades: Record<string, number>;
+
   /** การบ้านที่ยังไม่ได้ส่ง (ชิ้น) */
   homework: number;
   /** ส่งไม่ทันมากี่ชิ้นแล้วทั้งเทอม — ฉากจบกับเทสต์ใช้ดู */
@@ -65,7 +82,10 @@ export interface GameState {
 // 4: เพิ่มระบบไลน์ (chats · pendingChat · chatDay · plan)
 // 5: เพิ่มการบ้าน (homework · homeworkMissed)
 // 6: เพิ่มชื่อเสียงและการเลือกข้าง (standing · sided)
-export const SAVE_VERSION = 6;
+// 7: เพิ่มเกรดรายวิชา (grades)
+// 8: เพิ่มตรวจหน้าเสาธง (grooming · inspected)
+// 9: เพิ่มภาคมหาลัย (chapter · schoolEnding · debt · rentDue)
+export const SAVE_VERSION = 9;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -79,7 +99,9 @@ export function newState(): GameState {
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
     sleepDebt: 0, lastQuiz: 0, ending: null,
-    standing: 50, sided: null,
+    standing: 50, sided: null, grades: newGrades(),
+    grooming: game.grooming.start, inspected: 0,
+    chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plan: null,
   };

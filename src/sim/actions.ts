@@ -5,14 +5,18 @@ import { isLocked, isSchoolDay, periodId } from "./calendar";
 import { applyStat, canAfford } from "./economy";
 import { rollCatch, inTrouble, type Rnd } from "./discipline";
 import { clubToday } from "./club";
+import { studyAll, gradePerClass } from "./grades";
+import { inspect } from "./grooming";
+import { chapterOf, inChapter } from "./chapter";
 import { remember, type GameState, type StatId } from "./state";
 
 type RawLocation = (typeof locations)[number];
 
 export interface LocationOption {
   id: string; name: string; icon: string;
-  school?: boolean; risky?: boolean; catchBase?: number;
-  action?: { label: string; stat: StatId; gain: number; energy: number; study?: number; cost?: number };
+  school?: boolean; risky?: boolean; catchBase?: number; subjectPick?: boolean; haircut?: boolean;
+  action?: { label: string; stat: StatId; gain: number; energy: number; study?: number;
+             cost?: number; /** ทำงานพิเศษแล้วได้เงิน — กริยาใหม่ของภาคมหาลัย */ pay?: number };
   rest?: { label: string; energy: number };
   club?: { label: string; name: string };
   present: { id: string; name: string; color: string }[];
@@ -26,11 +30,13 @@ const get = <T,>(o: object, k: string): T | undefined => (o as Record<string, T>
 export function availableLocations(s: GameState): LocationOption[] {
   const period = periodId(s);
   if (isLocked(s)) {
-    const cls = LOCS.find((l) => l.id === "classroom")!;
-    return [{ ...cls, action: undefined, present: whoIsAt(s, "classroom", period) } as LocationOption];
+    const roomId = chapterOf(s) === "uni" ? "lecture" : "classroom";
+    const cls = LOCS.find((l) => l.id === roomId) ?? LOCS.find((l) => l.id === "classroom")!;
+    return [{ ...cls, action: undefined, present: whoIsAt(s, cls.id, period) } as LocationOption];
   }
   const club = clubToday(s);
   return LOCS
+    .filter((l) => inChapter(l as { chapter?: string }, chapterOf(s)))
     .filter((l) => l.periods.includes(period))
     // เสาร์อาทิตย์และวันหยุด โรงเรียนปิด — เดิมเข้าห้องสมุดได้ทุกวันไม่เว้น
     .filter((l) => !get<boolean>(l, "school") || isSchoolDay(s))
@@ -46,6 +52,8 @@ export function availableLocations(s: GameState): LocationOption[] {
 
 function whoIsAt(s: GameState, locId: string, period: string) {
   return chars
+    // เพื่อนมัธยมไม่โผล่มาที่มหาลัย แต่ยังทักไลน์มาได้ ซึ่งเป็นคนละเรื่องกันโดยตั้งใจ
+    .filter((c) => inChapter(c as { chapter?: string }, chapterOf(s)))
     .filter((c) => get<string>(c.where, period) === locId && !s.metToday[c.id])
     .map((c) => ({ id: c.id, name: c.name, color: c.color }));
 }
@@ -63,6 +71,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
   const got = applyStat(s, a.stat, a.gain, times);
   s.energy = Math.max(0, Math.min(game.energy.max, s.energy + a.energy));
   if (a.cost) s.money -= a.cost;
+  if (a.pay) s.money += a.pay;
   if (a.study) s.study += a.study;
   s.doneToday[loc.id] = times + 1;
 
@@ -70,6 +79,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
   let message = `${a.label} · ${nm} +${got.toFixed(1)}`;
   if (times > 0) message += " (ทำซ้ำวันนี้ ได้น้อยลง)";
   if (a.cost) message += ` · -${a.cost} บาท`;
+  if (a.pay) message += ` · +${a.pay} บาท`;
 
   let caught: string | null = null, penalty = 0;
   if (loc.risky && loc.catchBase) {
@@ -86,10 +96,17 @@ export function doRest(s: GameState, loc: LocationOption): string | null {
 }
 
 /** คาบเรียนเช้า: เข้าแถวหน้าเสาธงแล้วเรียน — เดิมมีแค่ปุ่ม "ผ่านคาบไป" เฉยๆ */
+/** เข้าแถวแล้วโดนตรวจ — คืนข้อความถ้าโดน ไม่งั้นคืน null */
+export function morningInspect(s: GameState, rnd: Rnd = Math.random) {
+  return inspect(s, rnd);
+}
+
 export function attendClass(s: GameState): string {
   const got = applyStat(s, "mind", 2, s.doneToday["_class"] ?? 0);
   s.doneToday["_class"] = (s.doneToday["_class"] ?? 0) + 1;
   s.study += 2;
+  // เข้าเรียนหนึ่งคาบได้ทุกวิชานิดหน่อย วิชาที่ตรงกับค่าสถานะที่เราแข็งจะได้มากกว่า
+  studyAll(s, gradePerClass);
   return `ตั้งใจเรียน · ปัญญา +${got.toFixed(1)}`;
 }
 

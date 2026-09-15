@@ -2,6 +2,9 @@ import game from "../../data/game.json";
 import events from "../../data/events.json";
 import { settleMissedPlan } from "./chat";
 import { settleHomework } from "./homework";
+import { decayGrades } from "./grades";
+import { chapterDef, chapterOf, inChapter, isUni, payRent } from "./chapter";
+import { growHair } from "./grooming";
 import { remember, type GameState } from "./state";
 
 const DOW = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -11,11 +14,20 @@ export interface TermEvent {
   id: string; day: number; period: string; name: string;
   ink?: string; exam?: string; holiday?: boolean; wholeDay?: boolean;
   pickClub?: boolean; ending?: boolean; skip?: boolean;
+  /** ไม่ระบุ = ของมัธยม เพื่อให้ข้อมูลเดิมใช้ต่อได้โดยไม่ต้องแก้ทุกบรรทัด */
+  chapter?: string;
 }
-export const EVENTS = (events as TermEvent[]).filter((e) => !e.skip);
+const ALL_EVENTS = (events as TermEvent[]).filter((e) => !e.skip);
+
+/** เหตุการณ์ของภาคที่กำลังเล่นอยู่ — ข้อมูลที่ไม่ระบุภาคถือเป็นของมัธยม */
+export const eventsFor = (s: GameState) =>
+  ALL_EVENTS.filter((e) => inChapter(e, chapterOf(s)));
+
+/** เผื่อโค้ดเก่าที่ยังเรียกแบบไม่ส่ง state มา — คืนของมัธยม */
+export const EVENTS = ALL_EVENTS.filter((e) => inChapter(e, "school"));
 
 export function dateOf(s: GameState): Date {
-  const d = new Date(game.term.startDate + "T00:00:00");
+  const d = new Date(chapterDef(s).startDate + "T00:00:00");
   d.setDate(d.getDate() + s.dayIndex);
   return d;
 }
@@ -25,7 +37,7 @@ export const isWeekend = (s: GameState) => weekdayOf(s) === 0 || weekdayOf(s) ==
 
 /** วันหยุดราชการที่ประกาศไว้ในปฏิทินเทอม */
 export const isHoliday = (s: GameState) =>
-  EVENTS.some((e) => e.day === s.dayIndex && e.holiday === true);
+  eventsFor(s).some((e) => e.day === s.dayIndex && e.holiday === true);
 
 /** โรงเรียนเปิดไหม — เสาร์อาทิตย์และวันหยุดไม่เปิด เดิมเข้าห้องเรียนได้ทุกวัน */
 export const isSchoolDay = (s: GameState) => !isWeekend(s) && !isHoliday(s);
@@ -45,12 +57,13 @@ export function isLocked(s: GameState): boolean {
 /** เหตุการณ์ของช่วงเวลานี้ที่ยังไม่เคยเล่น */
 export function eventNow(s: GameState): TermEvent | null {
   const pid = periodId(s);
-  return EVENTS.find((e) => e.day === s.dayIndex && e.period === pid && !s.seenEvents[e.id]) ?? null;
+  return eventsFor(s).find((e) => e.day === s.dayIndex && e.period === pid && !s.seenEvents[e.id]) ?? null;
 }
 /** เหตุการณ์ของวันนี้ทั้งหมด — ใช้โชว์บนปฏิทินล่วงหน้า */
-export const eventsOnDay = (day: number) => EVENTS.filter((e) => e.day === day);
+export const eventsOnDay = (day: number, s?: GameState) =>
+  (s ? eventsFor(s) : EVENTS).filter((e) => e.day === day);
 export const nextEvent = (s: GameState) =>
-  EVENTS.filter((e) => e.day > s.dayIndex).sort((a, b) => a.day - b.day)[0] ?? null;
+  eventsFor(s).filter((e) => e.day > s.dayIndex).sort((a, b) => a.day - b.day)[0] ?? null;
 
 export function advance(s: GameState): void {
   s.energy = Math.max(0, s.energy + game.energy.perPeriod);
@@ -65,13 +78,16 @@ export function advance(s: GameState): void {
     s.energy = Math.min(game.energy.max, s.energy + restore);
     s.sleepDebt = 0;
     s.study *= game.examModel.studyDecayPerDay;
+    decayGrades(s);
+    growHair(s);
     // นัดที่รับไว้เมื่อวานแล้วไม่ไป คิดบัญชีตรงนี้ — อยู่ในทางเดินหลักเพื่อให้เทสต์สมดุลเดินผ่านเอง
     settleMissedPlan(s);
     // ครูเก็บการบ้านเช้าวันเปิดเรียน แล้วสั่งของวันใหม่ — อยู่ในทางเดินหลักเพื่อให้เทสต์เดินผ่านเอง
     // ไม่เก็บข้อความไว้ใน state ฝั่ง UI ดูจาก s.homeworkMissed ที่ขยับแทน
     settleHomework(s, isSchoolDay(s));
     // ค่าขนมออกทุกวันจันทร์ ความประพฤติค่อยๆ ฟื้นถ้าไม่ก่อเรื่องซ้ำ
-    if (weekdayOf(s) === 1) payAllowance(s);
+    // มัธยมได้ค่าขนมจากที่บ้าน ปีหนึ่งต้องจ่ายค่าหอเอง — คนละทิศทางกันเลย
+    if (weekdayOf(s) === 1) { if (isUni(s)) payRent(s); else payAllowance(s); }
   }
 }
 
@@ -86,5 +102,6 @@ function payAllowance(s: GameState) {
   remember(s, `ได้ค่าขนมประจำสัปดาห์ ${amount} บาท`);
 }
 
-export const isTermOver = (s: GameState) => s.dayIndex >= game.term.days;
-export const daysLeft = (s: GameState) => Math.max(0, game.term.days - s.dayIndex);
+export const isTermOver = (s: GameState) => s.dayIndex >= chapterDef(s).days;
+export const daysLeft = (s: GameState) => Math.max(0, chapterDef(s).days - s.dayIndex);
+export const termDays = (s: GameState) => chapterDef(s).days;

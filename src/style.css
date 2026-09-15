@@ -400,3 +400,18 @@ button{font-family:inherit;cursor:pointer}
 /* การ์ดการบ้าน — เป็นของที่ "ต้องทำ" ไม่ใช่ของที่เลือกทำ จึงต้องเด่นกว่าการ์ดสถานที่ */
 .loc.hw{border-color:rgba(228,160,183,.5);background:linear-gradient(180deg,rgba(228,160,183,.1),var(--bg2))}
 .chip.hw{border-color:rgba(228,160,183,.5);color:var(--accent)}
+
+/* สมุดพก — แถบเกรดรายวิชาแบบ ปพ. */
+.sheet{display:grid;gap:8px;margin-top:6px}
+.sheet .row{display:flex;align-items:center;gap:10px;position:relative;
+  border:1px solid var(--line);border-radius:12px;padding:9px 12px;overflow:hidden}
+.sheet .row b{font-family:"Bai Jamjuree",sans-serif;font-size:14px;width:4.5em;flex:0 0 auto;z-index:1}
+.sheet .row i{position:absolute;left:0;top:0;bottom:0;background:rgba(228,160,183,.16)}
+.sheet .gr{margin-left:auto;font-family:"Bai Jamjuree",sans-serif;font-weight:700;font-size:16px;z-index:1}
+.sheet .g4{color:#8fd6a6}.sheet .g3{color:#cfe08a}.sheet .g2{color:#e8c98a}
+.sheet .g1{color:#e0a07a}.sheet .g0{color:#d67878}
+#chapter{font-size:11px;color:var(--dim);letter-spacing:.4px;margin-bottom:1px}
+.nextchap{width:100%;margin-top:16px;background:rgba(228,160,183,.16);color:var(--ink);
+  border:1px solid rgba(228,160,183,.55);border-radius:12px;padding:12px;
+  font-family:"Bai Jamjuree",sans-serif;font-size:15px;font-weight:600;cursor:pointer}
+.nextchap:active{background:rgba(228,160,183,.28)}

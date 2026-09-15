@@ -55,6 +55,26 @@ const LOOKS: Record<string, Look> = {
     strands: "M45 32 l-4 17 M60 29 l0 19 M75 32 l4 17",
     extra: `<path d="M86 76 q12 5 11 19" stroke="#503659" stroke-width="5.5" fill="none" stroke-linecap="round"/>`,
   },
+  tar: {
+    skin: "#e8bd97", skinShade: "#d0a17c", hair: "#2f2a22", hairDark: "#191510",
+    hairLight: "#5a5140", iris: "#8fd6a6", irisDeep: "#3d7a52",
+    accent: "#8fd6a6", bg: ["#bfe8cd", "#6aa882"], collar: "#5d9973",
+    // ผมสั้นเกรียนแบบคนที่ตัดเองที่ร้านหน้ามอ
+    hairPath: "M30 58 q-3-36 30-38 q33 2 30 38 l2 16 q-7-12-11-13 l0-7 q-21 8-42 0 l0 7 q-4 1-11 13 z",
+    frontPath: "M32 44 q10-13 28-13 q18 0 28 13 q-16-6-28-5 q-12-1-28 5 z",
+    strands: "M48 33 l-3 13 M60 30 l0 14 M72 33 l3 13",
+  },
+  nun: {
+    skin: "#f7dcc4", skinShade: "#e0b99c", hair: "#3b2f26", hairDark: "#221a14",
+    hairLight: "#66513f", iris: "#e8c98a", irisDeep: "#9a7a3a",
+    accent: "#e8c98a", bg: ["#f2e0bb", "#bd9d62"], collar: "#c9a86a",
+    // ผมยาวมัดสองข้างแบบคนที่รีบออกจากหอทุกเช้า
+    hairPath: "M28 60 q-4-38 32-40 q36 2 32 40 l4 28 q-9-18-13-20 q1 11-1 17 q-22 7-44 0 q-2-6-1-17 q-4 2-13 20 z",
+    frontPath: "M31 46 q12-15 29-15 q17 0 29 15 q-17-7-29-6 q-12-1-29 6 z",
+    strands: "M46 32 l-4 15 M60 29 l0 17 M74 32 l4 15",
+    extra: `<g fill="#c9a86a" opacity=".9">
+      <circle cx="26" cy="64" r="5"/><circle cx="94" cy="64" r="5"/></g>`,
+  },
 };
 
 const NARRATOR: Look = {

@@ -1,0 +1,40 @@
+[
+  {
+    "_note": "ห้าวิชาตรงกับที่ questions.json แบ่งไว้อยู่แล้ว ตัวย่อใช้บนสมุดพก"
+  },
+  {
+    "id": "math",
+    "name": "คณิต",
+    "short": "ค",
+    "likes": "mind",
+    "hard": 1.15
+  },
+  {
+    "id": "sci",
+    "name": "วิทย์",
+    "short": "ว",
+    "likes": "mind",
+    "hard": 1.1
+  },
+  {
+    "id": "thai",
+    "name": "ไทย",
+    "short": "ท",
+    "likes": "heart",
+    "hard": 0.92
+  },
+  {
+    "id": "social",
+    "name": "สังคม",
+    "short": "ส",
+    "likes": "kind",
+    "hard": 0.9
+  },
+  {
+    "id": "english",
+    "name": "อังกฤษ",
+    "short": "อ",
+    "likes": "charm",
+    "hard": 1.05
+  }
+]

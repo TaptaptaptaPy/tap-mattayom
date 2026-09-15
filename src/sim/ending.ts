@@ -3,12 +3,80 @@ import chars from "../../data/characters.json";
 import { termScore } from "./exam";
 import { clubOf } from "./club";
 import { standingLabel } from "./bonds";
+import { gpa, gradeOf, bestWorst, SUBJECTS } from "./grades";
+import { isUni } from "./chapter";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "./state";
 
 const EN = game.entrance;
 
+/** ปลายทางของปีหนึ่ง — ไม่ได้วัดว่าสอบติดที่ไหน แต่วัดว่ารอดมาได้ยังไง
+ *  คำถามของภาคนี้ไม่ใช่ "เก่งแค่ไหน" แต่เป็น "เหลืออะไรอยู่บ้างตอนเทอมจบ" */
+export function computeUniEnding(s: GameState): Ending {
+  const g = gpa(s);
+  const bw = bestWorst(s);
+  const closest = pickClosest(s);
+  const broke = s.debt > 0;
+
+  const score = Math.round(
+    (g / 4) * 55 + Math.min(25, s.standing * 0.25) +
+    (broke ? 0 : 12) + Math.min(8, (closest?.value ?? 0) * 0.2));
+
+  const tier =
+    g >= 3.2 && !broke ? "ผ่านปีหนึ่งมาได้แบบที่ไม่ต้องอธิบายใคร"
+    : g >= 2.0 && !broke ? "ผ่านมาได้ แบบที่ไม่มีใครถามว่าผ่านมายังไง"
+    : g >= 2.0 ? "ผ่านมาได้ แต่ยังติดหนี้ค่าหออยู่"
+    : g >= 1.0 ? "รอดมาได้แบบเฉียดฉิว ต้องซ่อมหลายวิชา"
+    : "ปีหนึ่งที่ไม่ผ่านอะไรเลยสักอย่าง";
+
+  const tone =
+    broke ? "เงินหมดก่อนเทอมจบ และนั่นคือสิ่งที่จำได้มากที่สุด"
+    : g >= 3.2 ? "ไม่มีใครที่บ้านรู้ว่ามันยากแค่ไหน และเราก็ไม่ได้เล่า"
+    : "ปีแรกผ่านไปแล้ว และเราไม่เหมือนคนที่ลงรถทัวร์วันนั้นอีกต่อไป";
+
+  const lines: string[] = [];
+  if (s.schoolEnding) lines.push(`มาจาก: ${s.schoolEnding.tier}`);
+  lines.push(`เกรดเฉลี่ยปีหนึ่ง ${g.toFixed(2)}` +
+    ` · ${SUBJECTS.map((x) => `${x.short}${gradeOf(s.grades[x.id] ?? 0).name}`).join(" ")}`);
+  if (bw) lines.push(`แข็ง${bw.best.name} อ่อน${bw.worst.name}`);
+  lines.push(broke ? `ติดหนี้ค่าหอ ${Math.round(s.debt)} บาท` : `จบเทอมโดยไม่ติดหนี้ใคร`);
+  lines.push(`เงินเหลือ ${Math.round(s.money)} บาท`);
+  lines.push(s.inspected === 0 ? "ที่นี่ไม่มีใครตรวจทรงผม และไม่มีใครสนใจว่าเราตัดหรือยัง"
+                               : `ยังติดนิสัยกลัวโดนเรียกหน้าแถวอยู่`);
+  if (closest && closest.rank > 0)
+    lines.push(`คนที่สนิทที่สุดในมหาลัย: ${closest.name} (ระดับ ${closest.rank})`);
+  else lines.push("ผ่านปีหนึ่งมาโดยไม่สนิทกับใครเป็นพิเศษ");
+
+  const deep: [string, string][] = [
+    ["tar_key", "ได้กุญแจห้องชุมนุมมาจากรุ่นพี่"],
+    ["tar_quit", "รู้ก่อนคนอื่นว่าต้าร์จะไม่ลงทะเบียนเทอมหน้า"],
+    ["nun_tutored", "ติวแคลฯ ให้นุ่นจนเธอสอบผ่าน"],
+    ["nun_stayed", "เป็นเหตุผลที่นุ่นไม่ขึ้นรถทัวร์กลับบ้านเดือนนั้น"],
+    ["u_spoke_up", "เป็นคนที่พูดขัดรุ่นพี่กลางห้องเชียร์"],
+    ["u_walked_out", "พาเพื่อนเดินออกจากห้องเชียร์"],
+  ];
+  for (const [f, t] of deep) if (s.flags[f]) lines.push(t);
+
+  const ending: Ending = {
+    tier, tone, score,
+    closest: closest?.name ?? null, closestRank: closest?.rank ?? 0,
+    behaviour: s.behaviour, club: clubOf(s)?.name ?? null, lines,
+  };
+  s.ending = ending;
+  return ending;
+}
+
+function pickClosest(s: GameState) {
+  let best: { name: string; value: number; rank: number } | null = null;
+  for (const c of chars) {
+    const v = s.affinity[c.id] ?? 0;
+    if (!best || v > best.value) best = { name: c.name, value: v, rank: affinityRank(v) };
+  }
+  return best;
+}
+
 /** ปลายทางของเทอม: สอบเข้ามหาลัย + สรุปว่าเทอมนี้ผู้เล่นเป็นคนแบบไหน */
 export function computeEnding(s: GameState): Ending {
+  if (isUni(s)) return computeUniEnding(s);
   const exams = termScore(s);
   const behaviour = (s.behaviour / game.behaviour.start) * 100;
   const club = clubOf(s);
@@ -18,11 +86,12 @@ export function computeEnding(s: GameState): Ending {
 
   // ชื่อเสียงคือสิ่งที่คนที่ไม่รู้จักเราใช้ตัดสินเรา — กรรมการสอบสัมภาษณ์ก็เป็นคนกลุ่มนั้น
   const score = Math.round(
-    exams * (1 - EN.behaviourWeight - EN.clubWeight - EN.statWeight - EN.standingWeight) +
+    exams * (1 - EN.behaviourWeight - EN.clubWeight - EN.statWeight - EN.standingWeight - EN.gpaWeight) +
     behaviour * EN.behaviourWeight +
     clubScore * EN.clubWeight +
     statScore * EN.statWeight +
-    s.standing * EN.standingWeight);
+    s.standing * EN.standingWeight +
+    (gpa(s) / 4) * 100 * EN.gpaWeight);
 
   const tier = EN.tiers.find((t) => score >= t.min) ?? EN.tiers[EN.tiers.length - 1];
 
@@ -42,6 +111,12 @@ export function computeEnding(s: GameState): Ending {
   lines.push(club ? `ชมรม: ${club.name}` : "ชมรม: ไม่ได้สมัครชมรมไหนเลย");
   lines.push(s.caught === 0 ? "ไม่เคยโดนฝ่ายปกครองจับได้เลยสักครั้ง"
                             : `โดนฝ่ายปกครองจับได้ ${s.caught} ครั้ง`);
+  const g = gpa(s);
+  const bw = bestWorst(s);
+  lines.push(`เกรดเฉลี่ย ${g.toFixed(2)}` +
+    (bw ? ` · ${SUBJECTS.map((x) => `${x.short}${gradeOf(s.grades[x.id] ?? 0).name}`).join(" ")}` : ""));
+  if (bw && (s.grades[bw.best.id] ?? 0) - (s.grades[bw.worst.id] ?? 0) > 12)
+    lines.push(`แข็ง${bw.best.name} อ่อน${bw.worst.name}`);
   lines.push(`ชื่อเสียงในโรงเรียน: ${standingLabel(s.standing)} (${Math.round(s.standing)})`);
   if (s.homeworkMissed > 0)
     lines.push(`ไม่ได้ส่งการบ้านรวม ${s.homeworkMissed} ชิ้น`);

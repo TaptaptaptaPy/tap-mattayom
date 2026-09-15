@@ -5,7 +5,8 @@ import game2 from "../data/game.json";
 import { newState, statRank, affinityRank, remember, type GameState, type StatId } from "./sim/state";
 import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
          nextEvent, type TermEvent } from "./sim/calendar";
-import { availableLocations, doAction, doRest, attendClass, skipClass } from "./sim/actions";
+import { availableLocations, doAction, doRest, attendClass, skipClass,
+         morningInspect } from "./sim/actions";
 import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
 import { takeExam } from "./sim/exam";
 import { computeEnding } from "./sim/ending";
@@ -16,6 +17,9 @@ import { openMinigame } from "./ui/minigame";
 import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
 import { hasHomework, doHomework } from "./sim/homework";
+import { studyOne, subjectById } from "./sim/grades";
+import { haircut, needsHaircut, groomingLabel } from "./sim/grooming";
+import { startUni, isUni, chapterName, chapterDef, rentPerWeek } from "./sim/chapter";
 import { changeAffinity, shiftStanding, takeSide, standingLabel } from "./sim/bonds";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { openScene, storyNames } from "./story/bridge";
@@ -43,6 +47,7 @@ function renderTop() {
   $("date").innerHTML = parts.map((p) => `<span class="dseg">${p}</span>`).join('<i class="dsep">·</i>') +
     `<small class="dseg">เหลืออีก ${daysLeft(s)} วัน</small>`;
   $("periodStrip").innerHTML = periodStrip(s);
+  $("chapter").textContent = chapterName(s) + " · " + chapterDef(s).sub;
 
   const chatBtn = $("bChat");
   chatBtn.classList.toggle("is-unread", !!s.pendingChat);
@@ -67,6 +72,12 @@ function renderTop() {
   h += `<span class="chip" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
   // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
   h += `<span class="chip" title="${standingLabel(s.standing)}">ชื่อเสียง <b>${Math.round(s.standing)}</b></span>`;
+  if (isUni(s)) {
+    h += `<span class="chip" title="ค่าหอค่ากินรายสัปดาห์ ${rentPerWeek} บาท">ค่าหอ <b>${rentPerWeek}</b>/สัปดาห์</span>`;
+    if (s.debt > 0) h += `<span class="chip hw" title="ยืมเขามาเพราะจ่ายค่าหอไม่ไหว">หนี้ <b>${Math.round(s.debt)}</b></span>`;
+  }
+  if (needsHaircut(s))
+    h += `<span class="chip hw" title="${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว">ทรงผม <b>${Math.round(s.grooming)}</b></span>`;
   if (s.homework > 0) h += `<span class="chip hw" title="ไม่ส่งแล้วครูหักคะแนน">การบ้าน <b>${s.homework}</b></span>`;
   if (club) h += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
   $("stats").innerHTML = h;
@@ -188,13 +199,41 @@ function renderBoard() {
       b.className = "act";
       const times = s.doneToday[loc.id] ?? 0;
       b.innerHTML = `${a.label}<em>${a.energy < 0 ? `แรง ${a.energy}` : `แรง +${a.energy}`}` +
-        `${a.cost ? ` · ${a.cost} บาท` : ""}${times ? " · ทำแล้ววันนี้" : ""}</em>`;
+        `${a.cost ? ` · ${a.cost} บาท` : ""}${a.pay ? ` · ได้ ${a.pay} บาท` : ""}` +
+        `${times ? " · ทำแล้ววันนี้" : ""}</em>`;
       b.disabled = !!loc.blocked;
       b.onclick = async () => {
+        if (loc.haircut) {
+          const r = doAction(s, loc);
+          if (r && /หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) { flash(r.message, "bad"); sfx.deny(); next(); return; }
+          flash(haircut(s));
+          sfx.gain();
+          next();
+          return;
+        }
+        // กวดวิชาต้องเลือกก่อนว่าจะติววิชาไหน ไม่งั้นเงิน 320 บาทก็ไม่ต่างจากอ่านเองที่บ้าน
+        if (loc.subjectPick) {
+          P.subjectPanel(s, (subId) => {
+            P.closePanel();
+            const r = doAction(s, loc);
+            if (!r) { next(); return; }
+            flash(r.message);
+            if (!/หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) {
+              const got = studyOne(s, subId);
+              const sub = subjectById(subId);
+              if (sub) flash(`ติว${sub.name} · ${sub.name} +${got.toFixed(0)}`);
+              sfx.gain();
+            } else sfx.deny();
+            next();
+          });
+          return;
+        }
         const r = doAction(s, loc);
         if (r) {
           flash(r.message);
           if (r.caught) await runDodge(r.caught, r.penalty);
+          else if (!/หมดแรง|แรงเหลือน้อย|เงินไม่พอ/.test(r.message)) sfx.gain();
+          else sfx.deny();
         }
         next();
       };
@@ -236,7 +275,13 @@ function renderClassroom(board: HTMLElement) {
   b1.onclick = () => {
     if (!flagRaised) {
       s.doneToday["_assembly"] = 1;
-      playInk("assembly", null, "หน้าเสาธง", "#cfc8e8", () => { flash(attendClass(s)); next(); });
+      playInk("assembly", null, "หน้าเสาธง", "#cfc8e8", () => {
+        // ครูตรวจก่อน แล้วค่อยเข้าเรียน — ลำดับเดียวกับของจริง
+        const chk = morningInspect(s);
+        if (chk.caught) { flash(chk.message!, "bad"); sfx.caught(); }
+        flash(attendClass(s));
+        next();
+      });
     } else { flash(attendClass(s)); next(); }
   };
   acts.appendChild(b1);
@@ -381,7 +426,21 @@ function handleEvent(e: TermEvent): boolean {
   }
   const finish = () => {
     if (e.pickClub && !s.club) { P.clubPickPanel((id) => { joinClub(s, id); P.closePanel(); afterStep(); }); return; }
-    if (e.ending) { const en = computeEnding(s); P.endingPanel(en, () => { P.closePanel(); afterStep(); }); return; }
+    if (e.ending) {
+      const en = computeEnding(s);
+      sfx.ending();
+      // จบมัธยมแล้วยังไม่จบเกม — ปีหนึ่งรออยู่ ถ้าไม่ได้ไปเรียนต่อก็จบตรงนี้จริงๆ
+      const goesOn = !isUni(s) && en.score >= game.carryOver.minScoreToUni;
+      P.endingPanel(en, () => { P.closePanel(); afterStep(); },
+        goesOn ? { label: "เข้าสู่ปีหนึ่ง", fn: () => {
+          startUni(s, en);
+          P.closePanel();
+          save();
+          flash("ปีหนึ่ง · เทอมแรกในมหาวิทยาลัย");
+          afterStep();
+        } } : undefined);
+      return;
+    }
     if (e.wholeDay || e.holiday) skipToNextDay();
     afterStep();
   };
@@ -471,6 +530,7 @@ $("bSound").onclick = () => {
 };
 $("bChat").onclick = () => openChatList();
 $("bChars").onclick = () => P.characterPanel(s);
+$("bGrade").onclick = () => P.gradePanel(s);
 $("bCal").onclick = () => P.calendarPanel(s);
 $("bMenu").onclick = () => openMenu();
 $("bBag").onclick = () => openBag();

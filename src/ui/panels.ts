@@ -4,6 +4,7 @@ import { CLUBS, clubOf } from "../sim/club";
 import { ITEMS, giftable, usable } from "../sim/shop";
 import { behaviourLabel } from "../sim/discipline";
 import { standingLabel } from "../sim/bonds";
+import { SUBJECTS, gradeOf, gpa } from "../sim/grades";
 import { EVENTS } from "../sim/calendar";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
@@ -170,15 +171,48 @@ export function examPanel(r: ExamReport, onClose: () => void) {
   open(h, onClose);
 }
 
-export function endingPanel(e: Ending, onClose: () => void) {
+export function endingPanel(e: Ending, onClose: () => void, next?: { label: string; fn: () => void }) {
   const tone = e.tone === "great" ? "#8ec7a0" : e.tone === "good" ? "#c8b06a"
              : e.tone === "ok" ? "#9aa6c8" : "#c88a8a";
   let h = `<h2>จบเทอม</h2>
     <div class="big" style="color:${tone}">${e.tier}</div>
     <div class="kv"><span>คะแนนรวมทั้งเทอม</span><b>${e.score}</b></div><hr>`;
   for (const line of e.lines) h += `<div class="row"><span>${line}</span></div>`;
-  h += `<div class="sub">เทอมหน้ายังมาได้อีก — กด "เริ่มใหม่" ในเมนูเมื่อพร้อม</div>`;
-  open(h, onClose);
+  h += next
+    ? `<button class="nextchap" id="bNextChap">${next.label}</button>`
+    : `<div class="sub">เทอมหน้ายังมาได้อีก — กด "เริ่มใหม่" ในเมนูเมื่อพร้อม</div>`;
+  const p = open(h, onClose);
+  if (next) p.querySelector<HTMLButtonElement>("#bNextChap")!.onclick = next.fn;
+}
+
+/** สมุดพก — เกรดรายวิชาแบบ ปพ. ที่คนไทยทุกคนรู้ว่าหน้าตาเป็นยังไง */
+export function gradePanel(s: GameState) {
+  const g = gpa(s);
+  let h = `<h2>สมุดพก<small>เกรดเฉลี่ย ${g.toFixed(2)}</small></h2><div class="sheet">`;
+  for (const sub of SUBJECTS) {
+    const v = s.grades[sub.id] ?? 0;
+    const gr = gradeOf(v);
+    h += `<div class="row"><b>${sub.name}</b>
+      <i style="width:${Math.min(100, v)}%"></i>
+      <span class="gr g${gr.grade}">${gr.name}</span></div>`;
+  }
+  h += `</div><p class="dimline">เข้าเรียนได้ทุกวิชานิดหน่อย ส่งการบ้านได้เพิ่ม
+    และติวที่โรงเรียนกวดวิชาได้เจาะวิชาเดียว · ความรู้จางลงทุกวันถ้าไม่ได้ทบทวน</p>`;
+  open(h);
+}
+
+/** เลือกวิชาที่จะติว — นี่คือสิ่งที่ทำให้โรงเรียนกวดวิชา 320 บาทมีความหมาย */
+export function subjectPanel(s: GameState, onPick: (id: string) => void) {
+  let h = "<h2>จะติววิชาอะไร<small>เลือกได้วิชาเดียว</small></h2>";
+  for (const sub of SUBJECTS) {
+    const v = s.grades[sub.id] ?? 0;
+    h += `<button class="thread" data-sub="${sub.id}">
+      <span class="tinfo"><b>${sub.name}</b><small>ตอนนี้ ${gradeOf(v).name} (${Math.round(v)}/100)</small></span>
+      <span class="tday">${v < 50 ? "ควรติว" : v < 75 ? "พอไหว" : "ดีอยู่แล้ว"}</span></button>`;
+  }
+  const p = open(h);
+  p.querySelectorAll<HTMLButtonElement>("[data-sub]").forEach((b) =>
+    (b.onclick = () => onPick(b.dataset.sub!)));
 }
 
 export function noticePanel(title: string, body: string, onClose: () => void) {
