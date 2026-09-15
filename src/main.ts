@@ -19,6 +19,8 @@ import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPerio
 import { hasHomework, doHomework } from "./sim/homework";
 import { studyOne, subjectById } from "./sim/grades";
 import { haircut, needsHaircut, groomingLabel } from "./sim/grooming";
+import { hasRetake, retakeNames, retakeCost, doRetake, projectPartner, projectName,
+         projectNeeded, workProject, assignProject } from "./sim/schoolwork";
 import { startUni, isUni, chapterName, chapterDef, rentPerWeek } from "./sim/chapter";
 import { changeAffinity, shiftStanding, takeSide, standingLabel } from "./sim/bonds";
 import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
@@ -122,6 +124,60 @@ function renderBoard() {
     note.innerHTML = `<b style="color:${pc?.color ?? "#fff"}">${pc?.name ?? plan.charId}</b>
       ${isPlanPeriod(s) ? "รออยู่แล้ว ไปหาเลย" : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`;
     board.appendChild(note);
+  }
+
+  // สอบซ่อมมาก่อนทุกอย่าง เพราะมันคือหนี้ที่ติดไปถึงฉากจบถ้าไม่จัดการ
+  if (hasRetake(s)) {
+    const card = document.createElement("div");
+    card.className = "loc wide hw";
+    card.innerHTML = `<div class="ico">${icon("exam")}</div>
+      <div class="nm">ติดซ่อม ${retakeNames(s).join(" · ")}</div>`;
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    for (const id of [...s.retakes]) {
+      const b = document.createElement("button");
+      b.className = "act";
+      b.innerHTML = `ซ่อม${subjectById(id)?.name ?? id}<em>${retakeCost} บาท · แรง ${game.retake.energy}</em>`;
+      b.onclick = () => {
+        const msg = doRetake(s, id);
+        const ok = !s.retakes.includes(id);
+        flash(msg, ok ? "ok" : "bad");
+        if (ok) { sfx.gain(); next(); } else sfx.deny();
+      };
+      acts.appendChild(b);
+    }
+    const w = document.createElement("div");
+    w.className = "warn";
+    w.textContent = `ไม่ซ่อมก็ติด 0 · เกรดเฉลี่ยตอนจบโดนหักวิชาละ ${game.retake.gpaPenaltyPerFail}`;
+    acts.appendChild(w);
+    card.appendChild(acts);
+    board.appendChild(card);
+  }
+
+  // งานกลุ่ม — คู่ที่จับได้ ไม่ใช่คู่ที่เลือก
+  const pj = projectPartner(s);
+  if (pj) {
+    const card = document.createElement("div");
+    card.className = "loc wide hw";
+    const left = Math.max(0, projectNeeded - pj.done);
+    const daysLeftPj = pj.due - s.dayIndex;
+    card.innerHTML = `<div class="ico">${icon("academic")}</div>
+      <div class="nm">งานกลุ่มกับ${projectName(s)} · เหลืออีก ${left} ครั้ง</div>`;
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    const b = document.createElement("button");
+    b.className = "act";
+    b.innerHTML = `นัดทำงานกลุ่ม<em>เกรดทุกวิชา + · สนิทขึ้น</em>`;
+    b.onclick = () => { flash(workProject(s)); sfx.gain(); next(); };
+    acts.appendChild(b);
+    const w = document.createElement("div");
+    w.className = "warn";
+    w.textContent = daysLeftPj >= 0
+      ? `ส่งภายในอีก ${daysLeftPj} วัน · ไม่ทันแล้วหักความประพฤติกับชื่อเสียง`
+      : "เลยกำหนดแล้ว";
+    acts.appendChild(w);
+    card.appendChild(acts);
+    board.appendChild(card);
   }
 
   if (hasHomework(s)) {
@@ -423,6 +479,10 @@ function handleEvent(e: TermEvent): boolean {
   if (e.holiday && !e.ink) {
     P.noticePanel(e.name, "วันนี้โรงเรียนหยุด", () => { P.closePanel(); afterStep(); });
     return true;
+  }
+  if (e.assignProject && !s.project) {
+    const who = assignProject(s, s.chapter);
+    if (who) flash(`จับคู่งานกลุ่มกับ${projectName(s)}`);
   }
   const finish = () => {
     if (e.pickClub && !s.club) { P.clubPickPanel((id) => { joinClub(s, id); P.closePanel(); afterStep(); }); return; }

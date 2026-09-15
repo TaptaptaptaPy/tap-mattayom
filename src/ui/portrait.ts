@@ -55,6 +55,15 @@ const LOOKS: Record<string, Look> = {
     strands: "M45 32 l-4 17 M60 29 l0 19 M75 32 l4 17",
     extra: `<path d="M86 76 q12 5 11 19" stroke="#503659" stroke-width="5.5" fill="none" stroke-linecap="round"/>`,
   },
+  palm: {
+    skin: "#f0cfae", skinShade: "#d9b08d", hair: "#31281f", hairDark: "#1b1510",
+    hairLight: "#5e4d3a", iris: "#8fd6a6", irisDeep: "#3f7a58",
+    accent: "#8fd6a6", bg: ["#cfeed9", "#7db894"], collar: "#6aa882",
+    // ผมสั้นเรียบร้อยแบบเด็ก ม.4 ที่แม่ยังพาไปตัด
+    hairPath: "M31 58 q-3-35 29-37 q32 2 29 37 l2 15 q-7-11-11-12 l0-7 q-20 8-40 0 l0 7 q-4 1-11 12 z",
+    frontPath: "M33 44 q10-12 27-12 q17 0 27 12 q-15-6-27-5 q-12-1-27 5 z",
+    strands: "M48 34 l-3 12 M60 31 l0 14 M72 34 l3 12",
+  },
   tar: {
     skin: "#e8bd97", skinShade: "#d0a17c", hair: "#2f2a22", hairDark: "#191510",
     hairLight: "#5a5140", iris: "#8fd6a6", irisDeep: "#3d7a52",

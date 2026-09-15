@@ -1,5 +1,6 @@
 import game from "../../data/game.json";
 import { SUBJECTS } from "./grades";
+import { markRetakes } from "./schoolwork";
 import { remember, type GameState } from "./state";
 
 const E = game.examModel;
@@ -33,6 +34,8 @@ export function takeExam(s: GameState, id: string, quizScore = 0.5): ExamReport 
     1 + Math.round((E.classSize - 1) * Math.pow(1 - score / 100, E.rankCurve))));
 
   s.exams[id] = { score, rank };
+  // ประกาศผลแล้วรู้เลยว่าติดซ่อมวิชาไหนบ้าง
+  markRetakes(s);
   s.study *= 0.35;   // สอบเสร็จแล้วความพร้อมรีเซ็ตเกือบหมด ต้องทบทวนใหม่รอบหน้า
   const note = tired ? "เข้าห้องสอบทั้งที่หลับไม่พอ คะแนนหายไปส่วนหนึ่ง" : "";
   s.lastQuiz = quizScore;

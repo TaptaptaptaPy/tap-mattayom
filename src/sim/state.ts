@@ -56,6 +56,11 @@ export interface GameState {
   debt: number;
   rentDue: number;
 
+  /** วิชาที่ติดซ่อมอยู่ตอนนี้ */
+  retakes: string[];
+  /** งานกลุ่มที่กำลังค้างอยู่ — `charId` คือคนที่จับได้ ไม่ใช่คนที่เลือก */
+  project: { charId: string; done: number; due: number; settled: boolean } | null;
+
   /** ความเรียบร้อยของทรงผม/เครื่องแบบ 0-100 ลดลงทุกวัน */
   grooming: number;
   /** โดนเรียกหน้าแถวไปกี่ครั้งแล้วทั้งเทอม */
@@ -85,7 +90,8 @@ export interface GameState {
 // 7: เพิ่มเกรดรายวิชา (grades)
 // 8: เพิ่มตรวจหน้าเสาธง (grooming · inspected)
 // 9: เพิ่มภาคมหาลัย (chapter · schoolEnding · debt · rentDue)
-export const SAVE_VERSION = 9;
+// 10: เพิ่มสอบซ่อมและงานกลุ่ม (retakes · project)
+export const SAVE_VERSION = 10;
 
 export function newState(): GameState {
   const stats = {} as Record<StatId, number>;
@@ -100,7 +106,7 @@ export function newState(): GameState {
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
     sleepDebt: 0, lastQuiz: 0, ending: null,
     standing: 50, sided: null, grades: newGrades(),
-    grooming: game.grooming.start, inspected: 0,
+    grooming: game.grooming.start, inspected: 0, retakes: [], project: null,
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,
     homework: 0, homeworkMissed: 0,
     chats: [], pendingChat: null, chatDay: -1, plan: null,

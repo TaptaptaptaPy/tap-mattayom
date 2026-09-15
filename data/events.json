@@ -163,5 +163,23 @@
     "chapter": "uni",
     "ink": "u_close",
     "ending": true
+  },
+  {
+    "id": "group_work",
+    "day": 56,
+    "period": "morning",
+    "name": "ประกาศงานกลุ่ม",
+    "chapter": "school",
+    "ink": "ev_group",
+    "assignProject": true
+  },
+  {
+    "id": "u_group",
+    "day": 42,
+    "period": "morning",
+    "name": "งานกลุ่มประจำวิชา",
+    "chapter": "uni",
+    "ink": "ev_group",
+    "assignProject": true
   }
 ]

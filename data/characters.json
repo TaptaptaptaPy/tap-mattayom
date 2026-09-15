@@ -24,7 +24,8 @@
     },
     "bonds": {
       "kanin": -0.3,
-      "minta": 0.12
+      "minta": 0.12,
+      "palm": 0.1
     },
     "chapter": "school"
   },
@@ -53,7 +54,8 @@
     },
     "bonds": {
       "ploy": -0.3,
-      "minta": 0.06
+      "minta": 0.06,
+      "palm": 0.1
     },
     "chapter": "school"
   },
@@ -81,9 +83,40 @@
     },
     "bonds": {
       "ploy": 0.12,
-      "kanin": 0.06
+      "kanin": 0.06,
+      "palm": 0.1
     },
     "chapter": "school"
+  },
+  {
+    "id": "palm",
+    "name": "ปาล์ม",
+    "year": "ม.4",
+    "tag": "รุ่นน้อง",
+    "color": "#8fd6a6",
+    "chapter": "school",
+    "where": {
+      "noon": "canteen",
+      "after": "library",
+      "night": "home"
+    },
+    "likes": [
+      "kind",
+      "heart"
+    ],
+    "club": "volunteer",
+    "story": "palm",
+    "blurb": "ย้ายมาจากโรงเรียนเก่ากลางเทอม และยังไม่พูดกับใครเลยสักคน",
+    "bonds": {
+      "ploy": 0.12,
+      "kanin": 0.12,
+      "minta": 0.08
+    },
+    "gate": {
+      "stat": "kind",
+      "value": 7,
+      "hint": "ถ้าน้ำใจถึง 7 ปาล์มจะเล่าว่าทำไมถึงย้ายโรงเรียน"
+    }
   },
   {
     "id": "tar",

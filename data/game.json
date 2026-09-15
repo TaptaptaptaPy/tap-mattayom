@@ -143,6 +143,23 @@
     "plain": 42,
     "talked": 22
   },
+  "retake": {
+    "_note": "สอบเสร็จแล้ววิชาไหนต่ำกว่าเกณฑ์ต้องสอบซ่อม ไม่ซ่อมก็ติด 0 ติดตัวไปถึงฉากจบ",
+    "failBelow": 50,
+    "fixTo": 55,
+    "cost": 150,
+    "energy": -12,
+    "gpaPenaltyPerFail": 0.35
+  },
+  "project": {
+    "_note": "งานกลุ่มบังคับให้ต้องใช้เวลากับคนที่จับได้ ไม่ใช่คนที่อยากอยู่ด้วย",
+    "sessionsNeeded": 3,
+    "gradePerSession": 4,
+    "affinityPerSession": 2,
+    "dueInDays": 18,
+    "missPenalty": 6,
+    "missStanding": 5
+  },
   "grooming": {
     "_note": "ผมยาวขึ้นทุกวัน ครูตรวจหน้าเสาธง — ของที่คนไทยทุกคนเคยโดน",
     "start": 100,

@@ -19,6 +19,8 @@ import { escapeCatch, inTrouble } from "../sim/discipline";
 import { offerChat, recordThread, acceptInvite, planToday, keepPlan, isPlanPeriod } from "../sim/chat";
 import { hasHomework, doHomework } from "../sim/homework";
 import { inspect, needsHaircut, haircut } from "../sim/grooming";
+import { hasRetake, doRetake, projectPartner, workProject, assignProject,
+         projectNeeded } from "../sim/schoolwork";
 import { gpa, gradeOf, SUBJECTS } from "../sim/grades";
 import { computeEnding } from "../sim/ending";
 import { startUni } from "../sim/chapter";
@@ -50,6 +52,7 @@ interface Run {
   chats: number; invites: number; kept: number;
   homeworkDone: number; homeworkMissed: number;
   haircuts: number; inspected: number;
+  retakesDone: number; retakesLeft: number; projectDone: number; projectMissed: number;
   behaviour: number; money: number; standing: number; gpa: number;
   grades: Record<string, number>;
   ending: Ending;
@@ -93,6 +96,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
 
   let minEnergy = 999, blocked = 0, restPeriods = 0, escaped = 0, troublePeriods = 0;
   let chats = 0, invites = 0, kept = 0, homeworkDone = 0, haircuts = 0;
+  let retakesDone = 0, projectDone = 0;
+  /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
+  const doesChores = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครใส่ใจทรงผม — เด็กหลังห้องกับคนขี้เกียจไม่ตัด จะได้เห็นราคาของการปล่อยไว้ */
   const cutsHair = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครส่งการบ้าน — คนขี้เกียจกับเด็กหลังห้องไม่ส่ง จะได้เห็นราคาของการไม่ส่งจริง */
@@ -117,6 +123,7 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       s.seenEvents[ev.id] = true;
       if (ev.exam) takeExam(s, ev.exam, mg());
       if (ev.pickClub && !s.club) joinClub(s, clubFor(strat));
+      if (ev.assignProject && !s.project) assignProject(s, s.chapter);
     }
 
     // ไลน์ตอนกลางคืน — ฝั่งตัวเลขล้วน คำพูดอยู่ใน ink ซึ่ง `npm run story` คุมอยู่แล้ว
@@ -140,6 +147,13 @@ function play(strat: Strategy, seed: number, skill: number): Run {
       // การบ้านกินหนึ่งช่วงเวลาเต็มๆ เหมือนในเกมจริง
       doHomework(s);
       homeworkDone++;
+    } else if (!isLocked(s) && doesChores && hasRetake(s) && s.money >= game.retake.cost) {
+      // สอบซ่อมกินหนึ่งช่วงเวลากับเงินก้อนหนึ่ง เหมือนในเกมจริง
+      const id = s.retakes[0];
+      if (!/ไม่พอ|น้อยเกิน/.test(doRetake(s, id))) retakesDone++;
+    } else if (!isLocked(s) && doesChores && projectPartner(s)) {
+      workProject(s);
+      projectDone++;
     } else if (!isLocked(s) && cutsHair && needsHaircut(s) && s.money >= game.grooming.cutCost) {
       // ตัดผมกินหนึ่งช่วงเวลากับเงินก้อนหนึ่ง เหมือนในเกมจริง
       s.money -= game.grooming.cutCost;
@@ -204,6 +218,9 @@ function play(strat: Strategy, seed: number, skill: number): Run {
     caught: s.caught, escaped, troublePeriods, chats, invites, kept,
     homeworkDone, homeworkMissed: s.homeworkMissed,
     haircuts, inspected: s.inspected,
+    retakesDone, retakesLeft: s.retakes.length, projectDone,
+    projectMissed: s.project && !s.project.settled ? 1
+      : s.project && s.project.done < projectNeeded ? 1 : 0,
     behaviour: s.behaviour, money: s.money, standing: s.standing,
     gpa: gpa(s), grades: { ...s.grades },
     ending: schoolEnding, uni,
@@ -254,6 +271,10 @@ function report(strat: Strategy, runs: Run[]) {
   console.log(`    การบ้าน: ส่ง ${r0(mean(runs.map((r) => r.homeworkDone)))} ครั้ง` +
               ` · ไม่ได้ส่ง ${r0(mean(runs.map((r) => r.homeworkMissed)))} ชิ้น`);
 
+  console.log(`    ภาระ: สอบซ่อม ${r0(mean(runs.map((r) => r.retakesDone)))} ครั้ง` +
+              ` · ยังติดซ่อม ${r0(mean(runs.map((r) => r.retakesLeft)))} วิชา` +
+              ` · งานกลุ่ม ${r0(mean(runs.map((r) => r.projectDone)))}/${projectNeeded} ครั้ง` +
+              `${mean(runs.map((r) => r.projectMissed)) > 0.4 ? " · ส่งไม่ทัน" : ""}`);
   console.log(`    ทรงผม: ตัด ${r0(mean(runs.map((r) => r.haircuts)))} ครั้ง` +
               ` · โดนเรียกหน้าแถว ${r0(mean(runs.map((r) => r.inspected)))} ครั้ง`);
 
@@ -320,6 +341,13 @@ const totalKept = sum(allRuns.map((r) => r.kept));
 console.log(`ไลน์ทำงานจริงไหม: ทักมารวม ${totalChats} คืน · รับนัด ${totalInvites} · ไปตามนัด ${totalKept}` +
             ` · ผิดนัด ${totalInvites - totalKept}`);
 
+const rt = sum(allRuns.map((r) => r.retakesDone));
+const rtLeft = sum(allRuns.map((r) => r.retakesLeft));
+const pjDone = sum(allRuns.map((r) => r.projectDone));
+const pjMiss = sum(allRuns.map((r) => r.projectMissed));
+console.log(`สอบซ่อมกับงานกลุ่มทำงานจริงไหม: ซ่อมรวม ${rt} ครั้ง · ยังติดซ่อมรวม ${rtLeft} วิชา` +
+            ` · ทำงานกลุ่มรวม ${pjDone} ครั้ง · ส่งไม่ทัน ${pjMiss} รอบ`);
+
 const uniRuns = allRuns.filter((r) => r.uni);
 console.log(`ภาคมหาลัยเดินจริงไหม: ${uniRuns.length}/${allRuns.length} รอบได้เรียนต่อ` +
             (uniRuns.length ? ` · เกรดเฉลี่ยปีหนึ่ง ${mean(uniRuns.map((r) => r.uni!.gpa)).toFixed(2)}` +
@@ -353,6 +381,10 @@ if (totalChats === 0) console.log("เตือน: ไม่มีใครส�
 if (hwDone === 0) console.log("เตือน: ไม่มีใครส่งการบ้านเลย ระบบการบ้านไม่ถูกทดสอบ");
 if (inspected === 0) console.log("เตือน: ไม่มีใครโดนเรียกหน้าแถวเลย ระบบตรวจทรงผมไม่ถูกทดสอบ");
 if (cuts === 0) console.log("เตือน: ไม่มีใครไปตัดผมเลย ทางแก้ไม่ถูกทดสอบ");
+if (rt === 0) console.log("เตือน: ไม่มีใครไปสอบซ่อมเลย ระบบสอบซ่อมไม่ถูกทดสอบ");
+if (rtLeft === 0) console.log("เตือน: ไม่มีใครติดซ่อมค้างเลย บทลงโทษไม่ถูกทดสอบ");
+if (pjDone === 0) console.log("เตือน: ไม่มีใครทำงานกลุ่มเลย ระบบงานกลุ่มไม่ถูกทดสอบ");
+if (pjMiss === 0) console.log("เตือน: ไม่มีใครส่งงานกลุ่มไม่ทันเลย บทลงโทษไม่ถูกทดสอบ");
 if (uniRuns.length === 0) console.log("เตือน: ไม่มีรอบไหนได้เรียนต่อเลย ภาคมหาลัยไม่ถูกทดสอบ");
 if (uniRuns.length === allRuns.length) console.log("เตือน: ทุกรอบได้เรียนต่อ เกณฑ์เข้ามหาลัยไม่ได้กั้นอะไร");
 if (hwMissed === 0) console.log("เตือน: ไม่มีใครพลาดส่งการบ้านเลย บทลงโทษไม่ถูกทดสอบ");

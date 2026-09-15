@@ -4,6 +4,7 @@ import { termScore } from "./exam";
 import { clubOf } from "./club";
 import { standingLabel } from "./bonds";
 import { gpa, gradeOf, bestWorst, SUBJECTS } from "./grades";
+import { retakePenalty, retakeNames } from "./schoolwork";
 import { isUni } from "./chapter";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "./state";
 
@@ -111,8 +112,10 @@ export function computeEnding(s: GameState): Ending {
   lines.push(club ? `ชมรม: ${club.name}` : "ชมรม: ไม่ได้สมัครชมรมไหนเลย");
   lines.push(s.caught === 0 ? "ไม่เคยโดนฝ่ายปกครองจับได้เลยสักครั้ง"
                             : `โดนฝ่ายปกครองจับได้ ${s.caught} ครั้ง`);
-  const g = gpa(s);
+  const g = Math.max(0, gpa(s) - retakePenalty(s));
   const bw = bestWorst(s);
+  if (s.retakes.length)
+    lines.push(`ยังติดซ่อม ${retakeNames(s).join(" ")} — เกรดเฉลี่ยโดนหักไป ${retakePenalty(s).toFixed(2)}`);
   lines.push(`เกรดเฉลี่ย ${g.toFixed(2)}` +
     (bw ? ` · ${SUBJECTS.map((x) => `${x.short}${gradeOf(s.grades[x.id] ?? 0).name}`).join(" ")}` : ""));
   if (bw && (s.grades[bw.best.id] ?? 0) - (s.grades[bw.worst.id] ?? 0) > 12)

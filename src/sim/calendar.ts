@@ -5,6 +5,7 @@ import { settleHomework } from "./homework";
 import { decayGrades } from "./grades";
 import { chapterDef, chapterOf, inChapter, isUni, payRent } from "./chapter";
 import { growHair } from "./grooming";
+import { settleProject } from "./schoolwork";
 import { remember, type GameState } from "./state";
 
 const DOW = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -13,7 +14,7 @@ const MONTH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","ม
 export interface TermEvent {
   id: string; day: number; period: string; name: string;
   ink?: string; exam?: string; holiday?: boolean; wholeDay?: boolean;
-  pickClub?: boolean; ending?: boolean; skip?: boolean;
+  pickClub?: boolean; ending?: boolean; skip?: boolean; assignProject?: boolean;
   /** ไม่ระบุ = ของมัธยม เพื่อให้ข้อมูลเดิมใช้ต่อได้โดยไม่ต้องแก้ทุกบรรทัด */
   chapter?: string;
 }
@@ -80,6 +81,7 @@ export function advance(s: GameState): void {
     s.study *= game.examModel.studyDecayPerDay;
     decayGrades(s);
     growHair(s);
+    settleProject(s);
     // นัดที่รับไว้เมื่อวานแล้วไม่ไป คิดบัญชีตรงนี้ — อยู่ในทางเดินหลักเพื่อให้เทสต์สมดุลเดินผ่านเอง
     settleMissedPlan(s);
     // ครูเก็บการบ้านเช้าวันเปิดเรียน แล้วสั่งของวันใหม่ — อยู่ในทางเดินหลักเพื่อให้เทสต์เดินผ่านเอง
