@@ -649,7 +649,8 @@ function flash(msg: string, kind: "ok" | "bad" = "ok") {
 // ถ้าต้องเล่นจริงทุกครั้งกว่าจะถึงจุดที่อยากดู จะดีบั๊กไม่ไหว (ฝั่ง genesis ใช้ __genesis เหมือนกัน)
 if (import.meta.env.DEV)
   (window as unknown as Record<string, unknown>).__mattayom =
-    { get s() { return s; }, render, next, save, openChatList, rollChat };
+    { get s() { return s; }, render, next, save, openChatList, rollChat, playEpilogues,
+      epilogues: () => epilogues(s) };
 
 // เปิดเกมมา ถ้ามีเหตุการณ์ค้างอยู่ตรงช่วงเวลานี้ ให้เล่นก่อน
 const startEvent = isTermOver(s) ? null : eventNow(s);

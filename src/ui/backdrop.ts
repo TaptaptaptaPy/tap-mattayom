@@ -270,35 +270,67 @@ const SCENES: Record<string, string> = {
 };
 
 const EVENT_SCENES: Record<string, string> = {
-  /** ฉากจบรายคน — ห้องเรียนตอนเย็นหลังคนกลับหมด เก้าอี้คว่ำบนโต๊ะ */
+  /** ฉากจบรายคน — ห้องเรียนเย็นวันสุดท้าย เก้าอี้คว่ำบนโต๊ะแล้วทุกตัว
+   *  ภาพนี้ต้องอ่านออกตั้งแต่ความกว้าง 390px ขาเก้าอี้ที่ชี้ขึ้นคือสิ่งที่บอกว่า "เลิกแล้ว" */
   epilogue: `
-    <defs>${sky("g", "#f0c48a", "#8c6a8e")}</defs>
+    <defs>${sky("g", "#f6cd93", "#7b5d80")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="104" width="400" height="46" fill="#5a4436"/>
-    <rect x="0" y="100" width="400" height="6" fill="#6e5442"/>
-    <g fill="#7b5c46">${Array.from({ length: 7 }, (_, i) =>
-      `<rect x="${18 + i * 54}" y="72" width="36" height="30" rx="3"/>`).join("")}</g>
-    <g fill="#8a6a50" opacity=".9">${Array.from({ length: 7 }, (_, i) =>
-      `<rect x="${26 + i * 54}" y="58" width="20" height="16" rx="2"/>
-       <rect x="${24 + i * 54}" y="54" width="24" height="5" rx="2"/>`).join("")}</g>
-    <g stroke="#ffe9c0" stroke-width="1.5" opacity=".35" fill="none">
-      <path d="M0 108h400"/><path d="M60 0v104"/><path d="M330 0v104"/></g>
-    <circle cx="336" cy="34" r="16" fill="#ffe2a8" opacity=".55"/>`,
+    <rect x="0" y="0" width="400" height="104" fill="#6d4f56" opacity=".3"/>
+    <g fill="#ffe3b4" opacity=".72">${[18, 118, 288].map((x) =>
+      `<rect x="${x}" y="14" width="80" height="62" rx="3"/>`).join("")}</g>
+    <g stroke="#59414f" stroke-width="2" opacity=".6" fill="none">${[18, 118, 288].map((x) =>
+      `<path d="M${x + 40} 14v62M${x} 45h80"/>`).join("")}</g>
+    <rect x="0" y="104" width="400" height="46" fill="#6b4f3c"/>
+    <rect x="0" y="101" width="400" height="4" fill="#82624f"/>
+    <g opacity=".22" fill="#2c2028">${[22, 98, 174, 250, 326].map((x) =>
+      `<path d="M${x} 113h56l26 37h-56z"/>`).join("")}</g>
+    ${[22, 98, 174, 250, 326].map((x) => `
+      <g>
+        <rect x="${x}" y="91" width="56" height="6" rx="2" fill="#8d6b4d"/>
+        <rect x="${x + 4}" y="97" width="4" height="16" fill="#6b5240"/>
+        <rect x="${x + 48}" y="97" width="4" height="16" fill="#6b5240"/>
+        <rect x="${x + 12}" y="84" width="32" height="6" rx="2" fill="#7d6047"/>
+        <g fill="#6b5240">
+          <rect x="${x + 14}" y="66" width="4" height="18"/>
+          <rect x="${x + 38}" y="66" width="4" height="18"/>
+          <rect x="${x + 14}" y="66" width="28" height="4" rx="2"/>
+        </g>
+      </g>`).join("")}
+    <radialGradient id="esun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fff3d6" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#ffd79a" stop-opacity="0"/></radialGradient>
+    <circle cx="237" cy="36" r="34" fill="url(#esun)"/>
+    <circle cx="237" cy="36" r="13" fill="#fff4dc" opacity=".9"/>`,
 
-  /** ฉากจบปีหนึ่ง — หน้าหอตอนหอปิด กล่องกองอยู่หน้าประตู */
+  /** ฉากจบปีหนึ่ง — หน้าหอตอนหอปิดเที่ยง กล่องกองรอรถอยู่หน้าประตู */
   epilogue_uni: `
-    <defs>${sky("g", "#e8b98c", "#4a3a56")}</defs>
+    <defs>${sky("g", "#eabd90", "#463754")}</defs>
     <rect width="400" height="150" fill="url(#g)"/>
-    <rect x="0" y="112" width="400" height="38" fill="#3a3040"/>
-    <rect x="30" y="34" width="150" height="78" fill="#4e4258"/>
-    <g fill="#ffd89a" opacity=".75">${Array.from({ length: 8 }, (_, i) =>
-      `<rect x="${42 + (i % 4) * 34}" y="${46 + Math.floor(i / 4) * 28}" width="20" height="16" rx="2"/>`).join("")}</g>
-    <rect x="96" y="82" width="26" height="30" rx="2" fill="#2e2636"/>
-    <g fill="#b08a5e">${Array.from({ length: 4 }, (_, i) =>
-      `<rect x="${200 + i * 30}" y="${94 - i * 2}" width="26" height="18" rx="2"/>`).join("")}</g>
-    <g stroke="#2e2636" stroke-width="1" opacity=".5" fill="none">${Array.from({ length: 4 }, (_, i) =>
-      `<path d="M${200 + i * 30} ${103 - i * 2}h26"/>`).join("")}</g>
-    <circle cx="358" cy="40" r="14" fill="#ffe2a8" opacity=".5"/>`,
+    <rect x="18" y="20" width="168" height="94" fill="#4f4259"/>
+    <rect x="18" y="20" width="168" height="5" fill="#5e5068"/>
+    <g fill="#ffd89a" opacity=".8">${Array.from({ length: 8 }, (_, i) =>
+      `<rect x="${30 + (i % 4) * 38}" y="${32 + Math.floor(i / 4) * 30}" width="24" height="18" rx="2"/>`).join("")}</g>
+    <rect x="86" y="84" width="30" height="30" rx="2" fill="#2b2434"/>
+    <rect x="100" y="96" width="3" height="8" rx="1.5" fill="#d8c48a"/>
+    <rect x="0" y="112" width="400" height="38" fill="#3b3142"/>
+    <rect x="0" y="110" width="400" height="3" fill="#4a3e52"/>
+    <g fill="#b98f5f" stroke="#6d5238" stroke-width="1">
+      <rect x="210" y="86" width="40" height="26" rx="2"/>
+      <rect x="216" y="70" width="30" height="16" rx="2"/>
+      <rect x="256" y="92" width="34" height="20" rx="2"/>
+    </g>
+    <g stroke="#7d5f42" stroke-width="1.5" opacity=".8" fill="none">
+      <path d="M210 99h40M216 78h30M256 102h34"/></g>
+    <g opacity=".2" fill="#221b2a">
+      <path d="M210 112h40l22 26h-40zM256 112h34l20 20h-34z"/></g>
+    <g fill="#2f2740" opacity=".55">
+      <path d="M318 112c0-14 6-26 14-26s14 12 14 26z"/><rect x="330" y="104" width="4" height="10"/>
+      <path d="M356 112c0-10 5-19 11-19s11 9 11 19z"/></g>
+    <radialGradient id="usun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fff0cf" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#ffcf90" stop-opacity="0"/></radialGradient>
+    <circle cx="300" cy="44" r="36" fill="url(#usun)"/>
+    <circle cx="300" cy="44" r="12" fill="#fff2d6" opacity=".85"/>`,
 
   ev_wai_kru: `
     <defs>${sky("g", "#3a2f48", "#221b2e")}</defs>
@@ -373,8 +405,11 @@ export function backdrop(id: string): string {
   // ทุกฉากประกาศ gradient ชื่อ "g" เหมือนกันหมด พอมีหลายการ์ดในหน้าเดียว
   // `url(#g)` จะไปหยิบของการ์ดใบแรกในเอกสารเสมอ ทุกใบเลยได้สีฟ้าเดียวกันหมดโดยไม่มี error
   // ต้องเปลี่ยนชื่อให้ไม่ซ้ำตอนคืนค่าออกไป (บั๊กเดียวกับ gradient ของภาพตัวละคร)
-  const u = "g" + Math.random().toString(36).slice(2, 9);
-  const unique = body.replace(/id="g"/g, `id="${u}"`).replace(/url\(#g\)/g, `url(#${u})`);
+  // เปลี่ยน "ทุก" id ไม่ใช่แค่ "g" เพราะฉากใหม่ที่มี gradient ตัวที่สองจะโดนกับดักเดิมซ้ำ
+  const salt = Math.random().toString(36).slice(2, 9);
+  const unique = body
+    .replace(/id="([a-zA-Z][\w-]*)"/g, (_, n) => `id="${n}-${salt}"`)
+    .replace(/url\(#([a-zA-Z][\w-]*)\)/g, (_, n) => `url(#${n}-${salt})`);
   return `<svg class="bd" viewBox="${VB}" preserveAspectRatio="xMaxYMid slice"
     xmlns="http://www.w3.org/2000/svg">${unique}</svg>`;
 }
