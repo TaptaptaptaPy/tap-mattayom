@@ -260,6 +260,18 @@ const readAll = new Set([...readInk, ...readTs]);
 const orphans = [...setFlags].filter((f) => !readAll.has(f)).sort();
 const dangling = [...readAll].filter((f) => !setFlags.has(f) && /_/.test(f)).sort();
 
+// เสียงที่นิยามไว้แต่ไม่มีใครเรียก = เหตุการณ์ที่เกิดขึ้นแล้วเงียบสนิท
+// เป็นบั๊กชนิดที่ไม่มีวันมี error ให้เห็น และเล่นเองก็ไม่รู้ว่าพลาดอะไรไป
+const audio = readFileSync(join(tsDir, "core/audio.ts"), "utf8");
+const sfxBlock = audio.slice(audio.indexOf("export const sfx"));
+const sfxNames = [...sfxBlock.matchAll(/^\s{2}([a-z]+):\s*\(\)/gm)].map((m) => m[1]);
+const silent = sfxNames.filter((n) => !new RegExp(`sfx\\.${n}\\(`).test(tsAll));
+console.log(`\nเสียงประกอบ: นิยามไว้ ${sfxNames.length} · มีคนเรียกจริง ${sfxNames.length - silent.length}`);
+if (silent.length) {
+  console.log(`  ← เสียงที่ไม่มีใครเรียก ${silent.length} อัน (เหตุการณ์ที่เกิดแล้วเงียบ):`);
+  console.log(`     ${silent.join("  ")}`);
+}
+
 console.log(`\nธงการตัดสินใจ: ตั้ง ${setFlags.size} · อ่าน ${[...readAll].filter((f) => setFlags.has(f)).length}`);
 if (orphans.length) {
   console.log(`  ← ธงที่ตั้งแล้วไม่มีใครอ่าน ${orphans.length} อัน (ทางเลือกที่ไม่ส่งผลอะไรเลย):`);
@@ -269,6 +281,6 @@ if (orphans.length) {
 if (dangling.length)
   console.log(`  ← ธงที่มีคนอ่านแต่ไม่มีใครตั้ง ${dangling.length} อัน: ${dangling.join("  ")}`);
 
-const flagBad = orphans.length > 0 || dangling.length > 0 || epiBad > 0;
+const flagBad = orphans.length > 0 || dangling.length > 0 || epiBad > 0 || silent.length > 0;
 if (!flagBad) console.log("  ทุกทางเลือกมีปลายทางของมัน");
 process.exit(bad || flagBad ? 1 : 0);

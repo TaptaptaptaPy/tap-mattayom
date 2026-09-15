@@ -18,10 +18,15 @@ describe("กระดานประกาศผลหน้าห้อง", (
     expect(rows.filter((r) => r.me).length).toBe(1);
   });
 
-  it("เรียงจากคะแนนมากไปน้อยเสมอ", () => {
+  it("เรียงจากคะแนนมากไปน้อยเสมอ และเลขอันดับต้องไม่ขัดกับลำดับที่เห็น", () => {
     const s = newState();
     const rows = sat(s, "me", "midterm", 20);
-    for (let i = 1; i < rows.length; i++) expect(rows[i - 1].score).toBeGreaterThanOrEqual(rows[i].score);
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i - 1].score).toBeGreaterThanOrEqual(rows[i].score);
+      // คนที่อยู่สูงกว่าบนกระดานต้องมีเลขอันดับน้อยกว่าหรือเท่ากันเสมอ
+      // ไม่งั้นผู้เล่นจะเห็น "ที่ 14" อยู่เหนือ "ที่ 11" ซึ่งอธิบายไม่ได้
+      expect(rows[i - 1].rank).toBeLessThanOrEqual(rows[i].rank);
+    }
   });
 
   it("ติดอันดับต้นแล้วทั้งห้องเห็น ชื่อเสียงขึ้น", () => {
@@ -106,14 +111,16 @@ describe("กระดานประกาศผลหน้าห้อง", (
 
   it("กระดานของปีหนึ่งแยกจากของมัธยม แม้ชื่อรอบสอบจะซ้ำกัน", () => {
     const s = newState();
-    sat(s, "me", "final", 3);
+    s.exams["final"] = { score: 95, rank: rankFromScore(95) };
+    postBoard(s, "final");
     const schoolRank = myBoardRank(s);
     s.chapter = "uni";
-    s.exams["final"] = { score: 20, rank: 38 };
+    s.exams["final"] = { score: 20, rank: rankFromScore(20) };
     const uni = postBoard(s, "final");
-    expect(uni.find((r) => r.me)!.rank).toBe(38);
-    expect(myBoardRank(s)).toBe(38);
-    expect(schoolRank).toBe(3);
+    expect(uni.find((r) => r.me)!.rank).toBe(rankFromScore(20));
+    expect(myBoardRank(s)).toBe(rankFromScore(20));
+    expect(schoolRank).toBe(rankFromScore(95));
+    expect(schoolRank).toBeLessThan(myBoardRank(s));   // มัธยมได้ดีกว่าปีหนึ่งจริง
   });
 
   it("อันดับบนกระดานใช้สูตรเดียวกับสมุดพก ไม่ขัดกันเอง", () => {

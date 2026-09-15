@@ -102,6 +102,9 @@ export interface GameState {
   board: Record<string, BoardRow[]>;
   /** เราติวให้ใครไปกี่ครั้ง */
   tutored: Record<string, number>;
+  /** เมื่อคืนมีคนยืนรอเก้อกี่คน — ฝั่ง UI เอาไปทำเสียงและข้อความแล้วล้างทิ้ง
+   *  ไม่ใช่สถานะถาวรของโลก แต่ต้องข้ามกำแพง sim→UI มาให้ได้ */
+  stoodUp: number;
   lastQuiz: number;
   ending: Ending | null;
 }
@@ -129,7 +132,7 @@ export function newState(): GameState {
     stats, affinity, trust, flags: {}, metToday: {}, doneToday: {}, history: [],
     money: game.money.start, behaviour: game.behaviour.start, study: 0,
     club: null, inventory: {}, exams: {}, seenEvents: {}, caught: 0,
-    sleepDebt: 0, lastQuiz: 0, ending: null,
+    sleepDebt: 0, lastQuiz: 0, stoodUp: 0, ending: null,
     standing: 50, sided: null, grades: newGrades(),
     grooming: game.grooming.start, inspected: 0, retakes: [], project: null,
     chapter: "school", schoolEnding: null, debt: 0, rentDue: 0,

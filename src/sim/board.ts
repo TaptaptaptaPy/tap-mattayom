@@ -75,8 +75,12 @@ export function postBoard(s: GameState, examId: string): BoardRow[] {
   if (!mine) return [];
   if (s.board[key]) return s.board[key];
 
+  // อันดับของเราคำนวณจากคะแนนด้วยสูตรเดียวกับของทุกคน ไม่ได้หยิบ `mine.rank` มาใช้ตรงๆ
+  // ทั้งสองทางให้เลขเดียวกันอยู่แล้ว แต่ถ้าวันหนึ่งไม่ตรง กระดานจะขัดกันเองต่อหน้าผู้เล่น
+  // (เลข 14 ของเราอยู่เหนือเลข 11 ของคนอื่น) ซึ่งเป็นความผิดที่อ่านออกทันทีและอธิบายไม่ได้
   const rows: BoardRow[] = [{
-    id: "me", name: "เรา", score: mine.score, rank: mine.rank, me: true, move: 0, tutored: false,
+    id: "me", name: "เรา", score: mine.score, rank: rankFromScore(mine.score),
+    me: true, move: 0, tutored: false,
   }];
   for (const c of chars) {
     if (!inChapter(c, chapterOf(s))) continue;

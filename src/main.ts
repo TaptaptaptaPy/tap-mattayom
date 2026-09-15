@@ -106,6 +106,7 @@ function maybeDayCard() {
   const first = lastDayShown === -1;
   lastDayShown = s.dayIndex;
   if (first) return;
+  sfx.day();
   const el = $("daycard");
   el.innerHTML = `<div><b>${dateLabel(s).split(" · ")[0]}</b>
     <small>วันที่ ${s.dayIndex + 1} จาก ${game.term.days}</small></div>`;
@@ -332,9 +333,11 @@ function renderBoard() {
         const r = doAction(s, loc, Math.random, force);
         if (r) {
           flash(r.message, r.ok ? "ok" : "bad");
+          if (r.forced) sfx.push();
           if (r.caught) await runDodge(r.caught, r.penalty);
-          else if (r.ok) sfx.gain();
-          else sfx.deny();
+          else if (!r.ok) sfx.deny();
+          else if (r.repeat) sfx.dull();
+          else if (!r.forced) sfx.gain();
         }
         next();
       };
@@ -435,6 +438,7 @@ function hooks() {
     onAffinity: (cid: string, n: number) => changeAffinity(s, cid, n),
     onTrust: (cid: string, n: number) => { changeTrust(s, cid, n); if (n > 0) sfx.trust(); else if (n < 0) sfx.broke(); },
     onClaim: (topic: string, version: string, cid: string) => claim(s, topic, version, cid),
+    onRecall: () => sfx.recall(),
     onTutor: (cid: string) => { tutor(s, cid); flash(`ติวให้${nameOf(cid)} — เวลาทบทวนของเราหายไปส่วนหนึ่ง`); },
     // ธงบางอันแปลว่าเราทำสิ่งที่ยากหรือซื่อสัตย์ ตารางใน game.json แปลงเป็นความเชื่อใจให้เอง
     onFlag: (name: string) => { s.flags[name] = true; trustFromFlag(s, name); },
@@ -547,8 +551,10 @@ function handleEvent(e: TermEvent): boolean {
       const r = takeExam(s, e.exam!, mg.score);
       // ผลสอบของเราคือเลขของเราคนเดียว กระดานหน้าห้องคือเลขที่ทั้งห้องเห็น
       const rows = postBoard(s, e.exam!);
+      sfx.exam();
       P.examPanel(r, () => {
         P.closePanel();
+        sfx.board();
         P.boardPanel(rows, () => { P.closePanel(); skipToNextDay(); afterStep(); });
       });
     })();
@@ -614,6 +620,8 @@ function next() {
 }
 
 function afterStep() {
+  // เมื่อคืนมีคนยืนรอเก้อ — เสียงนี้ต่างจาก "เรื่องที่เกิดลับหลัง" เพราะมันเป็นความผิดของเราเอง
+  if (s.stoodUp > 0) { sfx.stood(); s.stoodUp = 0; }
   // ตื่นมาแล้วลุกไม่ไหว — เสียทั้งวัน ไม่ใช่แค่แรง นี่คือปลายทางของการฝืนหลายคืนติด
   // ต้องขึ้นก่อนทุกอย่าง เพราะวันนี้ไม่มีอะไรให้เลือกแล้ว
   if (isSick(s) && s.periodIndex === 0) {
@@ -745,7 +753,9 @@ function flash(msg: string, kind: "ok" | "bad" = "ok") {
 if (import.meta.env.DEV)
   (window as unknown as Record<string, unknown>).__mattayom =
     { get s() { return s; }, render, next, save, openChatList, rollChat, playEpilogues,
-      epilogues: () => epilogues(s) };
+      epilogues: () => epilogues(s),
+      // เปิดกระดานประกาศผลโดยไม่ต้องเล่นถึงวันสอบจริง — เทสต์ภาพใช้
+      showBoard: (examId = "midterm") => P.boardPanel(postBoard(s, examId), () => P.closePanel()) };
 
 // เปิดเกมมา ถ้ามีเหตุการณ์ค้างอยู่ตรงช่วงเวลานี้ ให้เล่นก่อน
 const startEvent = isTermOver(s) ? null : eventNow(s);

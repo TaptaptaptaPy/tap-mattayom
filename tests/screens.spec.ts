@@ -60,3 +60,37 @@ test("เปิดเกมแล้วต้องไม่มี error ใน 
   await typed(page);
   expect(errors).toEqual([]);
 });
+
+test("กระดานประกาศผลหน้าห้อง — ชื่อเราต้องหาเจอในหนึ่งวินาที", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!(window as any).__mattayom);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom;
+    M.s.seenEvents["opening"] = true;
+    document.getElementById("scene")!.classList.add("hidden");
+    // ผลสอบของเราถูกยัดเข้าไปตรงๆ เพราะสิ่งที่อยากดูคือกระดาน ไม่ใช่ทางเดินไปหาวันสอบ
+    M.s.exams["midterm"] = { score: 61, rank: 11 };
+    M.render();
+    M.showBoard("midterm");
+  });
+  await page.waitForSelector(".board .brow.is-me");
+  await expect(page).toHaveScreenshot("board-exam.png");
+});
+
+test("ปุ่มที่ต้องฝืนต้องดูออกว่ากดได้ ไม่ใช่ปุ่มที่ดับ", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!(window as any).__mattayom);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom;
+    M.s.seenEvents["opening"] = true;
+    document.getElementById("scene")!.classList.add("hidden");
+    M.s.periodIndex = 2;          // หลังเลิกเรียน — ช่วงที่มีที่ให้ไปมากที่สุด
+    M.s.energy = 8;               // ต่ำกว่าเกณฑ์ ทุกกิจกรรมต้องฝืนถึงจะทำได้
+    M.s.sleepDebt = 12;
+    M.render();
+  });
+  await page.waitForSelector(".act.tired");
+  // ปุ่มที่ต้องฝืนต้องยังกดได้จริง ไม่งั้นแรงกลับไปเป็นกำแพงเหมือนเดิม
+  expect(await page.locator(".act.tired").first().isDisabled()).toBe(false);
+  await expect(page).toHaveScreenshot("board-tired.png");
+});

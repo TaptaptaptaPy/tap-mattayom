@@ -133,9 +133,9 @@ export function keepPlan(s: GameState, charId: string): number {
 
 /** เรียกตอนขึ้นวันใหม่ — นัดที่รับไว้แล้วไม่ไป มีราคาต้องจ่าย
  *  วางไว้ในทางเดินของ `advance()` เพื่อให้ `npm run balance` เดินผ่านเองโดยไม่ต้องจำไปเรียก */
-export function settleMissedPlan(s: GameState) {
+export function settleMissedPlan(s: GameState): { missed: number; chose: boolean } {
   const due = s.plans.filter((p) => p.day < s.dayIndex);
-  if (!due.length) return;
+  if (!due.length) return { missed: 0, chose: false };
   // ถ้าวันนั้นรับไว้หลายคนแล้วไปหาคนหนึ่ง คนที่เหลือไม่ได้แค่ถูกลืม — เขารู้ว่าเราไปหาใคร
   const chosen = due.find((p) => p.kept);
   for (const p of due) {
@@ -149,4 +149,5 @@ export function settleMissedPlan(s: GameState) {
     } else remember(s, `ผิดนัด${nameOf(p.charId)}`);
   }
   s.plans = s.plans.filter((p) => p.day >= s.dayIndex);
+  return { missed: due.filter((p) => !p.kept).length, chose: !!chosen };
 }

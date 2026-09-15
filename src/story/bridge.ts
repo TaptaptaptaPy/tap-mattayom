@@ -34,6 +34,7 @@ export interface SceneHooks {
   onTrust: (charId: string, amount: number) => void;
   onClaim: (topic: string, version: string, charId: string) => void;
   onTutor: (charId: string) => void;
+  onRecall: () => void;
   onFlag: (name: string) => void;
   onHint: (text: string) => void;
   onMoney: (amount: number) => void;
@@ -98,7 +99,8 @@ export function openScene(storyName: string, s: GameState, charId: string | null
   story.BindExternalFunction("inviteTomorrow", (cid: string) => { hooks.onInvite(cid); return null; });
   // ตัวละครจำเรื่องที่เราทำกับเขาได้ แล้วหยิบมาพูดเองโดยเราไม่ได้ถาม
   story.BindExternalFunction("recalls", (cid: string) => memoryCount(s, cid));
-  story.BindExternalFunction("memoryOf", (cid: string) => lastMemory(s, cid));
+  // เขาหยิบเรื่องเก่าขึ้นมาพูดเอง — ต้องมีเสียงของมันเอง ไม่งั้นมันกลืนไปกับบทปกติ
+  story.BindExternalFunction("memoryOf", (cid: string) => { hooks.onRecall(); return lastMemory(s, cid); });
   // บอกคนที่อยู่ตรงหน้าไปว่าอะไร — ถ้าบอกคนอื่นไม่ตรงกัน วันหนึ่งจะโป๊ะ
   story.BindExternalFunction("tellThem", (topic: string, version: string) => {
     if (charId) hooks.onClaim(topic, version, charId);

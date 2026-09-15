@@ -92,7 +92,7 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     growHair(s);
     settleProject(s);
     // นัดที่รับไว้เมื่อวานแล้วไม่ไป คิดบัญชีตรงนี้ — อยู่ในทางเดินหลักเพื่อให้เทสต์สมดุลเดินผ่านเอง
-    settleMissedPlan(s);
+    s.stoodUp = settleMissedPlan(s).missed;
     // ตัวละครมีชีวิตของตัวเองตอนเราไม่อยู่ — เดินต่อไม่ว่าเราจะแวะไปหรือไม่
     stepLives(s);
     // คนที่สนิทกันเอาเรื่องที่เราเล่ามาเทียบกันบ้าง — คำพูดที่ไม่ตรงกันมีวันโป๊ะ

@@ -63,6 +63,8 @@ function whoIsAt(s: GameState, locId: string, period: string) {
  *  `forced` = ทำได้เพราะผู้เล่นเลือกฝืน */
 export interface ActionResult {
   message: string; caught: string | null; penalty: number; ok: boolean; forced: boolean;
+  /** ทำซ้ำในวันเดียวกัน ได้น้อยลง — ฝั่ง UI ใช้เลือกเสียง ไม่ต้องอ่านจากข้อความ */
+  repeat: boolean;
 }
 
 /** `force` = ผู้เล่นกดยืนยันว่าจะฝืนทำทั้งที่แรงไม่พอ ดู src/sim/push.ts
@@ -71,11 +73,11 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
                          force = false): ActionResult | null {
   const a = loc.action;
   if (!a) return null;
-  if (loc.blocked) return { message: loc.blocked, caught: null, penalty: 0, ok: false, forced: false };
+  if (loc.blocked) return { message: loc.blocked, caught: null, penalty: 0, ok: false, forced: false, repeat: false };
   const why = canAfford(s, a.energy, a.cost ?? 0);
   // แรงไม่พอไม่ใช่กำแพงอีกแล้ว ถ้าผู้เล่นเลือกฝืน — แต่เงินไม่พอยังเป็นกำแพงอยู่
   const forcing = force && !!why && why !== "เงินไม่พอ" && canPush(s);
-  if (why && !forcing) return { message: (force && whyNoPush(s)) || why, caught: null, penalty: 0, ok: false, forced: false };
+  if (why && !forcing) return { message: (force && whyNoPush(s)) || why, caught: null, penalty: 0, ok: false, forced: false, repeat: false };
 
   const times = s.doneToday[loc.id] ?? 0;
   // ฝืนแล้วได้ของน้อยลง — ลดที่ *ต้นทาง* ไม่ใช่ทำเต็มแล้วหักคืน เพราะ applyStat มีผลตอบแทนลดหลั่นในตัว
@@ -99,7 +101,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
     const r = rollCatch(s, loc.catchBase, rnd);
     if (r.caught) { caught = r.message; penalty = r.penalty; }
   }
-  return { message, caught, penalty, ok: true, forced: forcing };
+  return { message, caught, penalty, ok: true, forced: forcing, repeat: times > 0 };
 }
 
 export function doRest(s: GameState, loc: LocationOption): string | null {
@@ -131,5 +133,5 @@ export function skipClass(s: GameState, rnd: Rnd = Math.random): ActionResult {
   const r = rollCatch(s, 0.34, rnd);
   if (!r.caught) remember(s, "โดดคาบเรียนแล้วรอด");
   return { message: `โดดคาบ · ความซ่า +${got.toFixed(1)}`, caught: r.message, penalty: r.penalty,
-           ok: true, forced: false };
+           ok: true, forced: false, repeat: false };
 }
