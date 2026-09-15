@@ -6,6 +6,8 @@ import { behaviourLabel } from "../sim/discipline";
 import { EVENTS } from "../sim/calendar";
 import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
+import { portraitSVG } from "./portrait";
+import { icon } from "./icons";
 
 const el = () => document.getElementById("panel")!;
 export const closePanel = () => { el().classList.add("hidden"); el().innerHTML = ""; };
@@ -29,10 +31,15 @@ export function characterPanel(s: GameState) {
     const likes = (c.likes as string[]).map(statName).join(" · ");
     const gate = c.gate as { stat: string; value: number; hint: string } | undefined;
     const locked = gate && s.stats[gate.stat as StatId] < gate.value;
-    h += `<div class="card" style="border-color:${c.color}44">
-      <div class="chead"><b style="color:${c.color}">${c.name}</b>
-        <small>${c.year} · ${c.tag}</small></div>
-      <div class="cblurb">${c.blurb}</div>
+    h += `<div class="card person" style="border-color:${c.color}44">
+      <div class="prow">
+        <span class="avatar lg">${portraitSVG(c.id)}</span>
+        <div class="pinfo">
+          <div class="chead"><b style="color:${c.color}">${c.name}</b>
+            <small>${c.year} · ${c.tag}</small></div>
+          <div class="cblurb">${c.blurb}</div>
+        </div>
+      </div>
       <div class="kv"><span>ความสัมพันธ์</span>
         <div class="minibar"><i style="width:${(r / 10) * 100}%;background:${c.color}"></i></div>
         <b>ระดับ ${r}</b></div>
@@ -80,11 +87,17 @@ export function calendarPanel(s: GameState) {
   const club = clubOf(s);
   let h = `<h2>ปฏิทินเทอม</h2><div class="sub">วันนี้คือวันที่ ${s.dayIndex + 1} จาก ${game.term.days}</div>`;
   if (club) h += `<div class="sub">ชมรม: ${club.icon} ${club.name} · กิจกรรมทุกวัน${club.days.map((d) => ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์"][d]).join(" และ ")}</div>`;
+  const MONTH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  const start = new Date(game.term.startDate + "T00:00:00");
+  let lastMonth = -1;
   for (const e of EVENTS) {
+    const d = new Date(start); d.setDate(d.getDate() + e.day);
+    if (d.getMonth() !== lastMonth) { lastMonth = d.getMonth(); h += `<h3>${MONTH[lastMonth]}</h3>`; }
     const past = e.day < s.dayIndex, today = e.day === s.dayIndex;
     const away = e.day - s.dayIndex;
-    h += `<div class="row ${past ? "past" : today ? "today" : ""}">
-      <span>${e.name}${e.holiday ? " <small>(หยุด)</small>" : ""}</span>
+    h += `<div class="row ev ${past ? "past" : today ? "today" : ""}${e.exam ? " exam" : ""}">
+      <span><b class="evday">${d.getDate()}</b></span>
+      <span>${e.name}${e.holiday ? " <small>โรงเรียนหยุด</small>" : ""}</span>
       <b>${past ? "ผ่านไปแล้ว" : today ? "วันนี้" : `อีก ${away} วัน`}</b></div>`;
   }
   open(h);
@@ -127,7 +140,7 @@ export function clubPickPanel(onPick: (id: string) => void) {
   for (const c of CLUBS) {
     const days = c.days.map((d) => ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์"][d]).join(" · ");
     h += `<div class="card clickable" data-club="${c.id}">
-      <div class="chead"><b>${c.icon} ${c.name}</b><small>${days}</small></div>
+      <div class="chead"><b>${icon(c.id)} ${c.name}</b><small>${days}</small></div>
       <div class="cblurb">${c.blurb}</div>
       <div class="kv"><span>ได้</span><b>${statName(c.stat)} +${c.gain} ต่อครั้ง</b></div>
       <div class="kv"><span>งานใหญ่</span><b>${c.milestoneName}</b></div>

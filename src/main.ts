@@ -1,6 +1,7 @@
 import "./style.css";
 import game from "../data/game.json";
 import chars from "../data/characters.json";
+import game2 from "../data/game.json";
 import { newState, statRank, affinityRank, remember, type GameState, type StatId } from "./sim/state";
 import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
          nextEvent, type TermEvent } from "./sim/calendar";
@@ -12,6 +13,9 @@ import { behaviourLabel } from "./sim/discipline";
 import { buy, use, gift } from "./sim/shop";
 import { openScene } from "./story/bridge";
 import { playScene, showHint } from "./ui/scene";
+import { applyTheme, periodStrip } from "./ui/theme";
+import { icon } from "./ui/icons";
+import { portraitSVG } from "./ui/portrait";
 import * as P from "./ui/panels";
 import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotId } from "./core/save";
 
@@ -22,23 +26,47 @@ const $ = (id: string) => document.getElementById(id)!;
 // ───────────────────────── แถบบน ─────────────────────────
 
 function renderTop() {
+  applyTheme(s);
   const club = clubOf(s);
   $("date").innerHTML = `${dateLabel(s)}${isLocked(s) ? " · คาบเรียน" : ""}` +
     `<small> · เหลืออีก ${daysLeft(s)} วัน</small>`;
+  $("periodStrip").innerHTML = periodStrip(s);
 
   const energyPct = (s.energy / game.energy.max) * 100;
   const low = s.energy < game.energy.lowThreshold;
+  const ladder = game2.statRanks;
+
   let h = game.stats.map((st) => {
     const v = s.stats[st.id as StatId];
-    return `<span class="chip" title="${st.desc}">${st.name}
-      <b>${game.statRankNames[statRank(v)]}</b></span>`;
+    const r = statRank(v);
+    // หลอดบอกว่าใกล้ระดับถัดไปแค่ไหน — เดิมเห็นแค่ชื่อระดับ ไม่รู้ว่าอีกไกลไหม
+    const from = ladder[r], to = ladder[Math.min(r + 1, ladder.length - 1)];
+    const pct = to > from ? Math.min(100, ((v - from) / (to - from)) * 100) : 100;
+    return `<span class="chip stat" title="${st.desc}">${st.name}
+      <b>${game.statRankNames[r]}</b><i style="width:${pct}%"></i></span>`;
   }).join("");
   h += `<span class="chip energy${low ? " low" : ""}" title="แรงที่เหลือวันนี้">แรง
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
   h += `<span class="chip" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
   h += `<span class="chip" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
-  if (club) h += `<span class="chip" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
+  if (club) h += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
   $("stats").innerHTML = h;
+}
+
+/** การ์ดบอกวันใหม่ — ทำให้รู้สึกว่าวันหนึ่งจบลงจริง ไม่ใช่ตัวเลขขยับเฉยๆ */
+let lastDayShown = -1;
+function maybeDayCard() {
+  if (s.dayIndex === lastDayShown) return;
+  const first = lastDayShown === -1;
+  lastDayShown = s.dayIndex;
+  if (first) return;
+  const el = $("daycard");
+  el.innerHTML = `<div><b>${dateLabel(s).split(" · ")[0]}</b>
+    <small>วันที่ ${s.dayIndex + 1} จาก ${game.term.days}</small></div>`;
+  el.classList.remove("hidden");
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 1150);
+  setTimeout(() => el.classList.add("hidden"), 1650);
 }
 
 // ───────────────────────── กระดานเลือกที่ไป ─────────────────────────
@@ -60,7 +88,7 @@ function renderBoard() {
   for (const loc of availableLocations(s)) {
     const card = document.createElement("div");
     card.className = "loc" + (loc.blocked ? " blocked" : "");
-    card.innerHTML = `<div class="ico">${loc.icon}</div><div class="nm">${loc.name}</div>`;
+    card.innerHTML = `<div class="ico">${icon(loc.id)}</div><div class="nm">${loc.name}</div>`;
 
     const acts = document.createElement("div");
     acts.className = "acts";
@@ -70,7 +98,8 @@ function renderBoard() {
       b.className = "who";
       b.style.borderColor = p.color;
       const rank = affinityRank(s.affinity[p.id] ?? 0);
-      b.innerHTML = `<span style="color:${p.color}">${p.name}</span><em>ระดับ ${rank}</em>`;
+      b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
+        <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${rank}</em></span>`;
       b.onclick = () => talkTo(p.id);
       acts.appendChild(b);
     }
@@ -126,7 +155,7 @@ function renderClassroom(board: HTMLElement) {
   const card = document.createElement("div");
   card.className = "loc wide";
   const flagRaised = s.doneToday["_assembly"] > 0;
-  card.innerHTML = `<div class="ico">⚑</div>
+  card.innerHTML = `<div class="ico">${icon("assembly")}</div>
     <div class="nm">เข้าแถวหน้าเสาธง แล้วเข้าเรียน</div>`;
   const acts = document.createElement("div");
   acts.className = "acts";
@@ -159,7 +188,8 @@ function renderClassroom(board: HTMLElement) {
     const b = document.createElement("button");
     b.className = "who";
     b.style.borderColor = p.color;
-    b.innerHTML = `<span style="color:${p.color}">${p.name}</span><em>ระดับ ${affinityRank(s.affinity[p.id] ?? 0)}</em>`;
+    b.innerHTML = `<span class="avatar">${portraitSVG(p.id)}</span>
+      <span class="wname" style="color:${p.color}">${p.name}<em>ระดับ ${affinityRank(s.affinity[p.id] ?? 0)}</em></span>`;
     b.onclick = () => talkTo(p.id);
     acts.appendChild(b);
   }
@@ -197,12 +227,12 @@ function talkTo(charId: string) {
   const story = openScene(c.story, s, charId, hooks());
   s.metToday[charId] = true;
   remember(s, `คุยกับ${c.name}`);
-  playScene(story, c.name, c.color, () => next());
+  playScene(story, c.name, c.color, charId, () => next());
 }
 
 function playInk(name: string, charId: string | null, speaker: string, color: string, onEnd: () => void) {
   const story = openScene(name, s, charId, hooks());
-  playScene(story, speaker, color, onEnd);
+  playScene(story, speaker, color, charId, onEnd);
 }
 
 // ───────────────────────── เหตุการณ์ตามปฏิทิน ─────────────────────────
@@ -254,6 +284,7 @@ function afterStep() {
 }
 
 function render() {
+  maybeDayCard();
   renderTop();
   renderBoard();
   renderBottom();
