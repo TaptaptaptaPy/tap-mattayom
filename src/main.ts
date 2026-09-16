@@ -593,7 +593,7 @@ function handleEvent(e: TermEvent): boolean {
     if (who) flash(`จับคู่งานกลุ่มกับ${projectName(s)}`);
   }
   const finish = () => {
-    if (e.pickClub && !s.club) { P.clubPickPanel((id) => { joinClub(s, id); P.closePanel(); afterStep(); }); return; }
+    if (e.pickClub && !s.club) { P.clubPickPanel(s, (id) => { joinClub(s, id); P.closePanel(); afterStep(); }); return; }
     if (e.ending) {
       const en = computeEnding(s);
       // จบมัธยมแล้วยังไม่จบเกม — ปีหนึ่งรออยู่ ถ้าไม่ได้ไปเรียนต่อก็จบตรงนี้จริงๆ

@@ -94,3 +94,33 @@ describe("งานใหญ่ของชมรม", () => {
     expect(s.clubDays).toBe(1);
   });
 });
+
+/** ปมที่เจอตอนตรวจความขัดแย้งข้ามระบบ:
+ *  ชมรมทั้งสี่ของมัธยมอยู่ที่สถานที่ของมัธยม ซึ่งภาคมหาลัยเข้าไม่ได้เลย
+ *  ของเดิมจึงเปิดให้สมัครชมรมที่ไปซ้อมไม่ได้ แล้ววันงานใหญ่ก็ตกระดับล่างสุดแน่นอน
+ *  = โทษ 8 คะแนนชื่อเสียงสำหรับสิ่งที่ผู้เล่นทำอะไรไม่ได้เลย */
+describe("ชมรมต้องไปซ้อมได้จริงในภาคที่สมัคร", () => {
+  it("ชมรมที่สมัครได้ในแต่ละภาคอยู่ที่สถานที่ของภาคนั้น", async () => {
+    const { clubsFor } = await import("./club");
+    const locs = (await import("../../data/locations.json")).default as
+      { id: string; chapter?: string }[];
+    for (const ch of ["school", "uni"] as const) {
+      const s = newState(); s.chapter = ch;
+      const list = clubsFor(s);
+      expect(list.length).toBeGreaterThan(0);
+      for (const c of list) {
+        const loc = locs.find((l) => l.id === c.location);
+        expect((loc?.chapter ?? "school")).toBe(ch);
+      }
+    }
+  });
+
+  it("วันงานใหญ่ของชมรมมหาลัยอยู่ในช่วงเทอมของมหาลัย", async () => {
+    const { clubsFor } = await import("./club");
+    const s = newState(); s.chapter = "uni";
+    for (const c of clubsFor(s)) {
+      const day = (c as { milestoneDay?: number }).milestoneDay ?? 0;
+      expect(day).toBeLessThan(game.chapters.uni.days);
+    }
+  });
+});

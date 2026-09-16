@@ -1,6 +1,6 @@
 import game from "../../data/game.json";
 import chars from "../../data/characters.json";
-import { CLUBS, clubOf } from "../sim/club";
+import { clubOf, clubsFor } from "../sim/club";
 import { ITEMS, giftable, giftedTimes, usable, wantsOf } from "../sim/shop";
 import { inChapter } from "../sim/chapter";
 import { behaviourLabel } from "../sim/discipline";
@@ -161,10 +161,10 @@ export function menuPanel(s: GameState, hx: MenuHandlers) {
   p.querySelector<HTMLButtonElement>("[data-how]")!.onclick = hx.onHow;
 }
 
-export function clubPickPanel(onPick: (id: string) => void) {
+export function clubPickPanel(s: GameState, onPick: (id: string) => void) {
   let h = `<h2>เลือกชมรม</h2><div class="sub">เลือกได้ครั้งเดียวทั้งเทอม ชมรมจะล็อกตารางเย็นบางวัน
     และทำให้ได้เจอบางคนบ่อยขึ้น</div>`;
-  for (const c of CLUBS) {
+  for (const c of clubsFor(s)) {
     const days = c.days.map((d) => ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์"][d]).join(" · ");
     h += `<div class="card clickable" data-club="${c.id}">
       <div class="chead"><b>${icon(c.id)} ${c.name}</b><small>${days}</small></div>

@@ -129,3 +129,33 @@ describe("กระดานประกาศผลหน้าห้อง", (
     expect(rankFromScore(80)).toBeLessThan(rankFromScore(40));
   });
 });
+
+/** ปมที่เจอตอนตรวจความขัดแย้งข้ามระบบ:
+ *  กระดานอ่าน `pressure` ซึ่งถูกล้างเป็น 0 ทันทีที่เรื่องลับหลังเกิดขึ้น
+ *  ผลคือชีวิตเขาพังแล้วคะแนนเขา *ดีขึ้น* (วัดได้ 21 → 57) */
+describe("กระดานกับชีวิตที่เราปล่อยไว้ ต้องไม่ขัดกันเอง", () => {
+  it("เรื่องที่เกิดไปแล้วหนักกว่าเรื่องที่กำลังจะเกิด", () => {
+    const brink = newState();
+    lifeOf(brink, "minta").pressure = game.offscreen.threshold - 1;
+    const a = sat(brink, "me", "midterm", 12).find((r) => r.id === "minta")!.score;
+
+    const after = newState();
+    lifeOf(after, "minta").pressure = 0;
+    lifeOf(after, "minta").fired = 1;
+    const b = sat(after, "me", "midterm", 12).find((r) => r.id === "minta")!.score;
+
+    expect(b).toBeLessThan(a);
+  });
+
+  it("เรื่องที่เกิดหลายรอบยิ่งหนัก", () => {
+    const one = newState(); lifeOf(one, "minta").fired = 1;
+    const two = newState(); lifeOf(two, "minta").fired = 3;
+    const a = sat(one, "me", "midterm", 12).find((r) => r.id === "minta")!.score;
+    const b = sat(two, "me", "midterm", 12).find((r) => r.id === "minta")!.score;
+    expect(b).toBeLessThanOrEqual(a);
+  });
+
+  it("น้ำหนักของเรื่องที่เกิดแล้วต้องมากกว่าแรงกดดันที่ค้างอยู่", () => {
+    expect(game.board.strainPerEvent).toBeGreaterThan(game.board.strainFromNow);
+  });
+});

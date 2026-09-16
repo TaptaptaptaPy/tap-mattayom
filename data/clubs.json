@@ -1,35 +1,102 @@
 [
   {
-    "id": "music", "name": "ชมรมดนตรีไทยสากล", "icon": "♬",
-    "stat": "charm", "gain": 5, "energy": -12,
-    "days": [1, 3], "location": "musicroom",
-    "members": ["minta"],
+    "id": "music",
+    "name": "ชมรมดนตรีไทยสากล",
+    "icon": "♬",
+    "stat": "charm",
+    "gain": 5,
+    "energy": -12,
+    "days": [
+      1,
+      3
+    ],
+    "location": "musicroom",
+    "members": [
+      "minta"
+    ],
     "blurb": "ซ้อมหนัก แต่ได้ขึ้นเวทีจริงตอนกีฬาสี",
-    "milestoneDay": 77, "milestoneName": "เล่นเปิดงานกีฬาสี"
+    "milestoneDay": 77,
+    "milestoneName": "เล่นเปิดงานกีฬาสี",
+    "chapter": "school"
   },
   {
-    "id": "sport", "name": "ชมรมกีฬา", "icon": "⚽",
-    "stat": "heart", "gain": 5, "energy": -14,
-    "days": [2, 4], "location": "backfield",
-    "members": ["kanin"],
+    "id": "sport",
+    "name": "ชมรมกีฬา",
+    "icon": "⚽",
+    "stat": "heart",
+    "gain": 5,
+    "energy": -14,
+    "days": [
+      2,
+      4
+    ],
+    "location": "backfield",
+    "members": [
+      "kanin"
+    ],
     "blurb": "เหนื่อยที่สุด แต่ได้ใจเพื่อนเร็วที่สุด",
-    "milestoneDay": 77, "milestoneName": "แข่งกีฬาสี"
+    "milestoneDay": 77,
+    "milestoneName": "แข่งกีฬาสี",
+    "chapter": "school"
   },
   {
-    "id": "academic", "name": "ชมรมวิชาการ", "icon": "✎",
-    "stat": "mind", "gain": 4, "energy": -10, "study": 5,
-    "days": [1, 4], "location": "library",
-    "members": ["ploy"],
+    "id": "academic",
+    "name": "ชมรมวิชาการ",
+    "icon": "✎",
+    "stat": "mind",
+    "gain": 4,
+    "energy": -10,
+    "study": 5,
+    "days": [
+      1,
+      4
+    ],
+    "location": "library",
+    "members": [
+      "ploy"
+    ],
     "blurb": "คนอื่นหาว แต่คะแนนสอบไม่เคยหลอกใคร",
-    "milestoneDay": 63, "milestoneName": "แข่งตอบปัญหาระดับเขต"
+    "milestoneDay": 63,
+    "milestoneName": "แข่งตอบปัญหาระดับเขต",
+    "chapter": "school"
   },
   {
-    "id": "volunteer", "name": "ชมรมบำเพ็ญประโยชน์", "icon": "✿",
-    "stat": "kind", "gain": 5, "energy": -11,
-    "days": [3, 5], "location": "temple",
+    "id": "volunteer",
+    "name": "ชมรมบำเพ็ญประโยชน์",
+    "icon": "✿",
+    "stat": "kind",
+    "gain": 5,
+    "energy": -11,
+    "days": [
+      3,
+      5
+    ],
+    "location": "temple",
     "members": [],
     "blurb": "ไม่มีใครอยากเข้า แต่ครูจำชื่อได้ทุกคน",
     "behaviourPerWeek": 3,
-    "milestoneDay": 95, "milestoneName": "ออกค่ายอาสา"
+    "milestoneDay": 95,
+    "milestoneName": "ออกค่ายอาสา",
+    "chapter": "school"
+  },
+  {
+    "id": "unifac",
+    "name": "ชุมนุมประจำคณะ",
+    "icon": "✦",
+    "stat": "heart",
+    "gain": 5,
+    "energy": -12,
+    "days": [
+      2,
+      5
+    ],
+    "location": "clubroom",
+    "members": [
+      "tar"
+    ],
+    "blurb": "ซ้อมกันหลังเลิกเรียนเกือบทุกวัน และงานคณะคือวันที่ทุกคนรอ",
+    "milestoneDay": 49,
+    "milestoneName": "ขึ้นเวทีงานคณะ",
+    "chapter": "uni"
   }
 ]

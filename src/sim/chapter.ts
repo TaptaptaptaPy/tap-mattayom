@@ -69,6 +69,9 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
   s.clubDays = 0;
   s.milestoneDone = false;
   s.seenToday = {};
+  // ครูประจำชั้นของมัธยมไม่ได้ตามไปมหาลัย ที่นั่นไม่มีใครรู้จักเราเลยสักคน
+  s.teacher = game.teacher.start;
+  s.teacherCalled = -99;
 
   remember(s, `เข้าเรียนปีหนึ่ง · ${schoolEnding.tier}`);
 }

@@ -94,3 +94,17 @@ describe("ครูประจำชั้น", () => {
     expect(s.teacher).toBe(0);
   });
 });
+
+/** ปมที่เจอตอนตรวจความขัดแย้งข้ามระบบ */
+describe("ความเห็นของครูไม่ข้ามภาค", () => {
+  it("ขึ้นปีหนึ่งแล้วครูประจำชั้นเป็นคนละคน ที่นั่นไม่มีใครรู้จักเรา", async () => {
+    const { startUni } = await import("./chapter");
+    const { computeEnding } = await import("./ending");
+    const s = newState();
+    s.teacher = 100;
+    s.dayIndex = game.term.days;
+    startUni(s, computeEnding(s));
+    expect(s.teacher).toBe(game.teacher.start);
+    expect(s.teacherCalled).toBeLessThan(0);
+  });
+});

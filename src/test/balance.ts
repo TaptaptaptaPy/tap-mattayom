@@ -15,7 +15,7 @@ import { advance, isLocked, isTermOver, eventNow, eventsFor, isSchoolDay } from 
 import { availableLocations, doAction, doRest, attendClass, skipClass,
          type ActionResult, type LocationOption } from "../sim/actions";
 import { takeExam } from "../sim/exam";
-import { joinClub, clubToday, doClubActivity } from "../sim/club";
+import { joinClub, clubToday, clubsFor, doClubActivity } from "../sim/club";
 import { escapeCatch, inTrouble } from "../sim/discipline";
 import { changeAffinity, trustFromFlag } from "../sim/bonds";
 import { stepLives, visited } from "../sim/offscreen";
@@ -51,8 +51,11 @@ const STRAT_NAME: Record<Strategy, string> = {
   lazy: "ไม่ทำอะไรเลยทั้งเทอม",
   rebel: "เด็กหลังห้อง",
 };
-const clubFor = (strat: Strategy) =>
-  strat === "mind" ? "academic" : strat === "social" ? "music" : "sport";
+/** ชมรมของภาคนั้น — ชมรมมัธยมอยู่ที่สถานที่ของมัธยม ภาคมหาลัยไปซ้อมไม่ได้เลย */
+const clubFor = (s: GameState, strat: Strategy) => {
+  if (s.chapter === "uni") return clubsFor(s)[0]?.id ?? "unifac";
+  return strat === "mind" ? "academic" : strat === "social" ? "music" : "sport";
+};
 
 interface Run {
   stats: Record<StatId, number>;
@@ -191,7 +194,7 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
         // กระดานติดหน้าห้องทันทีหลังรู้ผล — ผลข้างเคียงทั้งหมดของมันเกิดตรงนี้
         postBoard(s, ev.exam);
       }
-      if (ev.pickClub && !s.club) joinClub(s, clubFor(strat));
+      if (ev.pickClub && !s.club) joinClub(s, clubFor(s, strat));
       // วันงานใหญ่ของชมรม — ทั้งเทอมที่ไปซ้อมมาถูกคิดบัญชีตรงนี้
       const big = milestoneToday(s);
       if (big) { const r = runMilestone(s, mg())!;

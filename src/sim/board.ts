@@ -48,13 +48,24 @@ export function tutor(s: GameState, charId: string): void {
   changeTrust(s, charId, B.tutorTrust);
 }
 
+/** ชีวิตของเขาหนักแค่ไหน 0..1 — แรงกดดันที่ค้างอยู่ บวกเรื่องที่เกิดไปแล้ว
+ *  `fired` คือสิ่งที่ไม่หายไป ต่างจาก `pressure` ที่ถูกล้างทุกครั้งที่เรื่องเกิด */
+function strainOf(s: GameState, id: string): number {
+  const l = lifeOf(s, id);
+  const now = Math.min(1, l.pressure / game.offscreen.threshold);
+  return Math.min(1, now * B.strainFromNow + l.fired * B.strainPerEvent);
+}
+
 function scoreOf(s: GameState, id: string, examId: string): number {
   const c = chars.find((x) => x.id === id) as { smart?: number } | undefined;
   const raw = (c?.smart ?? 0.55) * B.smartWeight
             + tutoredCount(s, id) * B.tutorBonus
-            // แรงกดดันเป็นสัดส่วนของเกณฑ์ที่เรื่องจะเกิด (0..1) ไม่ใช่เลขดิบ
-            // ถ้าคูณเลขดิบ (0-26) คะแนนของทุกคนจะติดศูนย์ทั้งกระดานตั้งแต่สัปดาห์แรก
-            - Math.min(1, lifeOf(s, id).pressure / game.offscreen.threshold) * B.pressurePenalty
+            // ชีวิตที่เราปล่อยไว้ = แรงกดดันที่ค้างอยู่ *บวก* เรื่องที่เกิดไปแล้ว
+            //
+            // ของเดิมอ่านแค่ `pressure` ซึ่งถูกรีเซ็ตเป็น 0 ทันทีที่เรื่องเกิดขึ้น
+            // ผลคือชีวิตเขาพังแล้วคะแนนเขา *ดีขึ้น* (วัดได้ 21 → 57) ซึ่งกลับหัวกลับหาง
+            // เรื่องที่เกิดไปแล้วไม่ได้หายไปกับแรงกดดัน มันทิ้งรอยไว้
+            - strainOf(s, id) * B.pressurePenalty
             + jitter(id + examId) * B.jitter;
   return Math.max(0, Math.min(100, Math.round(100 * (1 - Math.exp(-Math.max(0, raw) / B.scale)))));
 }

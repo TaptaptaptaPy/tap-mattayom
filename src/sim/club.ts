@@ -10,6 +10,13 @@ export const CLUBS = clubs as Club[];
 export const clubOf = (s: GameState): Club | null =>
   s.club ? CLUBS.find((c) => c.id === s.club) ?? null : null;
 
+/** ชมรมที่สมัครได้ในภาคนี้
+ *  ชมรมของมัธยมทั้งสี่อยู่ที่สถานที่ของมัธยมทั้งหมด ซึ่งภาคมหาลัยเข้าไม่ได้
+ *  ของเดิมจึงเปิดให้สมัครชมรมที่ *ไปซ้อมไม่ได้เลย* แล้ววันงานใหญ่ก็ตกระดับล่างสุดแน่นอน
+ *  = โทษ 8 คะแนนชื่อเสียงสำหรับสิ่งที่ผู้เล่นทำอะไรไม่ได้เลย */
+export const clubsFor = (s: GameState): Club[] =>
+  CLUBS.filter((c) => ((c as { chapter?: string }).chapter ?? "school") === s.chapter);
+
 /** วันนี้มีกิจกรรมชมรมไหม — ชมรมคือสิ่งที่ทำให้ตารางชีวิตมีจังหวะประจำ */
 export function clubToday(s: GameState): Club | null {
   const c = clubOf(s);
