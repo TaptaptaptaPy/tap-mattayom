@@ -1,4 +1,5 @@
 import chars from "../../data/characters.json";
+import { asset } from "../core/asset";
 
 /** ภาพตัวละคร
  *
@@ -30,7 +31,7 @@ export function portraitHTML(charId: string | null, mood: Mood = "calm"): string
   if (!charId || !HAS.has(charId)) return NARRATOR;
   const c = chars.find((x) => x.id === charId)!;
   // decoding="sync" เพื่อไม่ให้ภาพกะพริบตอนเปลี่ยนสีหน้ากลางประโยค
-  return `<img class="pface" src="/assets/portraits/${charId}-${mood}.png"
+  return `<img class="pface" src="${asset(`assets/portraits/${charId}-${mood}.png`)}"
     alt="${c.name}" width="420" height="420" decoding="sync">`;
 }
 

@@ -47,6 +47,7 @@ import { backdrop, hasEventArt } from "./ui/backdrop";
 import { portraitHTML } from "./ui/portrait";
 import * as P from "./ui/panels";
 import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotId } from "./core/save";
+import { asset } from "./core/asset";
 
 migrateOld();
 let s: GameState = readSlot("auto")?.state ?? newState();
@@ -701,7 +702,13 @@ function metaOf() {
 }
 /** เพลงเปลี่ยนตามช่วงเวลา และเปลี่ยนอีกทีถ้ามีอะไรค้างอยู่
  *  เพลงกลางวันกับเพลงตอนที่เรากำลังจะโดนเรียก ฟังไม่เหมือนกัน */
-const bgm = new Bgm("/assets/audio", ["day", "dusk"]);
+const bgm = new Bgm(asset("assets/audio"), ["day", "dusk"]);
+// เพลงถูกมัดเป็น JSON (base64) เผื่อโฮสต์ที่เสิร์ฟเฉพาะชนิดไฟล์เว็บมาตรฐาน
+// ซึ่ง .m4a ไม่อยู่ในนั้น · ถ้าไฟล์ชุดนี้ไม่มี ก็ใช้ไฟล์เสียงตรงๆ เหมือนเดิม
+void fetch(asset("assets/audio.b64.json"))
+  .then((r) => (r.ok ? r.json() : null))
+  .then((m) => { if (m) bgm.useSources(m); })
+  .catch(() => { /* ไม่มีก็ไม่เป็นไร */ });
 function bgmFor(st: GameState): string {
   const p = periodId(st);
   return p === "after" || p === "night" ? "dusk" : "day";

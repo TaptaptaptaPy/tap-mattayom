@@ -1,4 +1,5 @@
 import scenes from "../../data/scenes.json";
+import { asset } from "../core/asset";
 /** ฉากหลังของแต่ละสถานที่และเหตุการณ์ วาดด้วย SVG ในโค้ด ไม่มีไฟล์รูป
  *  ใช้ทั้งเป็นแถบบนการ์ดสถานที่ และเป็นพื้นหลังของกล่องบทสนทนา */
 
@@ -458,9 +459,9 @@ export const hasPhoto = (id: string) => id in TIMED || PLAIN.has(id);
 export function backdrop(id: string, period?: string): string {
   const t = (scenes.periods as Record<string, string>)[period ?? "noon"] ?? "day";
   const timed = TIMED[id];
-  if (timed) return `<img class="bd" src="/assets/scenes/${timed}-${t}.jpg" alt="" loading="eager">`;
+  if (timed) return `<img class="bd" src="${asset(`assets/scenes/${timed}-${t}.jpg`)}" alt="" loading="eager">`;
   if (PLAIN.has(id))
-    return `<span class="bdt tod-${t}"><img src="/assets/scenes/${id}.jpg" alt="" loading="eager"></span>`;
+    return `<span class="bdt tod-${t}"><img src="${asset(`assets/scenes/${id}.jpg`)}" alt="" loading="eager"></span>`;
   return svgBackdrop(id);
 }
 
