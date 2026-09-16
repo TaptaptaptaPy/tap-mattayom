@@ -1,4 +1,5 @@
 import game from "../../data/game.json";
+import { maxEnergy, statGainMult } from "./traits";
 import type { GameState, StatId } from "./state";
 
 const C = game.statCurve;
@@ -14,11 +15,17 @@ export function repeatFactor(times: number): number {
   return Math.pow(C.sameDayFactor, Math.max(0, times));
 }
 
+/** ภูมิหลังบางอย่างทำให้ค่าหนึ่งขึ้นเร็วกว่าและอีกค่าขึ้นช้ากว่าคนอื่น
+ *  ตัวคูณต้องอยู่ *ในนี้* ที่เดียว เพราะทุกทางที่ค่าสถานะขึ้นวิ่งผ่านฟังก์ชันนี้หมด
+ *  (กิจกรรมตามสถานที่ · ชมรม · เข้าเรียน · การบ้าน) วางไว้ที่อื่นจะมีทางที่หลุด */
 export function applyStat(s: GameState, id: StatId, raw: number, repeats = 0): number {
-  const got = raw * gainFactor(s.stats[id]) * repeatFactor(repeats);
+  const got = raw * gainFactor(s.stats[id]) * repeatFactor(repeats) * statGainMult(s, id);
   s.stats[id] += got;
   return got;
 }
+
+/** แรงเต็มของคนคนนี้ — ส่งต่อจาก traits.ts เพื่อให้ที่อื่นไม่ต้อง import สองไฟล์ */
+export { maxEnergy };
 
 export const energyLow = (s: GameState) => s.energy < game.energy.lowThreshold;
 

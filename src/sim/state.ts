@@ -28,6 +28,18 @@ export interface BoardRow {
 
 export interface GameState {
   v: number;
+  /** เมล็ดของโลกรอบนี้ — ตารางชีวิตของทุกคนถูกทอยจากเมล็ดนี้ ดู src/sim/presence.ts
+   *  เล่นรอบใหม่ได้เมล็ดใหม่ แปลว่าวันที่เจอใครที่ไหนไม่เหมือนรอบก่อน */
+  seed: number;
+  /** ภูมิหลังที่เลือกตอนเริ่มเทอม — ดู src/sim/background.ts */
+  background: string | null;
+  /** รู้จักใครไปแล้วบ้าง ค่าคือ "วันที่เจอกันครั้งแรก"
+   *  ไม่มีคีย์ = ยังไม่เคยเจอ หน้าคนรู้จักจึงขึ้นทีละคนตามที่เจอจริง ไม่ใช่ขึ้นครบตั้งแต่วันแรก */
+  met: Record<string, number>;
+  /** เจอใครที่ไหนช่วงไหนมากี่ครั้ง คีย์คือ "คน|ช่วง|ที่" — พอถึงเกณฑ์ถือว่ารู้ตารางเขา */
+  habits: Record<string, number>;
+  /** บังเอิญเจอคนมากี่ครั้งทั้งเทอม — เทสต์สมดุลใช้ดูว่าระบบยังเดินอยู่ */
+  encounters: number;
   dayIndex: number;          // 0 = วันเปิดเทอม
   periodIndex: number;       // อ้างอิง data/game.json > periods
   energy: number;
@@ -143,9 +155,10 @@ export interface GameState {
 // 19: เพิ่มครูประจำชั้น (teacher)
 // 20: เพิ่มคู่แข่ง (rivals · conceded)
 // 21: เพิ่มรสนิยมของฝากรายคน (gifted)
-export const SAVE_VERSION = 21;
+// 22: เพิ่มภูมิหลังและการเจอกันแบบบังเอิญ (seed · background · met · habits · encounters)
+export const SAVE_VERSION = 22;
 
-export function newState(): GameState {
+export function newState(seed = Math.floor(Math.random() * 2 ** 31)): GameState {
   const stats = {} as Record<StatId, number>;
   for (const s of game.stats) stats[s.id as StatId] = 0;
   const affinity: Record<string, number> = {};
@@ -153,6 +166,7 @@ export function newState(): GameState {
   for (const c of chars) { affinity[c.id] = 0; trust[c.id] = 0; }
   return {
     v: SAVE_VERSION,
+    seed, background: null, met: {}, habits: {}, encounters: 0,
     dayIndex: 0, periodIndex: 0, energy: game.energy.max,
     stats, affinity, trust, flags: {}, metToday: {}, doneToday: {}, history: [],
     money: game.money.start, behaviour: game.behaviour.start, study: 0,

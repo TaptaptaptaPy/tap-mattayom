@@ -4,8 +4,17 @@ import { backdrop } from "./backdrop";
 
 const $ = (id: string) => document.getElementById(id)!;
 const REVEAL_MS = 16;          // ความเร็วไล่ตัวอักษร
+const AUTO_HOLD = 1500;        // เดินบทอัตโนมัติ: หยุดให้อ่านกี่มิลลิวินาทีต่อบรรทัด
 
 let typing: number | null = null;
+let autoTimer: number | null = null;
+/** เดินบทอัตโนมัติอยู่ไหม — ค้างข้ามฉาก เพราะคนที่เปิดไว้อยากให้มันเปิดต่อ */
+let auto = false;
+
+/** บทที่ผ่านไปแล้วในฉากนี้ — ของที่เกมแนวนี้มีเสมอและเกมนี้ไม่เคยมี
+ *  กดเร็วไปหนึ่งบรรทัดแล้วอ่านไม่ทัน เท่ากับอ่านไม่ได้อีกเลยทั้งเกม */
+interface LogLine { who: string; text: string; mine: boolean; }
+let backlog: LogLine[] = [];
 
 /** เดาอารมณ์จากเครื่องหมายในประโยค — ถูกบ้างผิดบ้าง แต่ทำให้หน้าไม่นิ่งสนิท */
 function moodOf(line: string): Mood {
@@ -39,10 +48,13 @@ function finishTyping(el: HTMLElement, text: string, done: () => void) {
   return true;
 }
 
+const clearAuto = () => { if (autoTimer !== null) { clearTimeout(autoTimer); autoTimer = null; } };
+
 /** กล่องบทสนทนา: ภาพตัวละคร ป้ายชื่อ ข้อความที่ไล่ทีละตัว แล้วค่อยแสดงตัวเลือก
  *  บทบอกเองได้ว่ามีทางที่ยังเปิดไม่ได้ ผ่าน external setHint() — แสดงเป็นบรรทัดจางใต้ตัวเลือก */
 export function playScene(story: Story, speaker: string, color: string,
-                          charId: string | null, onEnd: () => void, bg?: string, period?: string) {
+                          charId: string | null, onEnd: () => void, bg?: string, period?: string,
+                          unknown = false) {
   const box = $("scene"), lineEl = $("line"), choiceEl = $("choices"),
         spEl = $("speaker"), hintEl = $("hint"), artEl = $("portrait"),
         bgEl = $("sceneBg");
@@ -50,25 +62,35 @@ export function playScene(story: Story, speaker: string, color: string,
   bgEl.classList.toggle("hidden", !bg);
   box.classList.remove("hidden");
   spEl.textContent = speaker;
+  spEl.classList.remove("is-named");
   (spEl as HTMLElement).style.color = color;
   box.style.setProperty("--who", color);
   hintEl.textContent = "";
+  // ยังไม่รู้ว่าเป็นใคร ก็ยังไม่ควรเห็นหน้า — ภาพเป็นเงาจนกว่าบทจะเรียก introduce()
+  artEl.classList.toggle("is-unknown", unknown);
   artEl.innerHTML = portraitHTML(charId);
+  backlog = [];
+  closeBacklog();
+  wireTools();
 
   const finish = () => {
+    clearAuto();
     box.classList.add("hidden");
     hintEl.textContent = "";
+    closeBacklog();
     if (typing !== null) { clearInterval(typing); typing = null; }
     onEnd();
   };
 
   let current = "";
   const showChoices = () => {
+    clearAuto();
     choiceEl.innerHTML = "";
     if (story.currentChoices.length > 0) {
       story.currentChoices.forEach((c, i) => {
         const b = addButton(choiceEl, c.text, () => {
           hintEl.textContent = "";
+          backlog.push({ who: "เรา", text: c.text, mine: true });
           story.ChooseChoiceIndex(i);
           step();
         }, true);
@@ -79,33 +101,90 @@ export function playScene(story: Story, speaker: string, color: string,
     }
   };
 
+  /** บรรทัดจบแล้ว — รอกดต่อ หรือเดินเองถ้าเปิดออโต้ไว้
+   *  ทางเลือกไม่เคยถูกกดเอง เพราะการตัดสินใจเป็นของผู้เล่นเสมอ */
+  const settled = () => {
+    if (story.canContinue) {
+      choiceEl.innerHTML = "";
+      addButton(choiceEl, "▸", step);
+      clearAuto();
+      if (auto) autoTimer = window.setTimeout(step, AUTO_HOLD);
+    } else showChoices();
+  };
+
   const step = () => {
+    clearAuto();
     choiceEl.innerHTML = "";
     if (story.canContinue) {
       current = story.Continue()?.trim() ?? "";
+      backlog.push({ who: spEl.textContent ?? "", text: current, mine: false });
       artEl.dataset.mood = moodOf(current);
       artEl.innerHTML = portraitHTML(charId, moodOf(current));
-      reveal(lineEl, current, () => {
-        if (story.canContinue) addButton(choiceEl, "▸", step);
-        else showChoices();
-      });
+      reveal(lineEl, current, settled);
       return;
     }
     showChoices();
   };
 
   // แตะที่ข้อความเพื่อข้ามการไล่ตัวอักษร — คนอ่านเร็วจะได้ไม่ต้องรอ
-  lineEl.onclick = () => finishTyping(lineEl, current, () => {
-    if (story.canContinue) { choiceEl.innerHTML = ""; addButton(choiceEl, "▸", step); }
-    else showChoices();
-  });
+  lineEl.onclick = () => finishTyping(lineEl, current, settled);
 
   step();
+}
+
+/** เปลี่ยนป้ายชื่อกลางฉาก — ใช้ตอนที่เพิ่งได้รู้ว่าคนตรงหน้าชื่ออะไร
+ *  ฉากเจอกันครั้งแรกขึ้นต้นด้วยคำเรียกกลางๆ แล้วกลายเป็นชื่อจริงตรงบรรทัดที่เขาบอกชื่อ
+ *  ซึ่งเป็นจังหวะเดียวกับที่มันเกิดขึ้นจริงเวลาเจอคนใหม่ */
+export function setSpeaker(name: string) {
+  const el = $("speaker");
+  // รู้ชื่อเขาแล้ว ก็เห็นหน้าเขาได้แล้ว — สองอย่างนี้เกิดพร้อมกันเสมอ
+  $("portrait").classList.remove("is-unknown");
+  if (el.textContent === name) return;
+  el.textContent = name;
+  el.classList.remove("is-named");
+  void el.offsetWidth;
+  el.classList.add("is-named");
 }
 
 export function showHint(text: string) {
   $("hint").textContent = "ยังมีทางที่เปิดไม่ได้ · " + text;
 }
+
+// ───────────────────────── ย้อนอ่าน / ออโต้ ─────────────────────────
+
+const closeBacklog = () => { $("backlog").classList.add("hidden"); $("backlog").innerHTML = ""; };
+
+function openBacklog() {
+  const el = $("backlog");
+  el.innerHTML = `<div class="logwrap"><h3>ย้อนอ่านฉากนี้</h3>` +
+    (backlog.length
+      ? backlog.map((l) => `<div class="logline${l.mine ? " mine" : ""}">
+          <b>${l.who}</b>${l.text}</div>`).join("")
+      : `<div class="sub">ยังไม่มีอะไรให้ย้อนอ่าน</div>`) +
+    `<button class="pclose" id="bLogClose">ปิด</button></div>`;
+  el.classList.remove("hidden");
+  el.scrollTop = el.scrollHeight;
+  $("bLogClose").onclick = closeBacklog;
+}
+
+function wireTools() {
+  const autoBtn = $("bAuto");
+  autoBtn.classList.toggle("is-on", auto);
+  autoBtn.onclick = () => {
+    auto = !auto;
+    autoBtn.classList.toggle("is-on", auto);
+    clearAuto();
+    // เปิดออโต้ตอนที่บรรทัดพิมพ์จบแล้วและยังไม่มีตัวเลือก ต้องเดินต่อทันที ไม่ใช่รอบรรทัดหน้า
+    if (auto) {
+      const next = document.querySelector<HTMLButtonElement>("#choices .next");
+      if (next) autoTimer = window.setTimeout(() => next.click(), AUTO_HOLD);
+    }
+  };
+  $("bLog").onclick = openBacklog;
+}
+
+/** ตอนนี้เดินบทอัตโนมัติอยู่ไหม — เทสต์ใช้ตรวจว่าปุ่มทำงานจริง */
+export const isAuto = () => auto;
 
 function addButton(parent: HTMLElement, label: string, fn: () => void, isChoice = false) {
   const b = document.createElement("button");

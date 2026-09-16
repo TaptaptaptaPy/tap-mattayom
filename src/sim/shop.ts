@@ -1,6 +1,7 @@
 import shop from "../../data/shop.json";
 import chars from "../../data/characters.json";
 import game from "../../data/game.json";
+import { maxEnergy } from "./traits";
 import { changeAffinity, changeTrust } from "./bonds";
 import { remember, type GameState, type StatId } from "./state";
 
@@ -24,7 +25,7 @@ export function use(s: GameState, id: string): string {
   s.inventory[id]--;
   const parts: string[] = [];
   if ("energy" in it && typeof it.energy === "number") {
-    s.energy = Math.min(game.energy.max, s.energy + it.energy);
+    s.energy = Math.min(maxEnergy(s), s.energy + it.energy);
     parts.push(`แรง +${it.energy}`);
   }
   if ("sleepPenalty" in it && typeof it.sleepPenalty === "number") {

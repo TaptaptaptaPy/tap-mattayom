@@ -1,13 +1,16 @@
 import "./style.css";
 import game from "../data/game.json";
 import chars from "../data/characters.json";
+import locations from "../data/locations.json";
 import game2 from "../data/game.json";
 import { newState, statRank, affinityRank, trustRank, remember,
          type GameState, type StatId } from "./sim/state";
 import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
          nextEvent, periodId, type TermEvent } from "./sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
-         morningInspect } from "./sim/actions";
+         morningInspect, type LocationOption } from "./sim/actions";
+import { apptSpot, bumpInto, hasMet, noteEncounter } from "./sim/presence";
+import { applyBackground, backgroundOf, maxEnergy } from "./sim/background";
 import { clubToday, doClubActivity, joinClub, clubOf } from "./sim/club";
 import { takeExam } from "./sim/exam";
 import { postBoard, tutor } from "./sim/board";
@@ -40,7 +43,7 @@ import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { Bgm } from "./core/bgm";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
-import { playScene, showHint } from "./ui/scene";
+import { playScene, setSpeaker, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
 import { backdrop, eventBackdrop } from "./ui/backdrop";
@@ -50,7 +53,10 @@ import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotI
 import { asset } from "./core/asset";
 
 migrateOld();
-let s: GameState = readSlot("auto")?.state ?? newState();
+const loaded = readSlot("auto")?.state ?? null;
+let s: GameState = loaded ?? newState();
+/** เซฟเดิมไม่มี = เกมรอบใหม่ ต้องเลือกภูมิหลังก่อนถึงจะเริ่มได้ */
+const isFreshStart = !loaded;
 const $ = (id: string) => document.getElementById(id)!;
 
 // ───────────────────────── แถบบน ─────────────────────────
@@ -87,6 +93,15 @@ function markChanged() {
   lastChips = now;
 }
 
+/** แถบบนเคยเป็นกำแพงชิปสิบกว่าใบเรียงกันเป็นสามบรรทัด ทุกใบน้ำหนักเท่ากันหมด
+ *  ผู้เล่นจึงต้องอ่านทั้งกำแพงทุกครั้งเพื่อหาว่าอะไรเปลี่ยน
+ *
+ *  ตอนนี้แบ่งเป็นสองชั้นตามคำถามที่มันตอบ:
+ *  - **แถวแรก** ของที่ตัดสินใจด้วยตอนนี้ — ค่าสถานะห้าตัว แรง เงิน และเรื่องที่กำลังไล่หลังเราอยู่
+ *  - **แถวที่สอง** ของที่ค่อยๆ ขยับทั้งเทอม — ครู ความประพฤติ ชื่อเสียง ชมรม (พับเก็บได้)
+ *  เรื่องที่ *เร่ง* (บ้านตึง หนี้การนอน ผมยาว การบ้านค้าง) ขึ้นแถวแรกเสมอตอนที่มันมีจริง */
+let statsOpen = false;
+
 function renderTop() {
   applyTheme(s);
   const club = clubOf(s);
@@ -96,17 +111,19 @@ function renderTop() {
   $("date").innerHTML = parts.map((p) => `<span class="dseg">${p}</span>`).join('<i class="dsep">·</i>') +
     `<small class="dseg">เหลืออีก ${daysLeft(s)} วัน</small>`;
   $("periodStrip").innerHTML = periodStrip(s);
-  $("chapter").textContent = chapterName(s) + " · " + chapterDef(s).sub;
+  const bg = backgroundOf(s);
+  $("chapter").textContent = chapterName(s) + " · " + chapterDef(s).sub +
+    (bg ? " · " + bg.name : "");
 
   const chatBtn = $("bChat");
   chatBtn.classList.toggle("is-unread", !!s.pendingChat);
   chatBtn.innerHTML = s.pendingChat ? 'ไลน์<span class="badge">1</span>' : "ไลน์";
 
-  const energyPct = (s.energy / game.energy.max) * 100;
+  const energyPct = (s.energy / maxEnergy(s)) * 100;
   const low = s.energy < game.energy.lowThreshold;
   const ladder = game2.statRanks;
 
-  let h = game.stats.map((st) => {
+  let now = game.stats.map((st) => {
     const v = s.stats[st.id as StatId];
     const r = statRank(v);
     const top = ladder[ladder.length - 1];
@@ -119,40 +136,54 @@ function renderTop() {
     const more = r >= ladder.length - 1 ? "สูงสุดแล้ว"
       : `อีก ${Math.ceil(next - v)} ถึง "${game.statRankNames[r + 1]}"`;
     return `<span class="chip stat" data-k="${st.id}" data-v="${v}"
-      title="${st.desc} · ${more}">${st.name}
+      title="${st.desc} · ${more}"><u>${st.name}</u>
       <b>${game.statRankNames[r]}</b><i style="width:${pct}%"></i></span>`;
   }).join("");
-  h += `<span class="chip energy${low ? " low" : ""}" data-k="energy" data-v="${Math.round(s.energy)}"
-      title="แรงที่เหลือวันนี้">แรง
+  now += `<span class="chip energy${low ? " low" : ""}" data-k="energy" data-v="${Math.round(s.energy)}"
+      title="แรงที่เหลือวันนี้ · เต็มของเราคือ ${maxEnergy(s)}"><u>แรง</u>
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
-  // ครูมองเรายังไง — ค่านี้ขยับจากความรับผิดชอบ ไม่ใช่จากการไปหา ผู้เล่นต้องเห็นมันขยับ
-  h += `<span class="chip${teacherLevel(s) === 0 ? " low" : ""}" data-k="teacher" data-v="${Math.round(s.teacher)}"
-      title="ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ">ครู
-      <b>${teacherName(s)}</b><i style="width:${s.teacher}%"></i></span>`;
-  // เรื่องที่บ้านต้องมองเห็นเหมือนกัน มันกินแรงทุกคืนโดยที่ไม่มีอะไรบอก
+  now += `<span class="chip money" data-k="money" data-v="${Math.round(s.money)}"
+      title="เงินในกระเป๋า"><u>เงิน</u> <b>${Math.round(s.money)}</b></span>`;
+
+  // เรื่องที่กำลังไล่หลังอยู่ — ขึ้นแถวแรกเฉพาะตอนที่มันมีจริง
+  // เรื่องที่บ้านกินแรงทุกคืนโดยไม่มีอะไรบอก · หนี้การนอนคือเช็คที่เซ็นไปแล้วแต่ยังไม่เห็นยอด
   if (homeLevel(s) > 0)
-    h += `<span class="chip debt low" data-k="home" data-v="${homeLevel(s)}"
-      title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง">บ้าน
+    now += `<span class="chip alert" data-k="home" data-v="${homeLevel(s)}"
+      title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง"><u>บ้าน</u>
       <b>${homeName(s)}</b></span>`;
-  // หนี้การนอนต้องมองเห็น ไม่งั้นการฝืนจะเป็นการเซ็นเช็คที่ไม่มีใครเห็นยอด
   if (s.sleepDebt > 0)
-    h += `<span class="chip debt${s.sleepDebt >= game.push.dozeAt ? " low" : ""}"
+    now += `<span class="chip alert${s.sleepDebt >= game.push.dozeAt ? " hot" : ""}"
       data-k="sleepDebt" data-v="${Math.round(s.sleepDebt)}"
-      title="ฝืนมาแล้วกี่ครั้ง — ไปหักแรงที่ควรได้คืนตอนเช้า">นอน
+      title="ฝืนมาแล้วกี่ครั้ง — ไปหักแรงที่ควรได้คืนตอนเช้า"><u>นอน</u>
       <b>${debtName(s)}</b><i style="width:${Math.min(100, (s.sleepDebt / game.push.maxDebt) * 100)}%"></i></span>`;
-  h += `<span class="chip" data-k="money" data-v="${Math.round(s.money)}" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
-  h += `<span class="chip" data-k="behaviour" data-v="${Math.round(s.behaviour)}" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
-  // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
-  h += `<span class="chip" data-k="standing" data-v="${Math.round(s.standing)}" title="${standingLabel(s.standing)}">ชื่อเสียง <b>${Math.round(s.standing)}</b></span>`;
-  if (isUni(s)) {
-    h += `<span class="chip" title="ค่าหอค่ากินรายสัปดาห์ ${rentPerWeek} บาท">ค่าหอ <b>${rentPerWeek}</b>/สัปดาห์</span>`;
-    if (s.debt > 0) h += `<span class="chip hw" data-k="debt" data-v="${Math.round(s.debt)}" title="ยืมเขามาเพราะจ่ายค่าหอไม่ไหว">หนี้ <b>${Math.round(s.debt)}</b></span>`;
-  }
   if (needsHaircut(s))
-    h += `<span class="chip hw" data-k="grooming" data-v="${Math.round(s.grooming)}" title="${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว">ทรงผม <b>${Math.round(s.grooming)}</b></span>`;
-  if (s.homework > 0) h += `<span class="chip hw" data-k="homework" data-v="${s.homework}" title="ไม่ส่งแล้วครูหักคะแนน">การบ้าน <b>${s.homework}</b></span>`;
-  if (club) h += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
-  $("stats").innerHTML = h;
+    now += `<span class="chip alert" data-k="grooming" data-v="${Math.round(s.grooming)}"
+      title="${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว"><u>ทรงผม</u> <b>${Math.round(s.grooming)}</b></span>`;
+  if (s.homework > 0)
+    now += `<span class="chip alert" data-k="homework" data-v="${s.homework}"
+      title="ไม่ส่งแล้วครูหักคะแนน"><u>การบ้าน</u> <b>${s.homework} ชิ้น</b></span>`;
+  if (isUni(s) && s.debt > 0)
+    now += `<span class="chip alert hot" data-k="debt" data-v="${Math.round(s.debt)}"
+      title="ยืมเขามาเพราะจ่ายค่าหอไม่ไหว"><u>หนี้</u> <b>${Math.round(s.debt)}</b></span>`;
+
+  // ของที่ค่อยๆ ขยับทั้งเทอม — พับเก็บได้ เพราะมันไม่ใช่ของที่ต้องอ่านทุกช่วงเวลา
+  let slow = `<span class="chip${teacherLevel(s) === 0 ? " low" : ""}" data-k="teacher" data-v="${Math.round(s.teacher)}"
+      title="ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ"><u>ครู</u>
+      <b>${teacherName(s)}</b><i style="width:${s.teacher}%"></i></span>`;
+  slow += `<span class="chip" data-k="behaviour" data-v="${Math.round(s.behaviour)}"
+      title="${behaviourLabel(s.behaviour)}"><u>ความประพฤติ</u> <b>${Math.round(s.behaviour)}</b></span>`;
+  // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
+  slow += `<span class="chip" data-k="standing" data-v="${Math.round(s.standing)}"
+      title="${standingLabel(s.standing)}"><u>ชื่อเสียง</u> <b>${Math.round(s.standing)}</b></span>`;
+  if (isUni(s))
+    slow += `<span class="chip" title="ค่าหอค่ากินรายสัปดาห์"><u>ค่าหอ</u> <b>${rentPerWeek}</b>/สัปดาห์</span>`;
+  if (club) slow += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
+
+  $("stats").innerHTML =
+    `<div class="chiprow">${now}<button class="chip more" id="bMore"
+       aria-expanded="${statsOpen}">${statsOpen ? "ย่อ" : "อื่นๆ"}</button></div>` +
+    `<div class="chiprow slow${statsOpen ? "" : " hidden"}">${slow}</div>`;
+  $("bMore").onclick = () => { statsOpen = !statsOpen; renderTop(); };
   markChanged();
 }
 
@@ -173,20 +204,41 @@ function maybeDayCard() {
   setTimeout(() => el.classList.add("hidden"), 1650);
 }
 
-// ───────────────────────── กระดานเลือกที่ไป ─────────────────────────
+// ───────────────────────── กระดานของวัน ─────────────────────────
+
+/** ที่ที่กำลังยืนอยู่ตอนนี้ — null คือกำลังกวาดตาดูว่าจะไปไหน
+ *
+ *  กระดานกับ "ข้างในที่นั้น" ถูกแยกออกจากกันด้วยเหตุผลเดียว:
+ *  **ใครอยู่ตรงไหนต้องเดินเข้าไปถึงจะรู้** ของเดิมกระดานเขียนชื่อทุกคนไว้ตั้งแต่ก่อน
+ *  ลุกจากโต๊ะ การเจอกันจึงไม่เคยเป็นการเจอ มันคือการไปเบิกคนจากช่องที่รู้อยู่แล้ว
+ *
+ *  เดินเข้าไปดูไม่เสียเวลา (เดินดูรอบโรงเรียนไม่ใช่กิจกรรม)
+ *  เสียเวลาต่อเมื่อ *ลงมือทำอะไรสักอย่าง* ซึ่งรวมถึงการเข้าไปทัก */
+let placeOpen: string | null = null;
+
+/** ทำแบบไม่ลงแรงได้เท่าไหร่ของการตั้งใจทำ
+ *  ภาระสามอย่าง (การบ้าน สอบซ่อม งานกลุ่ม) เกิดขึ้นเกือบทุกวันตลอด 120 วัน
+ *  ถ้าบังคับเล่นมินิเกมทุกครั้ง ของที่ควรสนุกจะกลายเป็นภาษีที่เก็บทุกคืน
+ *  จึงให้เลือกได้เสมอว่าจะลงแรงหรือทำให้มันจบๆ — และการเลือกนั้นมีราคาที่วัดได้ */
+const SKIP_YIELD = 0.8;
 
 /** ช่วงเวลาที่กระดานชุดปัจจุบันถูกสร้างขึ้นมา — ใช้บอกว่าเมื่อไหร่ควรไล่การ์ดขึ้นใหม่ */
 let boardStamp = "";
+
+const locName = (id: string) =>
+  (locations as { id: string; name: string }[]).find((l) => l.id === id)?.name ?? id;
 
 function renderBoard() {
   const board = $("board");
   board.innerHTML = "";
   // ไล่การ์ดขึ้นทีละใบเฉพาะตอนขึ้นช่วงเวลาใหม่ ไม่ใช่ทุกครั้งที่วาดซ้ำ
   // ถ้าไล่ทุกครั้ง การกดปุ่มหนึ่งทีจะทำให้ทั้งกระดานกระพริบ ซึ่งกวนกว่าไม่มีเลย
-  const stamp = `${s.dayIndex}:${s.periodIndex}`;
+  const stamp = `${s.dayIndex}:${s.periodIndex}:${placeOpen ?? ""}`;
   const fresh = stamp !== boardStamp;
   boardStamp = stamp;
   board.classList.toggle("is-fresh", fresh);
+  board.classList.toggle("is-place", !!placeOpen);
+
   if (isTermOver(s)) {
     const e = s.ending ?? computeEnding(s);
     board.innerHTML = `<div class="end"><b>${e.tier}</b>
@@ -198,250 +250,254 @@ function renderBoard() {
     return;
   }
 
+  const locs = availableLocations(s);
+  if (placeOpen) {
+    const loc = locs.find((l) => l.id === placeOpen);
+    if (loc) { renderPlace(board, loc); return; }
+    placeOpen = null;          // ที่นั้นปิดไปแล้ว (ขึ้นช่วงเวลาใหม่) — กลับมาที่กระดาน
+  }
+  renderDuties(board);
+  renderPlaceList(board, locs);
+}
+
+// ───────────────────────── ของที่ต้องทำก่อน ─────────────────────────
+
+/** สามอย่างที่เกมยัดใส่มือ ไม่ใช่ของที่เลือกทำเอง — ต้องอยู่เหนือของที่เลือกได้เสมอ */
+function renderDuties(board: HTMLElement) {
   // รับนัดไว้เมื่อคืนแล้วลืม = เสียความสัมพันธ์ฟรีๆ เตือนไว้ทั้งวันจนกว่าจะไป
   const plan = planToday(s);
   const clash = planClash(s);
   if (plan) {
     const pc = chars.find((c) => c.id === plan.charId);
+    const spot = apptSpot(s);
     const note = document.createElement("div");
     note.className = "appt";
     const others = plansToday(s).slice(1)
       .map((p) => chars.find((c) => c.id === p.charId)?.name ?? p.charId);
-    note.innerHTML = `<b style="color:${pc?.color ?? "#fff"}">${pc?.name ?? plan.charId}</b>
-      ${isPlanPeriod(s) ? "รออยู่แล้ว ไปหาเลย" : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`
+    note.innerHTML = `<span class="avatar sm">${portraitHTML(plan.charId)}</span>
+      <span class="apptText"><b style="color:${pc?.color ?? "#fff"}">${pc?.name ?? plan.charId}</b>
+      ${isPlanPeriod(s)
+        ? `รออยู่ที่${spot ? locName(spot.loc) : "ที่นัดไว้"}แล้ว`
+        : "นัดไว้ช่วงหลังเลิกเรียนวันนี้"}`
       + (clash > 1
         ? `<i class="clash">รับ${others.join(" กับ ")}ไว้ช่วงเดียวกันด้วย — ไปได้คนเดียว</i>`
-        : "");
+        : "") + "</span>";
     board.appendChild(note);
   }
 
   // สอบซ่อมมาก่อนทุกอย่าง เพราะมันคือหนี้ที่ติดไปถึงฉากจบถ้าไม่จัดการ
   if (hasRetake(s)) {
-    const card = document.createElement("div");
-    card.className = "loc wide hw";
-    card.innerHTML = `<div class="ico">${icon("exam")}</div>
-      <div class="nm">ติดซ่อม ${retakeNames(s).join(" · ")}</div>`;
-    const acts = document.createElement("div");
-    acts.className = "acts";
+    const card = duty("exam", `ติดซ่อม ${retakeNames(s).join(" · ")}`,
+      `ไม่ซ่อมก็ติด 0 · เกรดเฉลี่ยตอนจบโดนหักวิชาละ ${game.retake.gpaPenaltyPerFail}`);
     for (const id of [...s.retakes]) {
-      const b = document.createElement("button");
-      b.className = "act";
-      b.innerHTML = `ซ่อม${subjectById(id)?.name ?? id}<em>${retakeCost} บาท · แรง ${game.retake.energy}</em>`;
-      b.onclick = () => {
-        const msg = doRetake(s, id);
+      const name = subjectById(id)?.name ?? id;
+      const go = async (focus: number | null) => {
+        // สอบซ่อมคือการกลับไปนั่งท่องของเดิม — ท่องมาจริงไหมมีผลกับคะแนนที่ได้คืน
+        const f = focus ?? (0.6 + (await openMinigame("focus", 1)).score * 0.8);
+        const msg = doRetake(s, id, f);
         const ok = !s.retakes.includes(id);
         flash(msg, ok ? "ok" : "bad");
-        if (ok) { sfx.gain(); next(); } else sfx.deny();
+        if (ok) { sfx.gain(); next(); } else { sfx.deny(); render(); }
       };
-      acts.appendChild(b);
+      const b1 = actBtn(`ท่องก่อนเข้าห้อง${name}`, `${retakeCost} บาท · แรง ${game.retake.energy} · ได้คะแนนตามที่ท่องมา`);
+      b1.onclick = () => void go(null);
+      card.acts.appendChild(b1);
+      const b2 = actBtn(`เข้าไปนั่งสอบเฉยๆ`, `${retakeCost} บาท · ผ่านแบบพอดีตัว`);
+      b2.onclick = () => void go(SKIP_YIELD);
+      card.acts.appendChild(b2);
     }
-    const w = document.createElement("div");
-    w.className = "warn";
-    w.textContent = `ไม่ซ่อมก็ติด 0 · เกรดเฉลี่ยตอนจบโดนหักวิชาละ ${game.retake.gpaPenaltyPerFail}`;
-    acts.appendChild(w);
-    card.appendChild(acts);
-    board.appendChild(card);
+    board.appendChild(card.el);
   }
 
   // งานกลุ่ม — คู่ที่จับได้ ไม่ใช่คู่ที่เลือก
   const pj = projectPartner(s);
   if (pj) {
-    const card = document.createElement("div");
-    card.className = "loc wide hw";
     const left = Math.max(0, projectNeeded - pj.done);
     const daysLeftPj = pj.due - s.dayIndex;
-    card.innerHTML = `<div class="ico">${icon("academic")}</div>
-      <div class="nm">งานกลุ่มกับ${projectName(s)} · เหลืออีก ${left} ครั้ง</div>`;
-    const acts = document.createElement("div");
-    acts.className = "acts";
-    const b = document.createElement("button");
-    b.className = "act";
-    b.innerHTML = `นัดทำงานกลุ่ม<em>เกรดทุกวิชา + · สนิทขึ้น</em>`;
-    b.onclick = () => { flash(workProject(s)); sfx.gain(); next(); };
-    acts.appendChild(b);
-    const w = document.createElement("div");
-    w.className = "warn";
-    w.textContent = daysLeftPj >= 0
-      ? `ส่งภายในอีก ${daysLeftPj} วัน · ไม่ทันแล้วหักความประพฤติกับชื่อเสียง`
-      : "เลยกำหนดแล้ว";
-    acts.appendChild(w);
-    card.appendChild(acts);
-    board.appendChild(card);
+    const card = duty("academic", `งานกลุ่มกับ${projectName(s)} · เหลืออีก ${left} ครั้ง`,
+      daysLeftPj >= 0
+        ? `ส่งภายในอีก ${daysLeftPj} วัน · ไม่ทันแล้วหักความประพฤติกับชื่อเสียง`
+        : "เลยกำหนดแล้ว");
+    // คู่ที่จับได้คือคนที่สนิทน้อยที่สุดเสมอ — เรื่องทั้งหมดของมันคือการอ่านคนที่ยังอ่านไม่ออก
+    const work = async (read: number | null) => {
+      if (read === null) {
+        const mgr = await openMinigame("talk", projectNeeded - pj.done <= 1 ? 2 : 1);
+        flash(`${mgr.label} · ${mgr.detail}`);
+        read = 0.6 + mgr.score * 0.8;
+      }
+      flash(workProject(s, read));
+      sfx.gain();
+      next();
+    };
+    const b1 = actBtn("นั่งคุยกับคู่จริงๆ", "อ่านให้ออกว่าเขาต้องการอะไร · ได้มากกว่าถ้าอ่านออก");
+    b1.onclick = () => void work(null);
+    card.acts.appendChild(b1);
+    const b2 = actBtn("แบ่งงานแล้วต่างคนต่างทำ", "เสร็จเหมือนกัน แต่ไม่ได้รู้จักเขาเพิ่ม");
+    b2.onclick = () => void work(SKIP_YIELD);
+    card.acts.appendChild(b2);
+    board.appendChild(card.el);
   }
 
   if (hasHomework(s)) {
-    const card = document.createElement("div");
-    card.className = "loc wide hw";
-    card.innerHTML = `<div class="ico">${icon("library")}</div>
-      <div class="nm">การบ้านค้างอยู่ ${s.homework} ชิ้น</div>`;
-    const acts = document.createElement("div");
-    acts.className = "acts";
-    const b = document.createElement("button");
-    b.className = "act";
-    b.innerHTML = `ทำการบ้าน<em>ความพร้อมสอบ + · ปัญญา + · แรง ${game.homework.energy}</em>`;
-    b.onclick = () => {
-      const msg = doHomework(s);
+    const card = duty("library", `การบ้านค้างอยู่ ${s.homework} ชิ้น`,
+      "ไม่ส่งเช้าวันเปิดเรียนถัดไป ครูหักคะแนนความประพฤติ");
+    // ทำการบ้านเคยเป็นปุ่มที่กดแล้วจบ ตอนนี้เป็นการ *เลือก* ว่าจะลงแรงแค่ไหน
+    // มินิเกมต้องเป็นของที่เลือกเล่น ไม่ใช่ด่านที่ต้องผ่านทุกคืนตลอด 120 วัน
+    // ไม่งั้นของที่ควรสนุกจะกลายเป็นภาษีที่เก็บทุกคืน
+    const doHw = async (focus: number | null) => {
+      const canDo = s.homework > 0 && s.energy + game.homework.energy >= 0;
+      if (focus === null && canDo) focus = 0.7 + (await openMinigame("focus", s.homework >= 3 ? 2 : 1)).score * 0.6;
+      const msg = doHomework(s, focus ?? SKIP_YIELD);
       const ok = s.homework === 0;
       flash(msg, ok ? "ok" : "bad");
-      if (ok) { sfx.homework(); next(); } else { sfx.deny(); }
+      if (ok) { sfx.homework(); next(); } else { sfx.deny(); render(); }
     };
-    acts.appendChild(b);
-    const warn = document.createElement("div");
-    warn.className = "warn";
-    warn.textContent = "ไม่ส่งเช้าวันเปิดเรียนถัดไป ครูหักคะแนนความประพฤติ";
-    acts.appendChild(warn);
-    card.appendChild(acts);
-    board.appendChild(card);
+    const b1 = actBtn("ตั้งใจนั่งทำ", `ความพร้อมสอบ + · ปัญญา + · แรง ${game.homework.energy}`);
+    b1.onclick = () => void doHw(null);
+    card.acts.appendChild(b1);
+    const b2 = actBtn("ลอกให้เสร็จๆ", `ส่งทันเหมือนกัน แต่ไม่ได้อะไรติดหัว`);
+    b2.onclick = () => void doHw(SKIP_YIELD);
+    card.acts.appendChild(b2);
+    board.appendChild(card.el);
   }
+}
 
-  if (isLocked(s)) { renderClassroom(board); return; }
+function duty(iconId: string, title: string, warn: string) {
+  const el = document.createElement("div");
+  el.className = "loc wide hw duty";
+  el.innerHTML = `<div class="nm"><span class="ico">${icon(iconId)}</span>${title}</div>`;
+  const acts = document.createElement("div");
+  acts.className = "acts";
+  el.appendChild(acts);
+  const w = document.createElement("div");
+  w.className = "warn";
+  w.textContent = warn;
+  el.appendChild(w);
+  return { el, acts };
+}
 
-  for (const loc of availableLocations(s)) {
+function actBtn(label: string, note: string, cls = "act") {
+  const b = document.createElement("button");
+  b.className = cls;
+  b.innerHTML = `<span class="alab">${label}</span><em>${note}</em>`;
+  return b;
+}
+
+// ───────────────────────── จะไปไหน ─────────────────────────
+
+/** สิ่งที่ตามองเห็นจากตรงนี้ — ไม่ใช่รายชื่อคน
+ *  ดูเหตุผลใน src/sim/presence.ts: เห็นว่ามีคนได้ แต่จะรู้ว่าเป็นใครต้องเข้าไปใกล้ */
+function signalHTML(sig: LocationOption["signal"]): string {
+  if (sig.kind === "known")
+    return sig.ids.map((id) => {
+      const c = chars.find((x) => x.id === id);
+      return `<span class="sig is-known" style="--who:${c?.color ?? "#fff"}">
+        <i></i>${c?.name ?? id}</span>`;
+    }).join("");
+  if (sig.kind === "someone")
+    return `<span class="sig is-some"><i></i>มีคนอยู่ตรงนั้น</span>`;
+  if (sig.regulars.length) {
+    const names = sig.regulars.map((id) => chars.find((c) => c.id === id)?.name ?? id);
+    return `<span class="sig is-miss"><i></i>ปกติ${names.join("กับ")}อยู่แถวนี้ · วันนี้ไม่เห็น</span>`;
+  }
+  return "";
+}
+
+function renderPlaceList(board: HTMLElement, locs: LocationOption[]) {
+  const head = document.createElement("div");
+  head.className = "secthead";
+  head.innerHTML = isLocked(s)
+    ? `<b>คาบเรียน</b><small>ช่วงนี้ออกไปไหนไม่ได้</small>`
+    : `<b>จะไปไหน</b><small>เข้าไปดูก่อนได้ ไม่เสียเวลา · ลงมือทำถึงจะหมดช่วงนี้</small>`;
+  board.appendChild(head);
+
+  for (const loc of locs) {
     const card = document.createElement("div");
-    card.className = "loc" + (loc.blocked ? " blocked" : "");
+    // ช่วงคาบเรียนมีที่เดียว การ์ดใบเดียวในกริดสองคอลัมน์อ่านออกมาเหมือนของที่วางค้างไว้
+    card.className = "loc pick" + (locs.length === 1 ? " wide" : "") + (loc.blocked ? " blocked" : "");
+    card.setAttribute("role", "button");
+    card.tabIndex = 0;
+    const sig = signalHTML(loc.signal);
     card.innerHTML = `<div class="locbg">${backdrop(loc.id, periodId(s))}</div>
-      <div class="ico">${icon(loc.id)}</div><div class="nm">${loc.name}</div>`;
-
-    const acts = document.createElement("div");
-    acts.className = "acts";
-
-    for (const p of loc.present) {
-      const b = document.createElement("button");
-      const waiting = !!plan && plan.charId === p.id && isPlanPeriod(s);
-      b.className = "who" + (waiting ? " is-appt" : "");
-      b.style.borderColor = p.color;
-      const rank = affinityRank(s.affinity[p.id] ?? 0);
-      const tr = trustRank(s.trust[p.id] ?? 0);
-      b.innerHTML = `<span class="avatar">${portraitHTML(p.id)}</span>
-        <span class="wname" style="color:${p.color}">${p.name}<em>${
-          waiting ? "ตามนัดเมื่อคืน" : `สนิท ${rank} · เชื่อใจ ${tr}`}</em></span>`;
-      b.onclick = () => talkTo(p.id, loc.id);
-      acts.appendChild(b);
-    }
-
-    if (loc.club) {
-      const b = document.createElement("button");
-      b.className = "act club";
-      b.textContent = loc.club.label;
-      b.onclick = async () => {
-        const club = clubOf(s);
-        const mg = club?.id === "music" ? "rhythm" : club?.id === "sport" ? "relay" : null;
-        let mult = 1;
-        if (mg) {
-          const res = await openMinigame(mg, 1);
-          mult = 0.6 + res.score * 0.9;
-          flash(`${res.label} · ${res.detail}`);
-        }
-        const r = doClubActivity(s, s.doneToday[loc.id] ?? 0, mult);
-        if (r) { flash(r.message); s.doneToday[loc.id] = (s.doneToday[loc.id] ?? 0) + 1; }
-        next();
-      };
-      acts.appendChild(b);
-    }
-
-    if (loc.action) {
-      const a = loc.action;
-      const b = document.createElement("button");
-      b.className = "act";
-      const times = s.doneToday[loc.id] ?? 0;
-      b.innerHTML = `${a.label}<em>${a.energy < 0 ? `แรง ${a.energy}` : `แรง +${a.energy}`}` +
-        `${a.cost ? ` · ${a.cost} บาท` : ""}${a.pay ? ` · ได้ ${a.pay} บาท` : ""}` +
-        `${times ? " · ทำแล้ววันนี้" : ""}</em>`;
-      b.disabled = !!loc.blocked;
-      // แรงไม่พอไม่ทำให้ปุ่มดับอีกแล้ว — กดได้ แล้วเกมจะถามว่าจะฝืนไหม
-      const tooTired = a.energy < 0 && energyLowFor(s) && !loc.blocked;
-      if (tooTired) b.classList.add("tired");
-      b.onclick = async () => {
-        // ฝืนต้องเป็นการตัดสินใจของผู้เล่น ไม่ใช่ของเกม
-        if (tooTired) {
-          const no = whyNoPush(s);
-          if (no) { flash(no, "bad"); sfx.deny(); return; }
-          P.pushPanel(
-            `แรงเหลือ ${Math.round(s.energy)} แล้ว ถ้าฝืนทำต่อจะได้ผลราว ${Math.round(game.push.yield * 100)}% ` +
-            `และหนี้การนอนจะเพิ่มเป็น ${Math.round(s.sleepDebt + game.push.debtPerPush)} ` +
-            `ซึ่งไปหักแรงที่ควรได้คืนพรุ่งนี้` +
-            `<br>ถ้าสิ่งนี้รอถึงพรุ่งนี้ได้ พักแล้วค่อยทำจะได้เต็มกว่าเสมอ — ฝืนมีไว้สำหรับของที่รอไม่ได้` +
-            (s.sleepDebt + game.push.debtPerPush >= game.push.sickAt
-              ? " · ระดับนี้เริ่มมีโอกาสตื่นมาแล้วลุกไม่ไหวทั้งวัน" : ""),
-            `ตอนนี้หนี้การนอน ${Math.round(s.sleepDebt)}`,
-            () => { P.closePanel(); void runAction(true); },
-            () => { P.closePanel(); render(); });
-          return;
-        }
-        await runAction(false);
-      };
-      const runAction = async (force: boolean) => {
-        if (loc.haircut) {
-          const r = doAction(s, loc, Math.random, force);
-          if (r && !r.ok) { flash(r.message, "bad"); sfx.deny(); next(); return; }
-          flash(haircut(s));
-          sfx.gain();
-          next();
-          return;
-        }
-        // กวดวิชาต้องเลือกก่อนว่าจะติววิชาไหน ไม่งั้นเงิน 320 บาทก็ไม่ต่างจากอ่านเองที่บ้าน
-        if (loc.subjectPick) {
-          P.subjectPanel(s, (subId) => {
-            P.closePanel();
-            const r = doAction(s, loc, Math.random, force);
-            if (!r) { next(); return; }
-            flash(r.message);
-            if (r.ok) {
-              const got = studyOne(s, subId);
-              const sub = subjectById(subId);
-              if (sub) flash(`ติว${sub.name} · ${sub.name} +${got.toFixed(0)}`);
-              sfx.gain();
-            } else sfx.deny();
-            next();
-          });
-          return;
-        }
-        const r = doAction(s, loc, Math.random, force);
-        if (r) {
-          flash(r.message, r.ok ? "ok" : "bad");
-          if (r.forced) sfx.push();
-          if (r.caught) await runDodge(r.caught, r.penalty);
-          else if (!r.ok) sfx.deny();
-          else if (r.repeat) sfx.dull();
-          else if (!r.forced) sfx.gain();
-        }
-        next();
-      };
-      acts.appendChild(b);
-    }
-
-    if (loc.rest) {
-      const b = document.createElement("button");
-      b.className = "act rest";
-      b.innerHTML = `${loc.rest.label}<em>แรง +${loc.rest.energy}</em>`;
-      b.onclick = () => { flash(doRest(s, loc) ?? ""); next(); };
-      acts.appendChild(b);
-    }
-
-    if (loc.blocked) {
-      const w = document.createElement("div");
-      w.className = "warn";
-      w.textContent = loc.blocked;
-      acts.appendChild(w);
-    }
-    card.appendChild(acts);
+      <div class="ico">${icon(loc.id)}</div>
+      <div class="nm">${loc.name}</div>
+      <div class="sigrow">${sig || '<span class="sig is-none">ไม่เห็นใครเลย</span>'}</div>
+      ${loc.club ? `<div class="tagrow"><span class="tag club">${loc.club.label}</span></div>` : ""}
+      ${loc.blocked ? `<div class="warn">${loc.blocked}</div>` : ""}`;
+    const go = () => { placeOpen = loc.id; sfx.step(); render(); };
+    card.onclick = go;
+    card.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
     board.appendChild(card);
   }
 }
 
-function renderClassroom(board: HTMLElement) {
-  const card = document.createElement("div");
-  card.className = "loc wide";
-  const flagRaised = s.doneToday["_assembly"] > 0;
-  card.innerHTML = `<div class="locbg">${backdrop("assembly", periodId(s))}</div>
-    <div class="ico">${icon("assembly")}</div>
-    <div class="nm">เข้าแถวหน้าเสาธง แล้วเข้าเรียน</div>`;
+// ───────────────────────── อยู่ในที่นั้นแล้ว ─────────────────────────
+
+function renderPlace(board: HTMLElement, loc: LocationOption) {
+  const wrap = document.createElement("div");
+  wrap.className = "place";
+  const period = game.periods[s.periodIndex].name;
+  wrap.innerHTML = `<div class="placeHead">
+      <button class="backBtn" id="bBack">‹ ที่อื่น</button>
+      <div class="placeName"><b>${loc.name}</b><small>${period}</small></div>
+    </div>
+    <div class="placeBg">${backdrop(loc.id, periodId(s))}</div>`;
+  board.appendChild(wrap);
+  $("bBack").onclick = () => { placeOpen = null; render(); };
+
+  // ใครอยู่ตรงนี้ — ตรงนี้คือจุดที่ความบังเอิญถูกเปิดออก
+  const found = document.createElement("div");
+  found.className = "found";
+  if (loc.present.length) {
+    sfx.meet();
+    for (const p of loc.present) {
+      const first = !hasMet(s, p.id);
+      const waiting = planToday(s)?.charId === p.id && isPlanPeriod(s);
+      const b = document.createElement("button");
+      b.className = "metcard" + (waiting ? " is-appt" : "") + (first ? " is-new" : "");
+      b.style.setProperty("--who", p.color);
+      const rank = affinityRank(s.affinity[p.id] ?? 0);
+      const tr = trustRank(s.trust[p.id] ?? 0);
+      b.innerHTML = `<span class="avatar lg">${portraitHTML(p.id)}</span>
+        <span class="wname"><b style="color:${p.color}">${first ? unknownLabel(p.id) : p.name}</b>
+        <em>${waiting ? "รออยู่ตามนัด" : first ? "ยังไม่เคยคุยกัน" : `สนิท ${rank} · เชื่อใจ ${tr}`}</em></span>
+        <span class="talkgo">${first ? "ทักดู" : "เข้าไปคุย"}</span>`;
+      b.onclick = () => talkTo(p.id, loc.id);
+      found.appendChild(b);
+    }
+  } else {
+    const names = loc.signal.regulars.map((id) => chars.find((c) => c.id === id)?.name ?? id);
+    found.innerHTML = `<div class="nobody">${names.length
+      ? `ไม่มีใครอยู่ · ปกติ${names.join("กับ")}มาแถวนี้ตอนนี้`
+      : "ตอนนี้ไม่มีใครที่เรารู้จักอยู่ตรงนี้"}</div>`;
+  }
+  wrap.appendChild(found);
+
   const acts = document.createElement("div");
   acts.className = "acts";
+  wrap.appendChild(acts);
+  if (isLocked(s)) { classroomActs(acts); return; }
+  placeActs(acts, loc);
+}
 
-  const b1 = document.createElement("button");
-  b1.className = "act";
-  b1.innerHTML = flagRaised ? "เข้าเรียนต่อ<em>ปัญญา +</em>" : "เข้าแถว แล้วเข้าเรียน<em>ปัญญา + · ความพร้อมสอบ +</em>";
+/** คนที่ยังไม่เคยคุยกันเรียกว่าอะไร
+ *
+ *  ยังไม่รู้จักชื่อ แต่ *รู้ชั้นปี* เพราะโรงเรียนไทยติดป้ายชั้นปีไว้บนเสื้อกับที่สีเนกไท
+ *  ซึ่งเป็นสิ่งแรกที่คนมองเห็นจริงๆ — ไม่ใช่ข้อมูลที่เกมแจก แต่เป็นของที่ตาเห็น */
+function unknownLabel(charId: string): string {
+  const c = chars.find((x) => x.id === charId);
+  const me = isUni(s) ? "ปี 1" : "ม.5";
+  if (!c) return "ใครสักคน";
+  if (c.year === me) return isUni(s) ? "เพื่อนร่วมคณะที่ยังไม่เคยคุยกัน" : "คนในห้องที่ยังไม่เคยคุยกัน";
+  const senior = (c.year > me);
+  return senior ? "รุ่นพี่คนหนึ่ง" : "รุ่นน้องคนหนึ่ง";
+}
+
+/** คาบเรียน — เข้าแถว เข้าเรียน หรือโดด */
+function classroomActs(acts: HTMLElement) {
+  const flagRaised = s.doneToday["_assembly"] > 0;
+  const b1 = actBtn(flagRaised ? "เข้าเรียนต่อ" : "เข้าแถว แล้วเข้าเรียน",
+    flagRaised ? "ปัญญา +" : "ปัญญา + · ความพร้อมสอบ +");
   b1.onclick = () => {
     if (!flagRaised) {
       s.doneToday["_assembly"] = 1;
@@ -456,9 +512,7 @@ function renderClassroom(board: HTMLElement) {
   };
   acts.appendChild(b1);
 
-  const b2 = document.createElement("button");
-  b2.className = "act risky";
-  b2.innerHTML = "โดดคาบ<em>ความซ่า + · เสี่ยงโดนจับ</em>";
+  const b2 = actBtn("โดดคาบ", "ความซ่า + · เสี่ยงโดนจับ", "act risky");
   b2.onclick = async () => {
     const r = skipClass(s);
     flash(r.message);
@@ -466,21 +520,110 @@ function renderClassroom(board: HTMLElement) {
     next();
   };
   acts.appendChild(b2);
+}
 
-  const atClass = chars.filter((c) =>
-    (c.where as Record<string, string | undefined>)["morning"] === "classroom" && !s.metToday[c.id]);
-  for (const p of atClass) {
-    const b = document.createElement("button");
-    b.className = "who";
-    b.style.borderColor = p.color;
-    b.innerHTML = `<span class="avatar">${portraitHTML(p.id)}</span>
-      <span class="wname" style="color:${p.color}">${p.name}<em>สนิท ${
-        affinityRank(s.affinity[p.id] ?? 0)} · เชื่อใจ ${trustRank(s.trust[p.id] ?? 0)}</em></span>`;
-    b.onclick = () => talkTo(p.id, "classroom");
+function placeActs(acts: HTMLElement, loc: LocationOption) {
+  if (loc.club) {
+    const b = actBtn(loc.club.label, "ไปซ้อม · นับเข้าผลงานวันงานใหญ่", "act club");
+    b.onclick = async () => {
+      const club = clubOf(s);
+      const mg: MgKind | null = club?.id === "music" ? "rhythm" : club?.id === "sport" ? "relay"
+                              : club?.id === "volunteer" ? "serve" : club?.id === "academic" ? "focus" : null;
+      let mult = 1;
+      if (mg) {
+        const res = await openMinigame(mg, 1);
+        mult = 0.6 + res.score * 0.9;
+        flash(`${res.label} · ${res.detail}`);
+      }
+      const r = doClubActivity(s, s.doneToday[loc.id] ?? 0, mult);
+      if (r) { flash(r.message); s.doneToday[loc.id] = (s.doneToday[loc.id] ?? 0) + 1; }
+      next();
+    };
     acts.appendChild(b);
   }
-  card.appendChild(acts);
-  board.appendChild(card);
+
+  if (loc.action) {
+    const a = loc.action;
+    const times = s.doneToday[loc.id] ?? 0;
+    const note = `${a.energy < 0 ? `แรง ${a.energy}` : `แรง +${a.energy}`}` +
+      `${a.cost ? ` · ${a.cost} บาท` : ""}${a.pay ? ` · ได้ ${a.pay} บาท` : ""}` +
+      `${times ? " · ทำแล้ววันนี้" : ""}`;
+    const b = actBtn(a.label, note);
+    b.disabled = !!loc.blocked;
+    // แรงไม่พอไม่ทำให้ปุ่มดับอีกแล้ว — กดได้ แล้วเกมจะถามว่าจะฝืนไหม
+    const tooTired = a.energy < 0 && energyLowFor(s) && !loc.blocked;
+    if (tooTired) b.classList.add("tired");
+    const runAction = async (force: boolean) => {
+      if (loc.haircut) {
+        const r = doAction(s, loc, Math.random, force);
+        if (r && !r.ok) { flash(r.message, "bad"); sfx.deny(); next(); return; }
+        flash(haircut(s));
+        sfx.gain();
+        next();
+        return;
+      }
+      // กวดวิชาต้องเลือกก่อนว่าจะติววิชาไหน ไม่งั้นเงิน 320 บาทก็ไม่ต่างจากอ่านเองที่บ้าน
+      if (loc.subjectPick) {
+        P.subjectPanel(s, (subId) => {
+          P.closePanel();
+          const r = doAction(s, loc, Math.random, force);
+          if (!r) { next(); return; }
+          flash(r.message);
+          if (r.ok) {
+            const got = studyOne(s, subId);
+            const sub = subjectById(subId);
+            if (sub) flash(`ติว${sub.name} · ${sub.name} +${got.toFixed(0)}`);
+            sfx.gain();
+          } else sfx.deny();
+          next();
+        });
+        return;
+      }
+      const r = doAction(s, loc, Math.random, force);
+      if (r) {
+        flash(r.message, r.ok ? "ok" : "bad");
+        if (r.forced) sfx.push();
+        if (r.caught) await runDodge(r.caught, r.penalty);
+        else if (!r.ok) sfx.deny();
+        else if (r.repeat) sfx.dull();
+        else if (!r.forced) sfx.gain();
+      }
+      next();
+    };
+    b.onclick = async () => {
+      // ฝืนต้องเป็นการตัดสินใจของผู้เล่น ไม่ใช่ของเกม
+      if (tooTired) {
+        const no = whyNoPush(s);
+        if (no) { flash(no, "bad"); sfx.deny(); return; }
+        P.pushPanel(
+          `แรงเหลือ ${Math.round(s.energy)} แล้ว ถ้าฝืนทำต่อจะได้ผลราว ${Math.round(game.push.yield * 100)}% ` +
+          `และหนี้การนอนจะเพิ่มเป็น ${Math.round(s.sleepDebt + game.push.debtPerPush)} ` +
+          `ซึ่งไปหักแรงที่ควรได้คืนพรุ่งนี้` +
+          `<br>ถ้าสิ่งนี้รอถึงพรุ่งนี้ได้ พักแล้วค่อยทำจะได้เต็มกว่าเสมอ — ฝืนมีไว้สำหรับของที่รอไม่ได้` +
+          (s.sleepDebt + game.push.debtPerPush >= game.push.sickAt
+            ? " · ระดับนี้เริ่มมีโอกาสตื่นมาแล้วลุกไม่ไหวทั้งวัน" : ""),
+          `ตอนนี้หนี้การนอน ${Math.round(s.sleepDebt)}`,
+          () => { P.closePanel(); void runAction(true); },
+          () => { P.closePanel(); render(); });
+        return;
+      }
+      await runAction(false);
+    };
+    acts.appendChild(b);
+  }
+
+  if (loc.rest) {
+    const b = actBtn(loc.rest.label, `แรง +${loc.rest.energy}`, "act rest");
+    b.onclick = () => { flash(doRest(s, loc) ?? ""); next(); };
+    acts.appendChild(b);
+  }
+
+  if (loc.blocked) {
+    const w = document.createElement("div");
+    w.className = "warn";
+    w.textContent = loc.blocked;
+    acts.appendChild(w);
+  }
 }
 
 function renderBottom() {
@@ -491,10 +634,11 @@ function renderBottom() {
   skip.className = "wide";
   const club = clubToday(s);
   skip.textContent = isLocked(s) ? "ผ่านคาบไปเฉยๆ"
-    : club && !isSchoolDay(s) ? "อยู่บ้านเฉยๆ" : "ไม่ทำอะไร";
-  skip.onclick = () => next();
+    : club && !isSchoolDay(s) ? "อยู่บ้านเฉยๆ" : "ปล่อยให้ช่วงนี้ผ่านไป";
+  skip.onclick = () => { placeOpen = null; next(); };
   el.appendChild(skip);
 }
+
 
 // ───────────────────────── บทสนทนา ─────────────────────────
 
@@ -523,6 +667,8 @@ function hooks() {
       if (Math.abs(amount) >= 3) flash(amount > 0 ? "ชื่อเสียงดีขึ้น" : "มีคนเอาไปพูดต่อ", amount > 0 ? "ok" : "bad");
     },
     onSide: (cid: string) => { takeSide(s, cid); flash(`เลือกยืนข้าง${nameOf(cid)}แล้ว — อีกฝั่งปิดถาวร`, "bad"); },
+    // เพิ่งได้รู้ชื่อเขา — ป้ายชื่อเปลี่ยนตรงบรรทัดนั้นเลย ไม่ใช่รู้ไว้ก่อนตั้งแต่เปิดฉาก
+    onIntroduce: (cid: string) => setSpeaker(nameOf(cid)),
   };
 }
 
@@ -569,20 +715,30 @@ function rollChat() {
 
 function talkTo(charId: string, where?: string) {
   const c = chars.find((x) => x.id === charId)!;
-  const story = openScene(c.story, s, charId, hooks());
+  const period = periodId(s);
+  // ครั้งแรกที่ได้คุยกันจริงๆ เล่นฉากแนะนำตัวของเขาแทนบทปกติ
+  // บทปกติเขียนไว้สำหรับคนที่รู้จักกันแล้ว ถ้าเล่นตั้งแต่วินาทีแรกที่เจอหน้ากัน มันจะไม่มีวันแรก
+  const first = noteEncounter(s, charId, where ?? "", period);
+  const meetInk = (c as { firstMeet?: string }).firstMeet;
+  const useMeet = first && !!meetInk && storyNames().includes(meetInk!);
+  const story = openScene(useMeet ? meetInk! : c.story, s, charId, hooks());
   s.metToday[charId] = true;
+  s.encounters++;
+  if (first) { sfx.newface(); remember(s, `ได้รู้จักกับ${c.name}ที่${locName(where ?? "")}`); }
   // ไปหาเขาแล้ววันนี้ แรงกดดันของเขาลดลง เพราะมีคนฟัง
   visited(s, charId);
   // ไปตามนัดที่รับไว้ทางไลน์เมื่อคืน — ได้ใจเพิ่มจากการที่ไปจริง ไม่ใช่จากบทสนทนา
   const bonus = keepPlan(s, charId);
   if (bonus) flash(`ไปตามนัด${c.name} · สนิทขึ้น +${bonus}`);
   // ที่ที่เราไปนั่งคุยกันมีคนอื่นอยู่ด้วยเสมอ — การเลือกจึงมีพยาน ไม่ใช่เรื่องของเรากับตัวเลข
-  for (const w of seenWith(s, charId)) {
+  for (const w of seenWith(s, charId, where)) {
     if (w.hadPlan) { sfx.stood(); flash(`${w.name}นั่งอยู่ตรงนั้นด้วย และวันนี้เรานัดเขาไว้`, "bad"); }
     else flash(`${w.name}อยู่ตรงนั้นด้วย`);
   }
   remember(s, `คุยกับ${c.name}`);
-  playScene(story, c.name, c.color, charId, () => next(), where, periodId(s));
+  placeOpen = null;
+  playScene(story, useMeet ? unknownLabel(charId) : c.name, c.color, charId,
+            () => next(), where, period, useMeet);
 }
 
 function playInk(name: string, charId: string | null, speaker: string, color: string,
@@ -735,6 +891,9 @@ function afterStep() {
   const news = takeNews(s);
   if (news.length) sfx.news();
   for (const line of news) flash(line, "bad");
+  // เดินสวนกับใครสักคนระหว่างทาง — ไม่กินช่วงเวลา แต่ทำให้โลกมีคนอยู่จริง
+  const bumped = bumpInto(s, Math.random);
+  if (bumped) { sfx.meet(); flash(`เดินสวนกับ${nameOf(bumped)} ทักกันแวบเดียว`); }
   rollChat();
   save();
   const e = isTermOver(s) ? null : eventNow(s);
@@ -806,8 +965,26 @@ function openMenu() {
     onWipe: (id) => { clearSlot(id as SlotId); openMenu(); },
     onNew: () => {
       if (!confirm("เริ่มเทอมใหม่? ความคืบหน้าที่ยังไม่บันทึกจะหายไป")) return;
-      s = newState(); P.closePanel(); save(); afterStep();
+      P.closePanel();
+      startNewTerm();
     },
+  });
+}
+
+/** เทอมใหม่เริ่มที่คำถามว่า "เราเป็นใครมาก่อน" ไม่ใช่ที่วันจันทร์แรก
+ *  ภูมิหลังเปลี่ยนค่าตั้งต้น คนที่รู้จักเราอยู่แล้ว และกฎบางข้อของโลก — ดู src/sim/background.ts */
+function startNewTerm() {
+  P.backgroundPanel((id) => {
+    s = newState();
+    applyBackground(s, id);
+    placeOpen = null;
+    lastDayShown = -1;
+    lastChips = {};
+    P.closePanel();
+    save();
+    const bg = backgroundOf(s);
+    if (bg) flash(`เปิดเทอมในฐานะ${bg.name}`);
+    afterStep();
   });
 }
 
@@ -863,19 +1040,31 @@ if (import.meta.env.DEV)
       // เปิดกระดานประกาศผลโดยไม่ต้องเล่นถึงวันสอบจริง — เทสต์ภาพใช้
       showHow: () => P.howToPanel(() => P.closePanel()),
       showDiary: () => P.diaryPanel(s, () => P.closePanel()),
+      // มินิเกมทั้งเจ็ดตัวเปิดดูตรงๆ ได้ — ไม่งั้นต้องเล่นถึงวันสอบ/วันงานจริงกว่าจะเห็นสักตัว
+      // ห้ามคืน Promise ออกไป — ฝั่งเทสต์ page.evaluate() จะรอจนกว่าจะเล่นจบ ซึ่งไม่มีวันเกิด
+      showMinigame: (kind: MgKind, diff = 1) => { void openMinigame(kind, diff); },
       showBoard: (examId = "midterm") => P.boardPanel(postBoard(s, examId), () => P.closePanel()) };
 
-// เปิดเกมมา ถ้ามีเหตุการณ์ค้างอยู่ตรงช่วงเวลานี้ ให้เล่นก่อน
+// ───────────────────────── เปิดเกม ─────────────────────────
 // เกมนี้มีระบบซ้อนกันสิบกว่าอย่าง ถ้าไม่มีอะไรบอกเลย ผู้เล่นจะไม่มีทางรู้ว่ามีอะไรให้ทำบ้าง
 // (เป็นเหตุผลเดียวกับที่เคยต้องตัดขอบเขตของอีกเกมทิ้งทั้งชั้น)
-try {
-  if (localStorage.getItem("mattayom:seenHow") !== "1") {
-    P.howToPanel(() => { P.closePanel(); render(); });
-    localStorage.setItem("mattayom:seenHow", "1");
-  }
-} catch { /* โหมดส่วนตัวก็เล่นได้ */ }
+// ลำดับ: วิธีเล่น (ครั้งแรกเท่านั้น) → เลือกภูมิหลัง (เฉพาะเกมใหม่) → เข้าเกม
+function boot() {
+  if (isFreshStart) { startNewTerm(); return; }
+  const startEvent = isTermOver(s) ? null : eventNow(s);
+  if (startEvent) { renderTop(); handleEvent(startEvent); }
+  else render();
+}
 
-const startEvent = isTermOver(s) ? null : eventNow(s);
-if (startEvent) { renderTop(); handleEvent(startEvent); }
-else render();
+let seenHow = true;
+try { seenHow = localStorage.getItem("mattayom:seenHow") === "1"; }
+catch { /* โหมดส่วนตัวก็เล่นได้ */ }
+if (!seenHow) {
+  renderTop();
+  P.howToPanel(() => {
+    P.closePanel();
+    try { localStorage.setItem("mattayom:seenHow", "1"); } catch { /* ไม่เป็นไร */ }
+    boot();
+  });
+} else boot();
 if (nextEvent(s)) { /* ปฏิทินพร้อมใช้ */ }

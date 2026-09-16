@@ -2,7 +2,9 @@ import locations from "../../data/locations.json";
 import chars from "../../data/characters.json";
 import game from "../../data/game.json";
 import { isLocked, isSchoolDay, periodId } from "./calendar";
-import { applyStat, canAfford } from "./economy";
+import { applyStat, canAfford, maxEnergy } from "./economy";
+import { signalAt, whoIsAt, type PlaceSignal } from "./presence";
+import { trait } from "./traits";
 import { rollCatch, inTrouble, type Rnd } from "./discipline";
 import { canPush, dozeOff, push, whyNoPush } from "./push";
 import { clubToday } from "./club";
@@ -20,20 +22,30 @@ export interface LocationOption {
              cost?: number; /** ทำงานพิเศษแล้วได้เงิน — กริยาใหม่ของภาคมหาลัย */ pay?: number };
   rest?: { label: string; energy: number };
   club?: { label: string; name: string };
+  /** ใครอยู่ตรงนั้นจริงๆ ตอนนี้ — **รู้ได้ต่อเมื่อเดินเข้าไปแล้วเท่านั้น**
+   *  กระดานหน้าแรกอ่าน `signal` แทน ซึ่งบอกแค่เท่าที่ตามองเห็นจากระยะไกล */
   present: { id: string; name: string; color: string }[];
+  /** เท่าที่มองเห็นจากตรงนี้ — ดู src/sim/presence.ts */
+  signal: PlaceSignal;
   blocked?: string;
 }
 
 const LOCS = locations as RawLocation[];
 const get = <T,>(o: object, k: string): T | undefined => (o as Record<string, T>)[k];
 
-/** ที่ไหนไปได้บ้างในช่วงเวลานี้ และใครอยู่ที่นั่น */
+/** ที่ไหนไปได้บ้างในช่วงเวลานี้
+ *
+ *  **`present` ไม่ใช่ของที่กระดานหน้าแรกเอาไปโชว์ได้** — ใครอยู่ตรงไหนต้องเดินเข้าไปถึงจะรู้
+ *  ฝั่ง UI ใช้ `signal` บนกระดาน แล้วค่อยเปิด `present` ตอนเข้าไปในที่นั้นจริง
+ *  (ดูเหตุผลทั้งหมดใน src/sim/presence.ts) */
 export function availableLocations(s: GameState): LocationOption[] {
   const period = periodId(s);
+  const bonus = trait(s, "encounter", 0);
   if (isLocked(s)) {
     const roomId = chapterOf(s) === "uni" ? "lecture" : "classroom";
     const cls = LOCS.find((l) => l.id === roomId) ?? LOCS.find((l) => l.id === "classroom")!;
-    return [{ ...cls, action: undefined, present: whoIsAt(s, cls.id, period) } as LocationOption];
+    return [{ ...cls, action: undefined, present: peopleAt(s, cls.id, period, bonus),
+              signal: signalAt(s, cls.id, period, bonus) } as LocationOption];
   }
   const club = clubToday(s);
   return LOCS
@@ -42,7 +54,8 @@ export function availableLocations(s: GameState): LocationOption[] {
     // เสาร์อาทิตย์และวันหยุด โรงเรียนปิด — เดิมเข้าห้องสมุดได้ทุกวันไม่เว้น
     .filter((l) => !get<boolean>(l, "school") || isSchoolDay(s))
     .map((l) => {
-      const o = { ...l, present: whoIsAt(s, l.id, period) } as LocationOption;
+      const o = { ...l, present: peopleAt(s, l.id, period, bonus),
+                  signal: signalAt(s, l.id, period, bonus) } as LocationOption;
       if (get<boolean>(l, "risky") && inTrouble(s))
         o.blocked = "ครูปกครองสั่งห้ามเข้าแล้ว";
       if (club && club.location === l.id && period === "after")
@@ -51,11 +64,12 @@ export function availableLocations(s: GameState): LocationOption[] {
     });
 }
 
-function whoIsAt(s: GameState, locId: string, period: string) {
-  return chars
-    // เพื่อนมัธยมไม่โผล่มาที่มหาลัย แต่ยังทักไลน์มาได้ ซึ่งเป็นคนละเรื่องกันโดยตั้งใจ
-    .filter((c) => inChapter(c as { chapter?: string }, chapterOf(s)))
-    .filter((c) => get<string>(c.where, period) === locId && !s.metToday[c.id])
+/** ใครอยู่ตรงนั้นจริงๆ — `whoIsAt()` กรองภาคให้แล้ว เพื่อนมัธยมจึงไม่โผล่มาที่มหาลัย
+ *  (แต่ยังทักไลน์มาได้ ซึ่งเป็นคนละเรื่องกันโดยตั้งใจ) */
+function peopleAt(s: GameState, locId: string, period: string, bonus: number) {
+  return whoIsAt(s, locId, period, bonus)
+    .map((id) => chars.find((c) => c.id === id))
+    .filter((c): c is (typeof chars)[number] => !!c)
     .map((c) => ({ id: c.id, name: c.name, color: c.color }));
 }
 
@@ -83,10 +97,12 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
   // ฝืนแล้วได้ของน้อยลง — ลดที่ *ต้นทาง* ไม่ใช่ทำเต็มแล้วหักคืน เพราะ applyStat มีผลตอบแทนลดหลั่นในตัว
   const mult = forcing ? push(s) : 1;
   const got = applyStat(s, a.stat, a.gain * mult, times);
-  s.energy = Math.max(0, Math.min(game.energy.max, s.energy + a.energy));
+  s.energy = Math.max(0, Math.min(maxEnergy(s), s.energy + a.energy));
   if (a.cost) s.money -= a.cost;
-  if (a.pay) s.money += a.pay;
-  if (a.study) s.study += a.study;
+  // ภูมิหลังที่เคยทำงานมาก่อนได้ค่าแรงมากกว่า — ของที่ทำให้เวลาหนึ่งช่วงมีค่าไม่เท่ากันในแต่ละรอบ
+  const pay = a.pay ? Math.round(a.pay * trait(s, "pay", 1)) : 0;
+  if (pay) s.money += pay;
+  if (a.study) s.study += a.study * trait(s, "studyGain", 1);
   s.doneToday[loc.id] = times + 1;
 
   const nm = game.stats.find((x) => x.id === a.stat)!.name;
@@ -94,7 +110,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
   if (forcing) message += ` (ฝืน · หนี้การนอน ${Math.round(s.sleepDebt)})`;
   if (times > 0) message += " (ทำซ้ำวันนี้ ได้น้อยลง)";
   if (a.cost) message += ` · -${a.cost} บาท`;
-  if (a.pay) message += ` · +${a.pay} บาท`;
+  if (pay) message += ` · +${pay} บาท`;
 
   let caught: string | null = null, penalty = 0;
   if (loc.risky && loc.catchBase) {
@@ -106,7 +122,7 @@ export function doAction(s: GameState, loc: LocationOption, rnd: Rnd = Math.rand
 
 export function doRest(s: GameState, loc: LocationOption): string | null {
   if (!loc.rest) return null;
-  s.energy = Math.min(game.energy.max, s.energy + loc.rest.energy);
+  s.energy = Math.min(maxEnergy(s), s.energy + loc.rest.energy);
   return `${loc.rest.label} · แรง +${loc.rest.energy}`;
 }
 

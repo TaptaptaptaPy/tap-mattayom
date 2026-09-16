@@ -40,6 +40,9 @@ export function offerChat(s: GameState, rnd: Rnd): string | null {
   if (rnd() > C.chancePerNight) return null;
 
   const pool = chars.filter((c) => {
+    // ยังไม่เคยเจอหน้ากันก็ไม่มีไลน์กัน — ตรวจตรงนี้เอง ไม่ import presence
+    // เพราะ presence เป็นฝ่าย import ไฟล์นี้ (ดูหมายเหตุเรื่อง import วนกันข้างบน)
+    if (s.met[c.id] === undefined) return false;
     if (affinityRank(s.affinity[c.id] ?? 0) < C.minRank) return false;
     const last = lastThreadDay(s, c.id);
     return last < 0 || s.dayIndex - last >= C.cooldownDays;
@@ -64,7 +67,8 @@ export function offerChat(s: GameState, rnd: Rnd): string | null {
  */
 export function offerSecondChat(s: GameState, rnd: Rnd, firstId: string): string | null {
   if (s.pendingChat) return null;
-  const close = chars.filter((c) => affinityRank(s.affinity[c.id] ?? 0) >= C.secondMinClose);
+  const close = chars.filter((c) =>
+    s.met[c.id] !== undefined && affinityRank(s.affinity[c.id] ?? 0) >= C.secondMinClose);
   if (close.length < 2 || rnd() > C.secondChance) return null;
 
   const pool = close.filter((c) => {

@@ -42,15 +42,10 @@
 <div id="app">
   <header id="top">
     <div id="dateRow">
-      <div><div id="chapter"></div><div id="date"></div></div>
-      <div id="topBtns">
-        <button class="tbtn" id="bChat">ไลน์</button>
-        <button class="tbtn" id="bSound">♪</button>
-        <button class="tbtn" id="bChars">คนรู้จัก</button>
-        <button class="tbtn" id="bGrade">สมุดพก</button>
-        <button class="tbtn" id="bBag">กระเป๋า</button>
-        <button class="tbtn" id="bCal">ปฏิทิน</button>
-        <button class="tbtn" id="bMenu">เมนู</button>
+      <div class="datewrap"><div id="chapter"></div><div id="date"></div></div>
+      <div id="headBtns">
+        <button class="tbtn ic" id="bSound" aria-label="เปิดปิดเสียง">♪</button>
+        <button class="tbtn ic" id="bMenu" aria-label="เมนู">☰</button>
       </div>
     </div>
     <div id="periodStrip"></div>
@@ -58,6 +53,11 @@
   </header>
   <main id="board"></main>
   <section id="scene" class="hidden">
+    <div id="sceneTools">
+      <button class="stool" id="bLog">ย้อนอ่าน</button>
+      <button class="stool" id="bAuto">ออโต้</button>
+    </div>
+    <div id="backlog" class="hidden"></div>
     <div id="sceneBg" class="hidden"></div>
     <div id="sceneBox">
       <div id="portrait"></div>
@@ -72,7 +72,16 @@
   <div id="daycard" class="hidden"></div>
   <div id="panel" class="hidden"></div>
   <div id="minigame" class="hidden"></div>
-  <footer id="bottom"></footer>
+  <footer id="foot">
+    <div id="bottom"></div>
+    <nav id="topBtns" aria-label="เมนูหลัก">
+      <button class="tbtn" id="bChat">ไลน์</button>
+      <button class="tbtn" id="bChars">คนรู้จัก</button>
+      <button class="tbtn" id="bGrade">สมุดพก</button>
+      <button class="tbtn" id="bBag">กระเป๋า</button>
+      <button class="tbtn" id="bCal">ปฏิทิน</button>
+    </nav>
+  </footer>
 </div>
 <script type="module" src="/src/main.ts"></script>
 </body>

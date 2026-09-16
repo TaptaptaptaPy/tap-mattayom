@@ -1,11 +1,12 @@
 import chars from "../../data/characters.json";
 import game from "../../data/game.json";
 import { changeAffinity, changeTrust } from "./bonds";
-import { chapterOf, inChapter } from "./chapter";
 import { plansToday } from "./chat";
 import { periodId } from "./calendar";
 import { lifeOf } from "./offscreen";
 import { recall } from "./bonds";
+import { whereIs } from "./presence";
+import { trait } from "./traits";
 import { remember, type GameState } from "./state";
 
 /** โดนเห็นตอนอยู่กับอีกคน
@@ -14,8 +15,9 @@ import { remember, type GameState } from "./state";
  *  "กลับด้าน" ซึ่งเป็นระบบที่ผู้เล่นเรียกร้องให้กลับมามากที่สุดหลังภาคหลังๆ ตัดมันทิ้ง
  *  เหตุผลที่มันดีคือ: มันทำให้การเลือกมีพยาน ไม่ใช่เรื่องที่รู้กันแค่เรากับตัวเลข
  *
- *  เกมนี้มีของที่ต้องใช้อยู่แล้วทั้งหมด — `where` ใน characters.json บอกว่าใครอยู่ที่ไหน
- *  ตอนไหน ไปหาพลอยที่ห้องสมุดหลังเลิกเรียน ปาล์มก็นั่งอยู่โต๊ะนั้นเหมือนกัน
+ *  ตั้งแต่ตารางชีวิตกลายเป็นการทอย (ดู src/sim/presence.ts) พยานก็กลายเป็นเรื่องบังเอิญจริงๆ
+ *  วันนี้ไปหาพลอยที่ห้องสมุดแล้วปาล์มบังเอิญนั่งอยู่โต๊ะนั้น พรุ่งนี้อาจไม่มีใครเห็นเลย
+ *  ซึ่งดีกว่าของเดิมที่คู่เดิมเห็นกันทุกครั้งจนผู้เล่นจำได้ว่าห้องไหน "ห้ามไป"
  *
  *  ราคาไม่เท่ากันสองแบบ:
  *  - คนที่ *นัดเราไว้วันนี้* แล้วเห็นเราอยู่กับอีกคน — เขาไม่ได้แค่ถูกลืม เขาเห็นกับตา
@@ -24,19 +26,18 @@ import { remember, type GameState } from "./state";
 
 const S = game.seen;
 
-const whereOf = (id: string, period: string): string | undefined =>
-  (chars.find((c) => c.id === id) as { where?: Record<string, string> } | undefined)?.where?.[period];
-
 const nameOf = (id: string) => chars.find((c) => c.id === id)?.name ?? id;
 
-/** ใครอีกบ้างที่อยู่ตรงนั้นในช่วงเวลานี้ */
-export function whoElseIsHere(s: GameState, metId: string): string[] {
+/** ใครอีกบ้างที่อยู่ตรงนั้นในช่วงเวลานี้
+ *  `at` คือที่ที่เราไปเจอเขาจริงๆ — ส่งเข้ามาเพราะคนหนึ่งคนอยู่ได้หลายที่แล้ว */
+export function whoElseIsHere(s: GameState, metId: string, at?: string): string[] {
   const period = periodId(s);
-  const here = whereOf(metId, period);
+  const bonus = trait(s, "encounter", 0);
+  const here = at ?? whereIs(s, metId, period, bonus);
   if (!here) return [];
   return chars
-    .filter((c) => c.id !== metId && inChapter(c as { chapter?: string }, chapterOf(s)))
-    .filter((c) => whereOf(c.id, period) === here)
+    .filter((c) => c.id !== metId)
+    .filter((c) => whereIs(s, c.id, period, bonus) === here)
     .map((c) => c.id);
 }
 
@@ -44,11 +45,11 @@ export interface SeenReport { id: string; name: string; hadPlan: boolean; }
 
 /** ไปอยู่กับคนนี้แล้วมีใครเห็นบ้าง — เรียกตอนที่เราไปหาใครสักคนจริงๆ
  *  ผลข้างเคียงทั้งหมดเกิดที่นี่ที่เดียว และวันละครั้งต่อคน */
-export function seenWith(s: GameState, metId: string): SeenReport[] {
+export function seenWith(s: GameState, metId: string, at?: string): SeenReport[] {
   const out: SeenReport[] = [];
   const booked = new Set(plansToday(s).filter((p) => !p.kept).map((p) => p.charId));
 
-  for (const other of whoElseIsHere(s, metId)) {
+  for (const other of whoElseIsHere(s, metId, at)) {
     if (s.seenToday[other]) continue;
     const hadPlan = booked.has(other);
     // ไม่ได้นัดไว้และไม่ได้สนิทพอจะรู้สึกอะไร ก็แค่อยู่ห้องเดียวกันเฉยๆ

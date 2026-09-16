@@ -29,6 +29,8 @@ VAR homeworkMissed = 0
 VAR term = 1
 // สอบอยู่ในระยะที่การติวยังทัน (1/0)
 VAR examSoon = 0
+// รู้จักคนที่อยู่ตรงหน้ามากี่วันแล้ว 0 = เพิ่งเจอกันวันนี้
+VAR known = 0
 
 // สะพานไปฝั่ง TypeScript — ดู src/story/bridge.ts
 EXTERNAL gainStat(id, amount)
@@ -70,3 +72,12 @@ EXTERNAL homeCannot()
 EXTERNAL rivalName()
 EXTERNAL rivalLead()
 EXTERNAL letThemGo()
+// เราเป็นใครมาก่อนเทอมนี้ — คืน id ของภูมิหลัง ดู src/sim/background.ts
+// เทียบเป็นสตริงได้ตรงๆ เช่น {background() == "transfer": ...}
+EXTERNAL background()
+// คนนี้รู้จักเรามาก่อนวันแรกของเทอมไหม (1/0) — มาจากภูมิหลัง ไม่ใช่จากการเล่น
+EXTERNAL knewBefore(charId)
+// รู้จักกันมากี่วันแล้ว -1 = ยังไม่เคยเจอ
+EXTERNAL metDays(charId)
+// เพิ่งได้รู้ชื่อเขา — ป้ายชื่อบนกล่องบทเปลี่ยนจาก "ใครสักคน" เป็นชื่อจริงตรงบรรทัดนี้
+EXTERNAL introduce(charId)

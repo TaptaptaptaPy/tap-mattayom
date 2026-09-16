@@ -1,15 +1,18 @@
 import game from "../../data/game.json";
 import chars from "../../data/characters.json";
+import locations from "../../data/locations.json";
 import { clubOf, clubsFor } from "../sim/club";
 import { ITEMS, giftable, giftedTimes, usable, wantsOf } from "../sim/shop";
 import { inChapter } from "../sim/chapter";
 import { behaviourLabel } from "../sim/discipline";
 import { standingLabel } from "../sim/bonds";
+import { BACKGROUNDS, backgroundOf } from "../sim/traits";
+import { daysKnown, habitCount } from "../sim/presence";
 import { SUBJECTS, gradeOf, gpa } from "../sim/grades";
 import type { BoardRow } from "../sim/state";
 import type { MilestoneResult } from "../sim/milestone";
 import { EVENTS } from "../sim/calendar";
-import { affinityRank, statRank, type Ending, type GameState, type StatId } from "../sim/state";
+import { affinityRank, statRank, trustRank, type Ending, type GameState, type StatId } from "../sim/state";
 import type { ExamReport } from "../sim/exam";
 import { portraitHTML } from "./portrait";
 import { icon } from "./icons";
@@ -17,6 +20,7 @@ import { icon } from "./icons";
 const el = () => document.getElementById("panel")!;
 export const closePanel = () => { el().classList.add("hidden"); el().innerHTML = ""; };
 const statName = (id: string) => game.stats.find((s) => s.id === id)?.name ?? id;
+const LOCS = locations as { id: string; name: string }[];
 
 function open(html: string, onClose = closePanel) {
   const p = el();
@@ -27,37 +31,114 @@ function open(html: string, onClose = closePanel) {
   return p;
 }
 
-/** หน้าคนรู้จัก — ใช้ข้อมูลใน characters.json ที่เดิมมีครบแต่ไม่เคยถูกแสดงเลยสักฟิลด์ */
+/** หน้าคนรู้จัก
+ *
+ *  ของเดิมขึ้นครบทั้งหกคนตั้งแต่วินาทีที่กดเข้ามาครั้งแรก ทั้งที่ยังไม่เคยพูดกับใครเลย
+ *  ซึ่งบอกผู้เล่นไปแล้วว่าทั้งเทอมนี้มีใครบ้าง หน้าตาเป็นยังไง และชอบอะไร
+ *  การรู้จักใครสักคนจึงไม่เหลืออะไรให้ค้นพบ เหลือแค่การไต่ตัวเลขของคนที่รู้จักอยู่แล้ว
+ *
+ *  ตอนนี้ชื่อขึ้นทีละคนตามที่ *เจอจริง* (`s.met` — ดู src/sim/presence.ts)
+ *  ส่วนคนที่ยังไม่เจอ บอกแค่ว่ายังเหลืออีกกี่คน ไม่บอกว่าเป็นใครหรืออยู่ที่ไหน
+ */
 export function characterPanel(s: GameState) {
+  const here = chars.filter((c) => inChapter(c as { chapter?: string }, s.chapter));
+  const known = chars.filter((c) => s.met[c.id] !== undefined);
+  const left = here.filter((c) => s.met[c.id] === undefined).length;
+
   let h = `<h2>คนรู้จัก<small>${standingLabel(s.standing)}</small></h2>`;
   if (s.sided) {
     const side = chars.find((c) => c.id === s.sided);
     h += `<p class="dimline">เทอมนี้เราเลือกยืนข้าง<b style="color:${side?.color}">${side?.name}</b>ไปแล้ว
       อีกฝั่งปิดถาวรจนจบเทอม</p>`;
   }
-  for (const c of chars) {
+  if (!known.length)
+    h += `<div class="empty"><b>ยังไม่รู้จักใครเลย</b>
+      เดินเข้าไปในที่ต่างๆ ตามช่วงเวลา แล้วดูว่าวันนี้ใครอยู่ตรงนั้น</div>`;
+
+  for (const c of known) {
     const v = s.affinity[c.id] ?? 0;
     const r = affinityRank(v);
+    const tr = trustRank(s.trust[c.id] ?? 0);
     const likes = (c.likes as string[]).map(statName).join(" · ");
     const gate = c.gate as { stat: string; value: number; hint: string } | undefined;
     const locked = gate && s.stats[gate.stat as StatId] < gate.value;
-    h += `<div class="card person" style="border-color:${c.color}44">
+    const days = daysKnown(s, c.id);
+    const away = !inChapter(c as { chapter?: string }, s.chapter);
+    const spots = knownSpots(s, c.id);
+    const mem = s.memories[c.id] ?? [];
+    const rv = s.rivals[c.id] ?? 0;
+    const rival = (c as { rival?: { name: string; blurb: string } }).rival;
+    h += `<div class="card person${away ? " is-away" : ""}" style="border-color:${c.color}44">
       <div class="prow">
         <span class="avatar lg">${portraitHTML(c.id)}</span>
         <div class="pinfo">
           <div class="chead"><b style="color:${c.color}">${c.name}</b>
             <small>${c.year} · ${c.tag}</small></div>
           <div class="cblurb">${c.blurb}</div>
+          <div class="cmeta">${days <= 0 ? "เพิ่งรู้จักกันวันนี้" : `รู้จักกันมา ${days} วัน`}${
+            away ? " · คนละที่กันแล้ว แต่ยังทักไลน์ได้" : ""}</div>
         </div>
       </div>
-      <div class="kv"><span>ความสัมพันธ์</span>
+      <div class="kv"><span>ความสนิท</span>
         <div class="minibar"><i style="width:${(r / 10) * 100}%;background:${c.color}"></i></div>
-        <b>ระดับ ${r}</b></div>
+        <b>${r}/10</b></div>
+      <div class="kv"><span>ความเชื่อใจ</span>
+        <div class="minibar"><i style="width:${(tr / 5) * 100}%;background:#8fd6a6"></i></div>
+        <b>${game.trust.rankNames[tr]}</b></div>
       <div class="kv"><span>ให้ค่ากับ</span><b>${likes}</b></div>
-      ${locked ? `<div class="gate">🔒 ${gate!.hint} (ตอนนี้${statName(gate!.stat)} ${Math.floor(s.stats[gate!.stat as StatId])}/${gate!.value})</div>` : ""}
+      ${spots.length ? `<div class="kv"><span>มักเจอเขาที่</span><b>${spots.join(" · ")}</b></div>` : ""}
+      ${rival && rv > 0 ? `<div class="kv"><span>คนอื่นที่สนิทกับเขา</span><b>${rival.name} — ${rival.blurb}</b></div>` : ""}
+      ${mem.length ? `<div class="memo"><em>เขายังจำได้</em>${
+        mem.slice(-2).map((m) => `<span>${m}</span>`).join("")}</div>` : ""}
+      ${locked ? `<div class="gate">ยังมีทางที่เปิดไม่ได้ · ${gate!.hint}
+        (ตอนนี้${statName(gate!.stat)} ${Math.floor(s.stats[gate!.stat as StatId])}/${gate!.value})</div>` : ""}
     </div>`;
   }
+
+  if (left > 0)
+    h += `<p class="dimline">ยังมีคนที่ยังไม่ได้รู้จักอีก ${left} คนในเทอมนี้ —
+      เกมไม่บอกว่าเป็นใครหรืออยู่ตรงไหน เพราะยังไม่มีใครบอกเรา</p>`;
   open(h);
+}
+
+/** ที่ที่เรารู้ว่าเขามักอยู่ — มาจากการไปเจอเขาที่นั่นซ้ำๆ ไม่ใช่ข้อมูลที่เกมแจกให้ */
+function knownSpots(s: GameState, charId: string): string[] {
+  const out: string[] = [];
+  for (const p of game.periods)
+    for (const l of LOCS) {
+      if (habitCount(s, charId, p.id, l.id) < game.presence.knowAt) continue;
+      out.push(`${l.name} (${p.name})`);
+    }
+  return out.slice(0, 3);
+}
+
+/** เลือกภูมิหลังก่อนเปิดเทอม — หน้าจอแรกสุดของเกมรอบใหม่
+ *  นี่คือที่เดียวที่ผู้เล่นได้เลือก "เราเป็นใครก่อนเรื่องนี้จะเริ่ม" */
+export function backgroundPanel(onPick: (id: string) => void) {
+  let h = `<h2>เราเป็นใครมาก่อน<small>เลือกได้ครั้งเดียว</small></h2>
+    <div class="sub">ภูมิหลังเปลี่ยนสามอย่างพร้อมกัน — ค่าสถานะที่เริ่มมี ·
+      คนที่รู้จักเราอยู่แล้วตั้งแต่วันแรก · และกฎบางข้อของโลกที่ใช้กับเราคนเดียว</div>`;
+  for (const b of BACKGROUNDS) {
+    const stats = Object.entries(b.stats)
+      .map(([k, v]) => `${statName(k)} +${v}`).join(" · ");
+    const knows = b.knows.length
+      ? b.knows.map((k) => chars.find((c) => c.id === k.id)?.name ?? k.id).join(" · ")
+      : "ไม่มีใครเลย";
+    h += `<div class="card clickable bgcard" data-bg="${b.id}">
+      <div class="chead"><b>${b.name}</b><small>${b.tag}</small></div>
+      <div class="cblurb">${b.blurb}</div>
+      <div class="kv"><span>เริ่มด้วย</span><b>${stats || "ไม่มีค่าไหนพิเศษ"}</b></div>
+      <div class="kv"><span>รู้จักอยู่แล้ว</span><b>${knows}</b></div>
+      <div class="bgline good">${b.perk}</div>
+      <div class="bgline bad">${b.flaw}</div>
+      <div class="cdetail">${b.detail}</div>
+    </div>`;
+  }
+  const p = open(h, () => { /* ต้องเลือกก่อนถึงจะเริ่มได้ */ });
+  p.querySelector<HTMLButtonElement>(".pclose")!.style.display = "none";
+  p.onclick = null;
+  p.querySelectorAll<HTMLElement>("[data-bg]").forEach((c) =>
+    (c.onclick = () => onPick(c.dataset.bg!)));
 }
 
 export interface BagHandlers {
@@ -78,7 +159,9 @@ export function bagPanel(s: GameState, hx: BagHandlers) {
   // แต่บอกได้เฉพาะคนที่เราสนิทพอจะรู้จักเขาจริงๆ เท่านั้น
   for (const it of gifts)
     h += `<div class="row"><span>${it.icon} ${it.name} ×${s.inventory[it.id]}</span>
-      <span class="giftrow">${chars.filter((c) => inChapter(c as { chapter?: string }, s.chapter)).map((c) => {
+      <span class="giftrow">${chars.filter((c) => inChapter(c as { chapter?: string }, s.chapter))
+        // ยื่นของให้คนที่ยังไม่เคยคุยกันไม่ได้ — ปุ่มที่โผล่มาก่อนก็เท่ากับบอกไปแล้วว่ามีใครบ้าง
+        .filter((c) => s.met[c.id] !== undefined).map((c) => {
         const known = affinityRank(s.affinity[c.id] ?? 0) >= game.gift.knowAtRank;
         const w = wantsOf(c.id);
         const tag = !known ? "" : w?.item?.id === it.id ? " ♥"
@@ -134,9 +217,13 @@ export interface MenuHandlers {
 }
 
 export function menuPanel(s: GameState, hx: MenuHandlers) {
+  const bg = backgroundOf(s);
   let h = `<h2>เมนู</h2>
+    ${bg ? `<div class="card bgnow"><div class="chead"><b>${bg.name}</b><small>${bg.tag}</small></div>
+      <div class="bgline good">${bg.perk}</div><div class="bgline bad">${bg.flaw}</div></div>` : ""}
     <div class="kv"><span>ความประพฤติ</span><b>${Math.round(s.behaviour)} · ${behaviourLabel(s.behaviour)}</b></div>
     <div class="kv"><span>ความพร้อมสอบ</span><b>${Math.round(s.study)}</b></div>
+    <div class="kv"><span>บังเอิญเจอคนมาแล้ว</span><b>${s.encounters} ครั้ง</b></div>
     <div class="kv"><span>โดนจับได้</span><b>${s.caught} ครั้ง</b></div><hr>`;
   for (const sl of hx.slots)
     h += `<div class="row"><span>${sl.label}<small>${sl.desc}</small></span>
@@ -319,10 +406,19 @@ export function howToPanel(onClose: () => void) {
   const h = `<h2>ชีวิตหนึ่งเทอม<small>วันละสี่ช่วงเวลา · ${game.term.days} วัน</small></h2>
     <div class="howto">
       <div class="hrow"><b>เวลาคือของที่มีจำกัด</b>
-        ทุกอย่างที่ทำกินไปหนึ่งช่วงเวลา เลือกอันหนึ่งคือไม่ได้อีกอันเสมอ</div>
+        ทุกอย่างที่ทำกินไปหนึ่งช่วงเวลา เลือกอันหนึ่งคือไม่ได้อีกอันเสมอ
+        <em>เดินเข้าไปดูในที่ต่างๆ ไม่เสียเวลา</em> เสียเมื่อลงมือทำอะไรสักอย่าง</div>
+      <div class="hrow"><b>การเจอกันเป็นเรื่องบังเอิญ</b>
+        ไม่มีใครอยู่ที่เดิมทุกวัน กระดานบอกได้แค่ว่า <em>มีคนอยู่</em> จะรู้ว่าใครต้องเดินเข้าไปดู
+        เจอเขาที่เดิมบ่อยๆ ถึงจะเริ่มรู้ตารางชีวิตเขา · สนิทพอแล้วถึงจะจำหลังได้ตั้งแต่ไกล
+        ทางเดียวที่เจอแน่ๆ คือ <em>นัดกันไว้</em> หรืออยู่ชมรมเดียวกัน</div>
+      <div class="hrow"><b>เราเป็นใครมาก่อนก็สำคัญ</b>
+        ภูมิหลังที่เลือกตอนเปิดเทอมเปลี่ยนค่าตั้งต้น · คนที่รู้จักเราอยู่แล้ว ·
+        และกฎบางข้อของโลกที่ใช้กับเราคนเดียว เล่นรอบใหม่ด้วยภูมิหลังอื่นคือคนละชีวิต</div>
       <div class="hrow"><b>สามอย่างที่เกมยัดใส่มือ ไม่ใช่ของที่เลือกทำ</b>
         การบ้านทุกวันเรียน · สอบซ่อมหลังประกาศผล · งานกลุ่มที่จับคู่ให้กับคนที่สนิทน้อยที่สุด
-        ทั้งสามโผล่เป็นการ์ดบนสุดของกระดาน เพราะมันมาก่อนของที่เลือกทำได้</div>
+        ทั้งสามโผล่เป็นการ์ดบนสุดของกระดาน เพราะมันมาก่อนของที่เลือกทำได้
+        แต่ละอย่าง<em>เลือกได้ว่าจะลงแรงหรือทำให้มันจบๆ</em> — เสร็จเหมือนกัน แต่ได้ไม่เท่ากัน</div>
       <div class="hrow"><b>ความสัมพันธ์มีสองแกน</b>
         <em>ความสนิท</em> มาจากการใช้เวลาด้วยกัน · <em>ความเชื่อใจ</em> มาจากการทำสิ่งที่ยาก
         ชอบเราได้โดยไม่กล้าฝากเรื่องสำคัญไว้กับเรา</div>

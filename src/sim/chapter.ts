@@ -1,4 +1,5 @@
 import game from "../../data/game.json";
+import { maxEnergy } from "./traits";
 import { newGrades } from "./grades";
 import { remember, type Ending, type GameState, type StatId } from "./state";
 
@@ -40,7 +41,7 @@ export function startUni(s: GameState, schoolEnding: Ending): void {
 
   s.dayIndex = 0;
   s.periodIndex = 0;
-  s.energy = game.energy.max;
+  s.energy = maxEnergy(s);
   s.standing = C.standingReset;
   s.money = C.startMoney;
   s.grades = newGrades();

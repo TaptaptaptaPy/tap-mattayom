@@ -72,8 +72,10 @@
       5
     ],
     "location": "temple",
-    "members": [],
-    "blurb": "ไม่มีใครอยากเข้า แต่ครูจำชื่อได้ทุกคน",
+    "members": [
+      "palm"
+    ],
+    "blurb": "ไม่มีใครอยากเข้า แต่ครูจำชื่อได้ทุกคน และรุ่นน้องที่ไม่พูดกับใครก็อยู่ที่นี่",
     "behaviourPerWeek": 3,
     "milestoneDay": 95,
     "milestoneName": "ออกค่ายอาสา",
@@ -92,7 +94,8 @@
     ],
     "location": "clubroom",
     "members": [
-      "tar"
+      "tar",
+      "nun"
     ],
     "blurb": "ซ้อมกันหลังเลิกเรียนเกือบทุกวัน และงานคณะคือวันที่ทุกคนรอ",
     "milestoneDay": 49,

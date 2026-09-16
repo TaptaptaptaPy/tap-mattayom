@@ -17,20 +17,24 @@ const H = game.homework;
 
 export const hasHomework = (s: GameState) => s.homework > 0;
 
-/** ทำการบ้านให้จบ — กินแรงและกินช่วงเวลาไปหนึ่งช่วง */
-export function doHomework(s: GameState): string {
+/** ทำการบ้านให้จบ — กินแรงและกินช่วงเวลาไปหนึ่งช่วง
+ *
+ *  `focus` คือผลของมินิเกมนั่งท่อง (0.7–1.3) — ส่งครบเหมือนกันแต่ได้ความรู้ไม่เท่ากัน
+ *  ซึ่งตรงกับของจริง: ลอกมาส่งกับนั่งทำเองได้คะแนนส่งเท่ากัน แต่เข้าหัวคนละเรื่อง
+ *  ความประพฤติกับครูไม่ขึ้นกับฝีมือ เพราะครูเห็นแค่ว่าส่งหรือไม่ส่ง */
+export function doHomework(s: GameState, focus = 1): string {
   if (s.homework <= 0) return "ไม่มีการบ้านค้างอยู่";
   if (s.energy + H.energy < 0) return "แรงเหลือน้อยเกินกว่าจะนั่งทำได้";
   const pieces = s.homework;
   s.homework = 0;
   s.energy = Math.max(0, s.energy + H.energy);
-  s.study += H.study * pieces;
-  const got = applyStat(s, "mind", H.mind * pieces, s.doneToday["_homework"] ?? 0);
-  studyAll(s, gradePerHomework * pieces);
+  s.study += H.study * pieces * focus;
+  const got = applyStat(s, "mind", H.mind * pieces * focus, s.doneToday["_homework"] ?? 0);
+  studyAll(s, gradePerHomework * pieces * focus);
   s.doneToday["_homework"] = (s.doneToday["_homework"] ?? 0) + 1;
   remember(s, `ส่งการบ้าน ${pieces} ชิ้น`);
   noteBehaviour(s, game.teacher.perHomework * pieces, "ส่งการบ้าน");
-  return `ทำการบ้าน ${pieces} ชิ้น · ความพร้อมสอบ +${H.study * pieces} · ปัญญา +${got.toFixed(1)}`;
+  return `ทำการบ้าน ${pieces} ชิ้น · ความพร้อมสอบ +${Math.round(H.study * pieces * focus)} · ปัญญา +${got.toFixed(1)}`;
 }
 
 /** เรียกตอนขึ้นวันเรียนใหม่ — เก็บงานที่ค้าง แล้วสั่งของวันใหม่

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { Compiler } from "inkjs/full";
 import game from "../../data/game.json";
 import chars from "../../data/characters.json";
+import backgrounds from "../../data/backgrounds.json";
 import type { Story } from "inkjs/types";
 
 const dir = join(process.cwd(), "story");
@@ -47,6 +48,12 @@ const PROFILES: { name: string; vars: Record<string, number | string> }[] =
 
 interface Stat { lines: number; choices: number; endings: number; hints: string[]; calls: Record<string, number>; }
 
+/** ภูมิหลังที่กำลังเดินอยู่ — บททักทายครั้งแรกแตกกิ่งตามข้อนี้
+ *  ถ้าไม่สลับค่า กิ่งของภูมิหลังจะไม่เคยถูกเดินเลยสักเส้น */
+let bgId = "";
+/** "" = ไม่ได้เลือกภูมิหลัง (เซฟเก่า) ต้องเดินด้วย เพราะบทต้องรอดทั้งกรณีที่มีและไม่มี */
+const BG_IDS = ["", ...(backgrounds.list as { id: string }[]).map((b) => b.id)];
+
 function build(src: string, calls: Record<string, number>, flags: Set<string>, hints: string[],
                sides: Set<string> = new Set()): Story {
   const story = new Compiler(src).Compile();
@@ -81,6 +88,11 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("letThemGo", () => { note("letThemGo"); return null; });
   story.BindExternalFunction("memoryOf", () => "เรื่องที่เขายังจำได้");
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
+  // ภูมิหลังกับการเจอกันครั้งแรก — เดินทั้งฝั่งที่รู้จักกันมาก่อนและฝั่งที่ไม่เคยเจอ
+  story.BindExternalFunction("background", () => bgId);
+  story.BindExternalFunction("knewBefore", () => (bgId === "" ? 0 : 1));
+  story.BindExternalFunction("metDays", () => (bgId === "" ? 0 : 30));
+  story.BindExternalFunction("introduce", (c: string) => { note("introduce:" + c); return null; });
   return story;
 }
 
@@ -148,7 +160,9 @@ for (const f of files) {
   const stat: Stat = { lines: 0, choices: 0, endings: 0, hints: [], calls: {} };
   const perProfile: string[] = [];
 
-  for (const p of PROFILES) {
+  for (const [pi, p] of PROFILES.entries()) {
+    // ภูมิหลังสลับไปตามโปรไฟล์ เพื่อให้กิ่งของบททักทายครั้งแรกถูกเดินครบทุกอัน
+    bgId = BG_IDS[pi % BG_IDS.length];
     const before = { ...stat, calls: { ...stat.calls } };
     try {
       if (isRandom(src)) walkRandom(src, p.vars, stat, problems);

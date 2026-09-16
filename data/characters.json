@@ -5,11 +5,14 @@
     "year": "ม.5",
     "tag": "หัวหน้าห้อง",
     "color": "#e4a0b7",
-    "where": {
-      "morning": "classroom",
-      "noon": "library",
-      "after": "library"
+    "_routine": "ตารางชีวิต ไม่ใช่ตำแหน่งตายตัว — น้ำหนักรวมไม่ถึง 100 ส่วนที่เหลือคือวันที่เขาไม่อยู่ที่ไหนที่เราเดินไปถึง",
+    "routine": {
+      "morning": { "classroom": 88 },
+      "noon": { "library": 48, "canteen": 22, "classroom": 14 },
+      "after": { "library": 52, "classroom": 16, "temple": 8 }
     },
+    "firstMeet": "meet_ploy",
+    "hint": "หัวหน้าห้องที่ชอบหายไปนั่งอยู่ในห้องสมุด",
     "likes": [
       "mind",
       "kind"
@@ -19,7 +22,6 @@
     "wantsWhy": "เธอใช้ปากกาด้ามเดียวจนหมึกหมดแล้วซื้อรุ่นเดิมอีก",
     "smart": 0.86,
     "proudOfGrades": true,
-    "club": "academic",
     "story": "ploy",
     "blurb": "เก็บทุกอย่างไว้ในตาราง รวมถึงเรื่องที่ไม่ควรเก็บ",
     "gate": {
@@ -45,11 +47,14 @@
     "year": "ม.5",
     "tag": "หลังห้อง",
     "color": "#7fb2e8",
-    "where": {
-      "noon": "backfield",
-      "after": "backfield",
-      "night": "arcade"
+    "routine": {
+      "morning": { "classroom": 40, "backfield": 24 },
+      "noon": { "backfield": 48, "canteen": 22 },
+      "after": { "backfield": 40, "arcade": 26 },
+      "night": { "arcade": 44 }
     },
+    "firstMeet": "meet_kanin",
+    "hint": "คนที่ชอบหายไปอยู่หลังตึกตอนคาบว่าง",
     "likes": [
       "nerve",
       "heart"
@@ -58,7 +63,6 @@
     "dislikes": "pen",
     "wantsWhy": "เขากินขนมครกเจ้าเดิมมาตั้งแต่ ป.4",
     "smart": 0.44,
-    "club": "sport",
     "story": "kanin",
     "blurb": "โดนหมายหัวมาตั้งแต่ ม.4 แต่ไม่เคยมีใครถามว่าทำไม",
     "gate": {
@@ -84,10 +88,13 @@
     "year": "ม.6",
     "tag": "รุ่นพี่ชมรมดนตรี",
     "color": "#c8a6e8",
-    "where": {
-      "after": "musicroom",
-      "night": "musicroom"
+    "routine": {
+      "noon": { "canteen": 24, "musicroom": 22 },
+      "after": { "musicroom": 56, "canteen": 10 },
+      "night": { "musicroom": 34 }
     },
+    "firstMeet": "meet_minta",
+    "hint": "รุ่นพี่ที่ห้องดนตรีมีไฟติดอยู่ทุกเย็น",
     "likes": [
       "charm",
       "heart"
@@ -96,7 +103,6 @@
     "dislikes": "pen",
     "wantsWhy": "เธอเก็บเทปทุกม้วนที่มีคนอัดให้ไว้ในกล่องเดียวกัน",
     "smart": 0.62,
-    "club": "music",
     "story": "minta",
     "blurb": "ซ้อมอยู่คนเดียวทุกเย็น ไม่เคยบอกว่าซ้อมเพื่ออะไร",
     "gate": {
@@ -123,11 +129,12 @@
     "tag": "รุ่นน้อง",
     "color": "#8fd6a6",
     "chapter": "school",
-    "where": {
-      "noon": "canteen",
-      "after": "library",
-      "night": "home"
+    "routine": {
+      "noon": { "canteen": 44, "library": 18 },
+      "after": { "library": 38, "temple": 18, "backfield": 8 }
     },
+    "firstMeet": "meet_palm",
+    "hint": "รุ่นน้องที่นั่งกินข้าวโต๊ะริมสุดคนเดียวทุกวัน",
     "likes": [
       "kind",
       "heart"
@@ -136,7 +143,6 @@
     "dislikes": "kanom",
     "wantsWhy": "เขาใส่กำไลเส้นเดิมจนสีซีดไปแล้วก็ยังใส่",
     "smart": 0.58,
-    "club": "volunteer",
     "story": "palm",
     "blurb": "ย้ายมาจากโรงเรียนเก่ากลางเทอม และยังไม่พูดกับใครเลยสักคน",
     "bonds": {
@@ -162,11 +168,13 @@
     "tag": "รุ่นพี่คณะ",
     "color": "#8fd6a6",
     "chapter": "uni",
-    "where": {
-      "noon": "faccant",
-      "after": "clubroom",
-      "night": "bar"
+    "routine": {
+      "noon": { "faccant": 46, "clubroom": 12 },
+      "after": { "clubroom": 44, "faccant": 16 },
+      "night": { "bar": 38, "parttime": 8 }
     },
+    "firstMeet": "meet_tar",
+    "hint": "รุ่นพี่ที่ห้องชุมนุมมีคนเรียกชื่อตลอดเวลา",
     "likes": [
       "nerve",
       "charm"
@@ -176,7 +184,6 @@
     "wantsWhy": "เขายังฟังเทปอยู่ ทั้งที่ไม่มีใครฟังแล้ว",
     "smart": 0.66,
     "proudOfGrades": true,
-    "club": "sport",
     "story": "tar",
     "blurb": "คนที่ทุกคนในคณะรู้จัก แต่ไม่มีใครรู้ว่าเขาเรียนอยู่ปีไหนกันแน่",
     "bonds": {
@@ -200,11 +207,14 @@
     "tag": "เพื่อนร่วมคณะ",
     "color": "#e8c98a",
     "chapter": "uni",
-    "where": {
-      "morning": "lecture",
-      "noon": "faccant",
-      "after": "unilib"
+    "routine": {
+      "morning": { "lecture": 78 },
+      "noon": { "faccant": 48, "unilib": 18 },
+      "after": { "unilib": 42, "parttime": 18 },
+      "night": { "parttime": 26, "unilib": 16 }
     },
+    "firstMeet": "meet_nun",
+    "hint": "คนที่นั่งแถวหลังสุดของห้องบรรยายทุกคาบ",
     "likes": [
       "mind",
       "kind"
@@ -213,7 +223,6 @@
     "dislikes": "bracelet",
     "wantsWhy": "เธอกินอะไรก็ได้ที่ไม่ต้องเข้าครัวเอง",
     "smart": 0.5,
-    "club": "academic",
     "story": "nun",
     "blurb": "มาจากต่างจังหวัดเหมือนกัน และกลัวเหมือนกันแต่ไม่พูด",
     "bonds": {

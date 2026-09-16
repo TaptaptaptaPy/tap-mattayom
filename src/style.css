@@ -1,401 +1,464 @@
+/* ═══════════════════════════════════════════════════════════════
+   มัธยม — ชั้นภาพทั้งหมดของเกม
+
+   กติกาสามข้อของไฟล์นี้:
+   1. `--ink` คือ **สีตัวอักษร** (ตรงข้ามกับ genesis ที่ --ink คือพื้นหลัง) ระวังสลับ
+   2. คลาสที่เป็น "สถานะ" ขึ้นต้นด้วย `is-` เสมอ — ชื่อสั้นๆ ชนกันง่ายมากในไฟล์เดียว
+      เคยตั้งคลาส `next` ให้จุดบอกช่วงเวลา แล้วไปโดนกฎของปุ่ม `.next` (min-height:40px)
+   3. ทุกการเคลื่อนไหวต้องบอกอย่างใดอย่างหนึ่ง: ของใหม่มาจากไหน · อะไรเพิ่งเปลี่ยน ·
+      กดติดแล้วหรือยัง · ตอนนี้เราอยู่หน้าไหน ถ้าตอบไม่ได้สักข้อ ให้ลบทิ้ง
+   ═══════════════════════════════════════════════════════════════ */
+
 :root{
-  --bg:#161320; --bg2:#1f1b2e; --ink:#f2eef7; --dim:#9a92ad;
-  --accent:#e4a0b7; --line:rgba(242,238,247,.12);
+  --bg:#12101b; --bg2:#1c1929; --bg3:#252036;
+  --ink:#f4f1f8; --dim:#9d95b0; --dim2:#6e6784;
+  --accent:#e4a0b7;
+  --line:rgba(244,241,248,.10);
+  --line2:rgba(244,241,248,.20);
+  --good:#8fd6a6; --warn:#e8c98a; --bad:#e0908f;
+  --r-xl:22px; --r-lg:18px; --r:14px; --r-sm:10px;
+  --sh1:0 2px 10px rgba(0,0,0,.28);
+  --sh2:0 16px 44px rgba(0,0,0,.5);
+  --font:"Noto Sans Thai",system-ui,sans-serif;
+  --head:"Bai Jamjuree",sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;color:var(--ink);
-  font-family:"Noto Sans Thai",system-ui,sans-serif;overscroll-behavior:none}
+html,body{height:100%;margin:0;color:var(--ink);font-family:var(--font);overscroll-behavior:none}
 body{background:var(--bg);
-  background-image:linear-gradient(180deg,var(--sky-top,#26314a) 0%,var(--sky-bottom,#161320) 58%);
+  background-image:
+    radial-gradient(120% 70% at 50% 0%,rgba(255,255,255,.05),transparent 62%),
+    linear-gradient(180deg,var(--sky-top,#26314a) 0%,var(--sky-bottom,#12101b) 58%);
   background-attachment:fixed;transition:background-image 1.1s ease}
-#app{display:flex;flex-direction:column;min-height:100dvh;max-width:640px;margin:0 auto;
-  padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
-#top{padding:14px 0 10px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;
-  background:linear-gradient(180deg,var(--sky-top,#26314a) 0%,rgba(22,19,32,.92) 100%);
-  backdrop-filter:blur(10px);transition:background 1.1s ease}
-#date{font-family:"Bai Jamjuree",sans-serif;font-weight:700;font-size:20px;letter-spacing:.2px}
-#stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
-.chip b{color:var(--ink);font-weight:600;margin-left:4px}
-.chip.energy b{color:var(--accent)}
-#board{flex:1;padding:12px 0;display:grid;gap:10px;align-content:start}
-.loc{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:var(--bg2)}
-.loc .ico{font-size:18px;color:var(--dim)}
-.loc .nm{font-family:"Bai Jamjuree",sans-serif;font-weight:600;font-size:16px;margin-top:2px}
-.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-button{font-family:inherit;cursor:pointer}
-.act,.who,.wide,.next,.choice{background:none;color:var(--ink);border:1px solid var(--line);
-  border-radius:12px;padding:9px 13px;font-size:13.5px;min-height:40px}
-.act:active,.wide:active{background:rgba(242,238,247,.08)}
-.who{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border-width:1px}
-.who em{font-style:normal;font-size:10.5px;color:var(--dim)}
-.wide{width:100%}
-#bottom{padding:8px 0 18px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%)}
-#scene{position:fixed;inset:0;background:rgba(12,10,18,.96);z-index:9;
-  display:flex;flex-direction:column;justify-content:flex-end;padding:22px 16px calc(22px + env(safe-area-inset-bottom))}
-#speaker{font-family:"Bai Jamjuree",sans-serif;font-weight:700;font-size:17px;margin-bottom:6px}
-#line{font-size:16px;line-height:1.85;min-height:5.5em;max-width:34em}
-#choices{display:grid;gap:8px;margin-top:16px}
-.choice{text-align:left;border-color:rgba(228,160,183,.45)}
-.choice:active{background:rgba(228,160,183,.14)}
-.end{text-align:center;color:var(--dim);padding:40px 0}
-.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#2b2540;
-  border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;z-index:20}
-.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer;color:inherit}
 
-/* ───────── ส่วนที่เพิ่มมาพร้อมปฏิทิน ชมรม ร้านค้า สอบ และฝ่ายปกครอง ───────── */
+#app{display:flex;flex-direction:column;min-height:100dvh;max-width:660px;margin:0 auto;
+  padding:env(safe-area-inset-top) 14px 0}
 
-/* ปุ่มบนแถบบนมีหกปุ่มแล้ว ถ้าไม่ให้ตกบรรทัดได้ วันที่ยาวๆ จะทับปุ่มบนจอแคบ */
-#dateRow{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
-#date{flex:1;min-width:0}
-#date small{font-family:"Noto Sans Thai",sans-serif;font-weight:400;font-size:12px;color:var(--dim);white-space:nowrap}
-#topBtns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
-.tbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:999px;
-  padding:5px 10px;font-size:11.5px;white-space:nowrap}
-.tbtn:active{background:rgba(242,238,247,.08);color:var(--ink)}
+/* ───────────────────────── แถบบน ───────────────────────── */
 
-.chip{position:relative;overflow:hidden}
-/* หลอดใต้ชิป — ของเดิมมีกฎเฉพาะ `.chip.energy i` ทั้งที่ชิปค่าสถานะ ครู และหนี้การนอน
-   ก็ส่ง <i> ที่คำนวณเปอร์เซ็นต์มาแล้วออกมาเหมือนกัน · `<i>` เปล่าที่ไม่มีกฎคือ inline
-   สูงศูนย์และไม่มีสีพื้น มันจึงมองไม่เห็นมาตลอด ค่าสถานะห้าตัวเลยเหลือแต่ชื่อระดับเป็นคำ
-   ซึ่งยาวและเหมือนกันทั้งห้าใบตอนเริ่มเกม — อ่านออกมาเป็นกำแพงตัวหนังสือ */
-.chip i{position:absolute;left:0;bottom:0;height:2px;background:var(--dim);opacity:.5;
+#top{padding:12px 0 9px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3;
+  background:linear-gradient(180deg,var(--sky-top,#26314a) 0%,rgba(18,16,27,.93) 100%);
+  backdrop-filter:blur(14px);transition:background 1.1s ease}
+#dateRow{display:flex;align-items:flex-start;gap:10px}
+.datewrap{flex:1;min-width:0}
+#chapter{font-size:10.5px;color:var(--dim2);letter-spacing:.5px;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#date{font-family:var(--head);font-weight:700;font-size:19px;letter-spacing:.2px;
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:0 7px;line-height:1.3}
+.dseg{white-space:nowrap}
+.dsep{font-style:normal;opacity:.35}
+#date small{font-family:var(--font);font-weight:400;font-size:11.5px;color:var(--dim2)}
+#headBtns{display:flex;gap:6px;flex:0 0 auto}
+.tbtn{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--dim);
+  border-radius:999px;padding:6px 12px;font-size:12px;white-space:nowrap;font-family:var(--font)}
+.tbtn.ic{width:34px;height:34px;padding:0;display:grid;place-items:center;font-size:14px}
+.tbtn:active{background:rgba(244,241,248,.12);color:var(--ink)}
+
+/* แถบจุดบอกช่วงเวลาของวัน */
+#periodStrip{display:flex;gap:6px;margin-top:9px}
+.pslot{flex:1;display:block;min-width:0}
+.pdot{display:block;width:100%;height:3px;border-radius:2px;
+  background:rgba(244,241,248,.12);transition:background .4s ease}
+.pslot em{display:block;font-style:normal;font-size:10px;margin-top:4px;
+  color:rgba(244,241,248,.26);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .4s ease}
+.pslot.is-past .pdot{background:rgba(244,241,248,.3)}
+.pslot.is-past em{color:rgba(244,241,248,.4)}
+.pslot.is-now .pdot{background:var(--period-accent,var(--accent));
+  box-shadow:0 0 9px var(--period-accent,var(--accent))}
+.pslot.is-now em{color:var(--ink);font-weight:600}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(228,160,183,.5)}
+  50%{box-shadow:0 0 0 5px rgba(228,160,183,0)}}
+#periodStrip .is-now .pdot{animation:dotPulse 2.4s ease-in-out infinite}
+
+/* ชิปสถานะ — สองชั้น ชั้นล่างพับเก็บได้ */
+#stats{margin-top:9px;display:grid;gap:5px}
+.chiprow{display:flex;flex-wrap:wrap;gap:5px}
+.chip{position:relative;overflow:hidden;font-size:11px;color:var(--dim);
+  border:1px solid var(--line);border-radius:9px;padding:3px 9px 4px;
+  background:rgba(255,255,255,.028);line-height:1.5}
+.chip u{text-decoration:none;color:var(--dim2)}
+.chip b{color:var(--ink);font-weight:600;margin-left:5px}
+.chip i{position:absolute;left:0;bottom:0;height:2px;background:var(--dim);opacity:.45;
   transition:width .45s cubic-bezier(.2,.9,.3,1)}
-.chip.stat i{background:var(--accent);opacity:.45}
-.chip.energy i{background:var(--accent);opacity:.7}
-.chip.debt i{background:#d69a9a;opacity:.6}
-.chip.energy.low{border-color:#8a5a5a;color:#e0a0a0}
-.chip.energy.low b{color:#e88}
+.chip.stat i,.chip.energy i{background:var(--period-accent,var(--accent));opacity:.6}
+.chip.energy b{color:var(--accent)}
+.chip.money b{color:var(--warn)}
+.chip.energy.low,.chip.low{border-color:rgba(224,144,143,.45);color:#e0a0a0}
+.chip.energy.low b{color:#f0a0a0}
+.chip.alert{border-color:rgba(232,201,138,.42);background:rgba(232,201,138,.08);color:var(--warn)}
+.chip.alert b{color:var(--warn)}
+.chip.alert i{background:rgba(232,201,138,.5)}
+.chip.alert.hot{border-color:rgba(224,144,143,.55);background:rgba(224,144,143,.12);color:#f0aaa8}
+.chip.alert.hot b{color:#f0aaa8}
+.chip.club b{color:var(--period-accent,var(--accent))}
+.chip.more{border-style:dashed;color:var(--dim2);padding:3px 11px 4px;font-family:var(--font)}
+.chip.more:active{color:var(--ink)}
 
+/* ค่าที่เพิ่งเปลี่ยนต้องเห็นว่าเปลี่ยน ไม่ใช่เปลี่ยนเงียบๆ */
+@keyframes chipBump{0%{transform:none}35%{transform:translateY(-3px) scale(1.06)}100%{transform:none}}
+.chip.is-changed{animation:chipBump .5s cubic-bezier(.2,.9,.3,1)}
+.chip.is-changed b{color:var(--accent)}
+.delta{position:absolute;left:50%;top:-2px;transform:translateX(-50%);
+  font-family:var(--head);font-size:11px;font-weight:600;
+  pointer-events:none;white-space:nowrap;animation:deltaUp 1.1s ease forwards}
+.delta.up{color:var(--good)}.delta.down{color:var(--bad)}
+@keyframes deltaUp{0%{opacity:0;transform:translate(-50%,2px)}
+  20%{opacity:1}100%{opacity:0;transform:translate(-50%,-16px)}}
+
+/* ───────────────────────── กระดานของวัน ───────────────────────── */
+
+#board{flex:1;padding:12px 0 116px;display:grid;gap:10px;align-content:start}
+.secthead{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;margin:2px 0 -2px}
+.secthead b{font-family:var(--head);font-size:13px;letter-spacing:.3px;color:var(--ink)}
+.secthead small{font-size:11px;color:var(--dim2);flex:1;min-width:0}
+
+.loc{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:12px 14px;background:linear-gradient(160deg,rgba(255,255,255,.045),transparent 58%),var(--bg2);
+  transition:border-color .25s ease,transform .14s ease,box-shadow .25s ease}
+.loc .ico{font-size:18px;color:var(--period-accent,var(--dim));opacity:.95}
+.loc .nm{font-family:var(--head);font-weight:600;font-size:15.5px;margin-top:3px;
+  display:flex;align-items:center;gap:8px}
+.loc .ico,.loc .nm,.loc .acts,.loc .sigrow,.loc .tagrow,.loc .warn{position:relative;z-index:1}
 .loc.wide{grid-column:1/-1}
 .loc.blocked{opacity:.55}
-.act{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
-.act em{font-style:normal;font-size:10.5px;color:var(--dim)}
-.act.club{border-color:#8a7fc4}
-.act.rest{border-color:#6f8f7a}
-.act.risky{border-color:#a5706f}
+.loc:not(.blocked):hover{border-color:var(--line2)}
+.loc.pick{cursor:pointer;padding-bottom:11px}
+.loc.pick:active{transform:scale(.985)}
+.loc.pick:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* ฉากหลังต้องจางตรงที่มีตัวหนังสือ (ซ้ายบน) และชัดขึ้นทางขวา */
+.locbg{position:absolute;inset:0;border-radius:inherit;overflow:hidden;opacity:.42;
+  -webkit-mask-image:linear-gradient(105deg,transparent 10%,rgba(0,0,0,.35) 40%,#000 100%);
+  mask-image:linear-gradient(105deg,transparent 10%,rgba(0,0,0,.35) 40%,#000 100%);
+  pointer-events:none}
+.locbg .bd,.locbg .bdt{transform:scale(1.03)}
+.locbg img.bd{width:100%;height:100%;object-fit:cover}
+
+/* เท่าที่มองเห็นจากตรงนี้ — ไม่ใช่รายชื่อคน ดู src/sim/presence.ts */
+.sigrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:20px}
+.sig{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);
+  border:1px solid var(--line);border-radius:999px;padding:2px 10px 3px;background:rgba(0,0,0,.2)}
+.sig i{width:6px;height:6px;border-radius:50%;background:var(--dim2);flex:0 0 auto}
+.sig.is-some{color:var(--ink);border-color:var(--line2)}
+.sig.is-some i{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:sigPulse 2s infinite}
+.sig.is-known{color:var(--who,var(--ink));border-color:color-mix(in srgb,var(--who,#fff) 45%,transparent)}
+.sig.is-known i{background:var(--who,#fff);box-shadow:0 0 8px var(--who,#fff)}
+.sig.is-miss{color:var(--dim2);border-style:dashed}
+.sig.is-none{color:var(--dim2);border-color:transparent;background:none;padding-left:0}
+.sig.is-none i{display:none}
+@keyframes sigPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.tagrow{display:flex;gap:6px;margin-top:6px}
+.tag{font-size:11px;border-radius:999px;padding:2px 10px;border:1px solid var(--line)}
+.tag.club{border-color:rgba(138,127,196,.55);color:#b3a8e4;background:rgba(138,127,196,.12)}
+
+/* ของที่ต้องทำก่อน — ต้องเด่นกว่าการ์ดสถานที่ เพราะมันมาก่อนของที่เลือกได้ */
+.loc.hw,.loc.duty{border-color:rgba(228,160,183,.45);
+  background:linear-gradient(180deg,rgba(228,160,183,.1),var(--bg2))}
+.loc.duty .nm{font-size:14.5px}
+.warn{font-size:11.5px;color:var(--bad);width:100%;margin-top:8px;line-height:1.55}
+
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.act,.who,.wide,.next,.choice{background:rgba(255,255,255,.03);color:var(--ink);
+  border:1px solid var(--line);border-radius:var(--r);padding:9px 13px;font-size:13.5px;min-height:42px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;flex:1 1 auto}
+.act .alab{font-weight:600;font-size:13.5px}
+.act em{font-style:normal;font-size:10.5px;color:var(--dim2)}
+.act:active,.wide:active{background:rgba(244,241,248,.1)}
+.act.club{border-color:rgba(138,127,196,.55)}
+.act.rest{border-color:rgba(111,143,122,.6)}
+.act.risky{border-color:rgba(165,112,111,.7)}
 .act:disabled{opacity:.4}
-.warn{font-size:11.5px;color:#d69a9a;width:100%}
+/* ปุ่มที่ต้องฝืนถึงจะกดได้ — ต้องดูต่างจากปุ่มปกติ แต่ห้ามดูเหมือนปุ่มที่กดไม่ได้
+   เพราะทั้งหมดของระบบนี้คือมันกดได้ ถ้าผู้เล่นยอมจ่าย */
+.act.tired{opacity:.74;border-style:dashed}
+.act.tired .alab::after{content:" · ต้องฝืน";font-size:11px;color:var(--dim2);font-weight:400}
 
-#hint{font-size:12px;color:var(--dim);margin:6px 0 2px;min-height:16px}
+/* ───────────────────────── อยู่ในที่นั้นแล้ว ───────────────────────── */
 
-.end{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--bg2);
-  display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-.end b{font-family:"Bai Jamjuree",sans-serif;font-size:19px}
+.place{grid-column:1/-1;display:grid;gap:10px;animation:placeIn .3s cubic-bezier(.2,.9,.3,1)}
+@keyframes placeIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.placeHead{display:flex;align-items:center;gap:12px}
+.backBtn{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px;font-size:12.5px;color:var(--dim);flex:0 0 auto}
+.backBtn:active{background:rgba(244,241,248,.12);color:var(--ink)}
+.placeName{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.placeName b{font-family:var(--head);font-size:19px}
+.placeName small{font-size:11.5px;color:var(--dim2)}
+.placeBg{border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh1);
+  -webkit-mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.55) 100%);
+  mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,.55) 100%)}
+.placeBg .bd,.placeBg .bdt{width:100%;height:auto;aspect-ratio:400/96;display:block}
+.placeBg img{width:100%;height:100%;object-fit:cover;display:block}
+
+.found{display:grid;gap:8px}
+.nobody{font-size:12.5px;color:var(--dim2);border:1px dashed var(--line);border-radius:var(--r);
+  padding:12px 14px;line-height:1.6}
+.metcard{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  border:1px solid color-mix(in srgb,var(--who,#fff) 40%,transparent);border-radius:var(--r-lg);
+  padding:7px 12px 7px 7px;background:linear-gradient(100deg,
+    color-mix(in srgb,var(--who,#fff) 12%,transparent),rgba(255,255,255,.03));
+  animation:metIn .38s cubic-bezier(.2,.9,.3,1) backwards}
+.metcard:nth-child(2){animation-delay:.1s}
+@keyframes metIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.metcard:active{transform:scale(.985)}
+.metcard .wname{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.metcard .wname b{font-family:var(--head);font-size:15px}
+.metcard em{font-style:normal;font-size:11px;color:var(--dim)}
+.metcard .talkgo{font-size:11.5px;color:var(--who,var(--accent));white-space:nowrap;
+  border:1px solid color-mix(in srgb,var(--who,#fff) 45%,transparent);
+  border-radius:999px;padding:5px 12px}
+.metcard.is-appt{border-color:var(--accent);box-shadow:0 0 0 1px rgba(228,160,183,.25)}
+.metcard.is-appt em{color:var(--accent)}
+/* ภาพตัวละครเป็น PNG ที่มีพื้นหลังทึบ ทำเป็นเงาด้วย filter ไม่ได้ (ได้กล่องสีเดียวเปล่าๆ)
+   เบลอแทน — อ่านออกมาว่า "ยังมองไม่ชัด" ซึ่งตรงกับสิ่งที่เกิดขึ้นจริงพอดี */
+.metcard.is-new .avatar{filter:blur(5px) brightness(.62) saturate(.55)}
+.metcard.is-new b{color:var(--dim)!important}
+
+/* ───────────────────────── นัดของวันนี้ ───────────────────────── */
+
+.appt{grid-column:1/-1;align-self:start;display:flex;align-items:center;gap:10px;
+  border:1px solid rgba(228,160,183,.5);border-radius:var(--r-lg);padding:9px 14px 9px 9px;
+  font-size:13px;color:var(--dim);background:rgba(228,160,183,.08)}
+.apptText{flex:1;min-width:0}
+.appt b{font-family:var(--head);font-size:14px;margin-right:6px}
+.appt .clash{display:block;font-style:normal;font-size:11.5px;margin-top:4px;
+  color:#e0a45c;border-top:1px solid rgba(224,164,92,.3);padding-top:4px}
+
+/* ───────────────────────── แถบล่าง ───────────────────────── */
+
+#foot{position:sticky;bottom:0;z-index:3;padding-bottom:calc(6px + env(safe-area-inset-bottom));
+  background:linear-gradient(transparent,var(--bg) 42%)}
+#bottom{padding:6px 0 7px}
+.wide{width:100%;background:rgba(28,25,41,.86);backdrop-filter:blur(10px)}
+#topBtns{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+#topBtns::-webkit-scrollbar{display:none}
+#topBtns .tbtn{flex:1 0 auto;text-align:center;padding:9px 13px;font-size:12.5px}
+.tbtn.is-unread{border-color:rgba(228,160,183,.6);color:var(--accent);background:rgba(228,160,183,.1)}
+.tbtn .badge{display:inline-block;margin-left:5px;min-width:16px;padding:0 4px;border-radius:999px;
+  background:var(--accent);color:#2a1620;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+
+/* ───────────────────────── จบเทอม ───────────────────────── */
+
+.end{grid-column:1/-1;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;
+  background:var(--bg2);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.end b{font-family:var(--head);font-size:20px}
 .end small{color:var(--dim)}
-.end button{background:none;border:1px solid var(--line);color:var(--ink);
-  border-radius:12px;padding:9px 14px;font-size:13.5px;margin-top:6px}
+.end button{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink);
+  border-radius:var(--r);padding:10px 15px;font-size:13.5px;margin-top:6px}
 
-/* แผงเต็มจอ: คนรู้จัก กระเป๋า ปฏิทิน เมนู ผลสอบ สรุปเทอม */
-#panel{position:fixed;inset:0;z-index:10;background:rgba(12,10,18,.86);
+/* ───────────────────────── ภาพตัวละคร ───────────────────────── */
+
+.avatar{display:block;width:38px;height:38px;flex:0 0 auto;border-radius:11px;overflow:hidden;
+  background:#231d33;line-height:0}
+.avatar img,.avatar svg{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.avatar.sm{width:32px;height:32px;border-radius:9px}
+.avatar.lg{width:56px;height:56px;border-radius:14px}
+.ico-svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+.chead .ico-svg{display:inline-block;vertical-align:-4px;width:17px;height:17px;margin-right:5px}
+
+/* ───────────────────────── ฉากบทสนทนา ───────────────────────── */
+
+#scene{position:fixed;inset:0;z-index:9;isolation:isolate;align-items:stretch;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:22px 16px calc(22px + env(safe-area-inset-bottom));
+  background:radial-gradient(120% 80% at 50% 0%,rgba(60,48,84,.55),transparent 60%),rgba(10,8,16,.965)}
+#sceneBox,#hint,#choices{width:100%;max-width:660px;margin-left:auto;margin-right:auto}
+/* ภาพฉากเป็น 400x150 ถ้าบังคับให้สูงเป็น vh แล้ว slice มันจะถูกขยายกว่า 5 เท่า
+   แล้วเห็นแค่ 40% ของภาพแบบซูมจนแตก — ต้องคงสัดส่วนเดิมไว้เสมอ
+   และภาพต้องอยู่ "ในสายของข้อความ" ไม่ใช่ absolute ติดขอบบนจอ ไม่งั้นบนจอโน้ตบุ๊ก
+   จะมีพื้นดำเปล่าสูงเกือบ 300px คั่นกลางทุกฉาก ซึ่งไม่ใช่การเว้นที่ แต่คือรู */
+#sceneBg{position:relative;z-index:0;overflow:hidden;opacity:.85;
+  width:100%;max-width:660px;margin:0 auto -8px;flex:0 0 auto;border-radius:var(--r-xl) var(--r-xl) 0 0;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.92) 62%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.92) 62%,transparent 100%)}
+#sceneBg .bd{width:100%;height:auto;aspect-ratio:400/150}
+@media (min-height:740px){ #sceneBg .bd{aspect-ratio:400/215} }
+#sceneBg img.bd{height:100%;object-fit:cover;object-position:center 62%}
+#sceneBox{display:flex;gap:14px;align-items:flex-end;margin-bottom:14px}
+#portrait{width:clamp(92px,26vw,156px);flex:0 0 auto;border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:var(--sh2);line-height:0;animation:portraitIn .32s cubic-bezier(.2,.9,.3,1)}
+#portrait svg,#portrait img{width:100%;height:auto;display:block}
+#portrait img{background:linear-gradient(160deg,#2c2640,#1a1628)}
+/* ยังไม่รู้ว่าเป็นใคร — เห็นแค่ทรง ไม่เห็นหน้า จนกว่าเขาจะบอกชื่อ */
+#portrait.is-unknown{filter:blur(13px) brightness(.6) saturate(.5)}
+#portrait{transition:filter .6s ease}
+@keyframes portraitIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+#sceneText{flex:1;min-width:0;padding-bottom:4px}
+#speaker{font-family:var(--head);font-weight:700;font-size:16px;letter-spacing:.3px;
+  margin-bottom:6px;display:inline-block;border-bottom:2px solid var(--who,var(--accent));
+  padding-bottom:3px;color:var(--who,var(--ink))}
+/* เพิ่งได้รู้ชื่อเขากลางฉาก — ป้ายชื่อต้องบอกเองว่ามันเพิ่งเปลี่ยน */
+@keyframes named{0%{opacity:0;transform:translateY(-4px)}60%{opacity:1}100%{transform:none}}
+#speaker.is-named{animation:named .45s cubic-bezier(.2,.9,.3,1)}
+#line{font-size:15.5px;line-height:1.8;min-height:4.6em;cursor:pointer}
+#hint{font-size:12px;color:var(--warn);margin:2px 0 8px;min-height:16px;opacity:.9}
+#choices{display:flex;flex-direction:column;gap:8px}
+.choice{text-align:left;line-height:1.55;padding:12px 15px;
+  border-color:rgba(244,241,248,.18);background:rgba(255,255,255,.03);
+  animation:choiceIn .26s ease both}
+.choice:hover{border-color:var(--who,var(--accent));background:rgba(255,255,255,.07)}
+@keyframes choiceIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.next{align-self:flex-end;min-width:64px;text-align:center;opacity:.75}
+
+/* ───────────────────────── การ์ดเปลี่ยนวัน ───────────────────────── */
+
+#daycard{position:fixed;inset:0;z-index:12;display:grid;place-items:center;
+  background:rgba(10,8,16,.84);opacity:0;transition:opacity .45s ease;pointer-events:none}
+#daycard.show{opacity:1}
+#daycard div{text-align:center;transform:translateY(8px);transition:transform .5s ease;
+  max-width:660px;padding:0 16px}
+#daycard.show div{transform:none}
+#daycard b{display:block;font-family:var(--head);font-size:26px;letter-spacing:.5px}
+#daycard small{display:block;margin-top:6px;color:var(--dim);font-size:13px}
+
+/* ───────────────────────── แผงเต็มจอ ───────────────────────── */
+
+#panel{position:fixed;inset:0;z-index:10;background:rgba(10,8,16,.88);
   display:flex;align-items:flex-end;justify-content:center;overflow-y:auto}
-.pwrap{width:100%;max-width:640px;background:var(--bg);border:1px solid var(--line);
-  border-radius:20px 20px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));
-  max-height:92vh;overflow-y:auto}
-.pwrap h2{font-family:"Bai Jamjuree",sans-serif;font-size:19px;margin:0 0 10px}
+.pwrap{width:100%;max-width:660px;background:var(--bg);border:1px solid var(--line);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--sh2);
+  padding:18px 16px calc(22px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto}
+.pwrap h2{font-family:var(--head);font-size:19px;margin:0 0 10px}
 .pwrap h2 small{font-weight:400;font-size:13px;color:var(--dim);margin-left:6px}
-.pwrap h3{font-family:"Bai Jamjuree",sans-serif;font-size:14px;margin:16px 0 6px;color:var(--dim)}
+.pwrap h3{font-family:var(--head);font-size:14px;margin:16px 0 6px;color:var(--dim)}
 .pwrap hr{border:0;border-top:1px solid var(--line);margin:14px 0}
-.pclose{width:100%;margin-top:16px;background:none;border:1px solid var(--line);
-  color:var(--ink);border-radius:12px;padding:11px;font-size:14px}
-.big{font-family:"Bai Jamjuree",sans-serif;font-size:32px;font-weight:700;margin:6px 0 12px;line-height:1.2}
+.pclose{width:100%;margin-top:16px;background:rgba(255,255,255,.04);border:1px solid var(--line);
+  color:var(--ink);border-radius:var(--r);padding:12px;font-size:14px}
+.big{font-family:var(--head);font-size:32px;font-weight:700;margin:6px 0 12px;line-height:1.2}
 .big small{font-size:15px;font-weight:400;color:var(--dim)}
+@keyframes panelIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes dimIn{from{opacity:0}to{opacity:1}}
+#panel:not(.hidden){animation:dimIn .22s ease}
+#panel:not(.hidden) .pwrap{animation:panelIn .28s cubic-bezier(.2,.9,.3,1)}
 
-.card{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--bg2)}
-.card.clickable{cursor:pointer}
-.card.clickable:active{background:rgba(242,238,247,.06)}
+.card{border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 15px;margin:9px 0;
+  background:linear-gradient(160deg,rgba(255,255,255,.04),transparent 60%),var(--bg2)}
+.card.clickable{cursor:pointer;transition:border-color .2s ease,transform .14s ease}
+.card.clickable:active{transform:scale(.99);background:rgba(244,241,248,.05)}
+.card.clickable:hover{border-color:var(--line2)}
 .chead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.chead b{font-family:"Bai Jamjuree",sans-serif;font-size:15px}
+.chead b{font-family:var(--head);font-size:15px}
 .chead small{color:var(--dim);font-size:11.5px}
-.cblurb{font-size:12.5px;color:var(--dim);margin:5px 0 8px;line-height:1.5}
-.gate{font-size:12px;color:#c8b06a;margin-top:7px;line-height:1.5}
+.cblurb{font-size:12.5px;color:var(--dim);margin:5px 0 8px;line-height:1.6}
+.cdetail{font-size:11.5px;color:var(--dim2);margin-top:8px;line-height:1.7;
+  border-top:1px solid var(--line);padding-top:8px}
+.cmeta{font-size:11px;color:var(--dim2);margin-top:4px}
+.gate{font-size:12px;color:var(--warn);margin-top:8px;line-height:1.55;
+  border-left:2px solid rgba(232,201,138,.4);padding-left:9px}
+.memo{margin-top:8px;display:grid;gap:4px}
+.memo em{font-style:normal;font-size:10.5px;color:var(--dim2);letter-spacing:.3px}
+.memo span{font-size:12px;color:var(--dim);line-height:1.55;
+  border-left:2px solid var(--line2);padding-left:9px}
+.empty{border:1px dashed var(--line);border-radius:var(--r-lg);padding:16px;text-align:center;
+  font-size:12.5px;color:var(--dim);line-height:1.7}
+.empty b{display:block;font-family:var(--head);font-size:15px;color:var(--ink);margin-bottom:4px}
+.card.person.is-away{opacity:.72}
 
-.kv{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12.5px}
+/* ภูมิหลัง */
+.bgcard .kv b{font-size:12.5px}
+.bgline{font-size:12px;line-height:1.6;margin-top:5px;padding-left:16px;position:relative}
+.bgline::before{position:absolute;left:0;top:0}
+.bgline.good{color:var(--good)}
+.bgline.good::before{content:"+"}
+.bgline.bad{color:var(--bad)}
+.bgline.bad::before{content:"−"}
+.card.bgnow{border-color:rgba(228,160,183,.35);background:rgba(228,160,183,.07)}
+
+.kv{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12.5px}
 .kv span{flex:1;color:var(--dim)}
-.kv b{font-weight:600}
-.minibar{width:70px;height:6px;border-radius:3px;background:rgba(242,238,247,.1);overflow:hidden}
-.minibar i{display:block;height:100%}
-.sub{font-size:12px;color:var(--dim);line-height:1.6;margin:4px 0}
+.kv b{font-weight:600;text-align:right}
+.minibar{width:70px;height:6px;border-radius:3px;background:rgba(244,241,248,.1);
+  overflow:hidden;flex:0 0 auto}
+.minibar i{display:block;height:100%;transition:width .5s cubic-bezier(.2,.9,.3,1)}
+.sub{font-size:12px;color:var(--dim);line-height:1.7;margin:4px 0}
+.dimline{color:var(--dim);font-size:12.5px;line-height:1.75}
 
 .row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:13px}
 .row>span:first-child{flex:1;display:flex;flex-direction:column;gap:2px}
 .row small{color:var(--dim);font-size:11px}
 .row.past{opacity:.45}
 .row.today b{color:var(--accent)}
-.row button{background:none;border:1px solid var(--line);color:var(--ink);
-  border-radius:10px;padding:7px 11px;font-size:12px;white-space:nowrap}
+.row button{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink);
+  border-radius:var(--r-sm);padding:8px 12px;font-size:12px;white-space:nowrap}
 .row button:disabled{opacity:.35}
 .row button.danger{border-color:#7a4a4a;color:#d99}
 .giftrow{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
-
-.toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);
-  background:var(--bg2);border:1px solid var(--line);border-radius:999px;
-  padding:9px 16px;font-size:13px;z-index:11;max-width:90vw;text-align:center;
-  transition:opacity .55s ease,transform .55s ease}
-.toast.bad{border-color:#8a5a5a;color:#e8b0b0}
-.toast.out{opacity:0;transform:translateX(-50%) translateY(-6px)}
-
-.hidden{display:none!important}
-/* ปิดทั้ง transition และ animation — ของเดิมปิดแค่ transition
-   ทำให้ของที่ใช้ @keyframes (การ์ดที่ไล่ขึ้น ตัวเลขที่ลอย) ยังขยับอยู่
-   และทำให้เทสต์ภาพจับภาพระหว่างที่การ์ดยังไล่ขึ้นไม่เสร็จ ได้คนละภาพทุกรอบ */
-@media (prefers-reduced-motion:reduce){
-  *{transition:none!important;animation:none!important}
-}
-
-/* ═════════ ชั้นภาพใหม่: ภาพตัวละคร ไอคอน บรรยากาศตามช่วงเวลา ═════════ */
-
-.ico-svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
-  stroke-linecap:round;stroke-linejoin:round;display:block}
-.loc .ico{color:var(--period-accent,#9a92ad);opacity:.9}
-.chead .ico-svg{display:inline-block;vertical-align:-4px;width:17px;height:17px;margin-right:5px}
-
-/* แถบจุดบอกช่วงเวลาของวัน */
-#periodStrip{display:flex;gap:6px;margin-top:9px}
-.pslot{flex:1;display:block;min-width:0}
-.pdot{display:block;width:100%;height:3px;border-radius:2px;
-  background:rgba(242,238,247,.13);transition:background .4s ease}
-.pslot em{display:block;font-style:normal;font-size:10px;margin-top:4px;
-  color:rgba(242,238,247,.28);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transition:color .4s ease}
-.pslot.is-past .pdot{background:rgba(242,238,247,.32)}
-.pslot.is-past em{color:rgba(242,238,247,.42)}
-.pslot.is-now .pdot{background:var(--period-accent,#e4a0b7);
-  box-shadow:0 0 8px var(--period-accent,#e4a0b7)}
-.pslot.is-now em{color:var(--ink);font-weight:600}
-
-/* หลอดความคืบหน้าในชิปค่าสถานะ */
-.chip.stat{padding-bottom:5px}
-.chip.stat i{position:absolute;left:0;bottom:0;height:2px;background:var(--period-accent,#e4a0b7);
-  opacity:.55;transition:width .5s ease}
-.chip.club b{color:var(--period-accent,#e4a0b7)}
-
-/* ภาพตัวละคร */
-.avatar{display:block;width:38px;height:38px;flex:0 0 auto;border-radius:11px;overflow:hidden;
-  background:#221d31;line-height:0}
-.avatar svg{width:100%;height:100%;display:block}
-.avatar.lg{width:66px;height:66px;border-radius:16px}
-
-.who{flex-direction:row;align-items:center;gap:9px;padding:7px 12px 7px 7px}
-.who .wname{display:flex;flex-direction:column;align-items:flex-start;gap:1px;
-  font-size:13.5px;line-height:1.25}
-.who em{font-style:normal;font-size:10.5px;color:var(--dim)}
-
-/* การ์ดสถานที่ */
-.loc{transition:border-color .25s ease,transform .18s ease;
-  background:linear-gradient(160deg,rgba(255,255,255,.035),transparent 60%),var(--bg2)}
-.loc:not(.blocked):hover{border-color:rgba(242,238,247,.24)}
-.loc .nm{display:flex;align-items:center;gap:8px}
-
-/* ═════════ ฉากบทสนทนา ═════════ */
-
-#scene{background:
-  radial-gradient(120% 80% at 50% 0%,rgba(60,48,84,.55),transparent 60%),
-  rgba(10,8,16,.965);gap:0}
-#sceneBox{display:flex;gap:14px;align-items:flex-end;margin-bottom:14px}
-#portrait{width:clamp(92px,26vw,156px);flex:0 0 auto;border-radius:18px;overflow:hidden;
-  box-shadow:0 14px 40px rgba(0,0,0,.5);line-height:0;
-  animation:portraitIn .32s cubic-bezier(.2,.9,.3,1)}
-#portrait svg,#portrait img{width:100%;height:auto;display:block}
-@keyframes portraitIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
-#sceneText{flex:1;min-width:0;padding-bottom:4px}
-#speaker{font-family:"Bai Jamjuree",sans-serif;font-weight:700;font-size:16px;
-  letter-spacing:.3px;margin-bottom:6px;display:inline-block;
-  border-bottom:2px solid var(--who,var(--accent));padding-bottom:3px}
-#line{font-size:15.5px;line-height:1.75;min-height:4.6em;cursor:pointer}
-#hint{font-size:12px;color:#c8b06a;margin:2px 0 8px;min-height:16px;opacity:.9}
-#choices{display:flex;flex-direction:column;gap:8px}
-.choice{text-align:left;line-height:1.55;padding:12px 15px;
-  border-color:rgba(242,238,247,.18);background:rgba(255,255,255,.028);
-  animation:choiceIn .26s ease both}
-.choice:hover{border-color:var(--who,var(--accent));background:rgba(255,255,255,.06)}
-@keyframes choiceIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-.next{align-self:flex-end;min-width:64px;text-align:center;opacity:.75}
-
-/* ═════════ การ์ดเปลี่ยนวัน ═════════ */
-
-#daycard{position:fixed;inset:0;z-index:12;display:grid;place-items:center;
-  background:rgba(10,8,16,.82);opacity:0;transition:opacity .45s ease;pointer-events:none}
-#daycard.show{opacity:1}
-#daycard div{text-align:center;transform:translateY(8px);transition:transform .5s ease}
-#daycard.show div{transform:none}
-#daycard b{display:block;font-family:"Bai Jamjuree",sans-serif;font-size:26px;letter-spacing:.5px}
-#daycard small{display:block;margin-top:6px;color:var(--dim);font-size:13px}
-
-/* ═════════ แผงต่างๆ ═════════ */
-
-.card.person .prow{display:flex;gap:12px;align-items:flex-start}
-.card.person .pinfo{flex:1;min-width:0}
 .row.ev{gap:10px}
 .row.ev .evday{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;
-  background:rgba(242,238,247,.07);font-size:12px;font-weight:600;color:var(--dim)}
+  background:rgba(244,241,248,.07);font-size:12px;font-weight:600;color:var(--dim)}
 .row.ev.today .evday{background:var(--accent);color:#1a1626}
-.row.ev.exam .evday{background:rgba(200,176,106,.22);color:#c8b06a}
+.row.ev.exam .evday{background:rgba(232,201,138,.22);color:var(--warn)}
 .row.ev>span:nth-child(2){flex:1}
 .row.ev>span:first-child{flex:0 0 auto}
 
-.toast{background:rgba(35,30,48,.96);backdrop-filter:blur(8px);
-  box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.card.person .prow{display:flex;gap:12px;align-items:flex-start}
+.card.person .pinfo{flex:1;min-width:0}
 
-@media (min-width:560px){
-  #board{grid-template-columns:1fr 1fr}
-  .loc.wide{grid-column:1/-1}
-  #sceneBox{gap:18px}
-}
+/* สมุดพก */
+.sheet{display:grid;gap:8px;margin-top:6px}
+.sheet .row{display:flex;align-items:center;gap:10px;position:relative;
+  border:1px solid var(--line);border-radius:var(--r);padding:10px 13px;overflow:hidden}
+.sheet .row b{font-family:var(--head);font-size:14px;width:4.5em;flex:0 0 auto;z-index:1}
+.sheet .row i{position:absolute;left:0;top:0;bottom:0;background:rgba(228,160,183,.16)}
+.sheet .gr{margin-left:auto;font-family:var(--head);font-weight:700;font-size:16px;z-index:1}
+.sheet .g4{color:var(--good)}.sheet .g3{color:#cfe08a}.sheet .g2{color:var(--warn)}
+.sheet .g1{color:#e0a07a}.sheet .g0{color:#d67878}
 
-/* ฉากบทสนทนาเป็น fixed เต็มจอ เนื้อหาข้างในต้องคุมความกว้างเท่ากับตัวเกม
-   ไม่งั้นบนจอ Mac ข้อความจะลากยาวข้ามจนอ่านยาก */
-#scene{align-items:stretch}
-#sceneBox,#hint,#choices{width:100%;max-width:640px;margin-left:auto;margin-right:auto}
-#daycard div{max-width:640px;padding:0 16px}
+/* กระดานประกาศผลสอบหน้าห้อง — แถวของเราต้องเด่นชัด ไม่งั้นต้องไล่หาชื่อตัวเองทุกครั้ง */
+.board{display:grid;gap:5px;margin-top:8px}
+.brow{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--r-sm);
+  border:1px solid var(--line);font-size:14px}
+.brow.is-me{border-color:rgba(228,160,183,.6);background:rgba(228,160,183,.13)}
+.brow b{font-family:var(--head);font-weight:600}
+.brank{font-family:var(--head);color:var(--dim);width:2.2em;flex:0 0 auto;
+  text-align:right;font-variant-numeric:tabular-nums}
+.bscore{margin-left:auto;font-family:var(--head);font-variant-numeric:tabular-nums}
+.brow em{font-style:normal;font-size:12px}
+.brow .up{color:var(--good)}.brow .down{color:#d67878}
+.btut{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
 
-/* แถบ "ไม่ทำอะไร" ด้านล่างเป็น sticky จึงต้องเว้นที่ให้การ์ดใบสุดท้าย */
-#board{padding-bottom:64px}
-#bottom{padding-top:10px}
-.wide{background:rgba(31,27,46,.82);backdrop-filter:blur(8px)}
+.nextchap{width:100%;margin-top:16px;background:rgba(228,160,183,.16);color:var(--ink);
+  border:1px solid rgba(228,160,183,.55);border-radius:var(--r);padding:13px;
+  font-family:var(--head);font-size:15px;font-weight:600}
+.nextchap:active{background:rgba(228,160,183,.28)}
 
-/* หัววันที่ต้องไม่ถูกตัดคำกลางชิ้นบนจอแคบ */
-#date{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 7px;line-height:1.35}
-.dseg{white-space:nowrap}
-.dsep{font-style:normal;opacity:.4}
-#date small{font-family:"Noto Sans Thai",sans-serif;font-weight:400;font-size:12px;color:var(--dim)}
-@media (max-width:430px){
-  #date{font-size:17px}
-  .avatar{width:34px;height:34px;border-radius:9px}
-}
+/* หน้าวิธีเล่น */
+.howto{display:grid;gap:9px;margin-top:6px}
+.hrow{border:1px solid var(--line);border-radius:var(--r);padding:10px 13px;
+  font-size:12.5px;line-height:1.8;color:var(--dim)}
+.hrow b{display:block;font-family:var(--head);font-size:14px;color:var(--ink);
+  font-weight:600;margin-bottom:2px}
+.hrow em{font-style:normal;color:var(--ink)}
 
-/* ═════════ มินิเกม ═════════ */
+/* สมุดบันทึกของเทอม */
+.dtabs{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}
+.dtab{border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--dim);
+  border-radius:999px;padding:6px 14px;font-family:var(--head);font-size:13px}
+.dtab.is-on{border-color:rgba(228,160,183,.55);color:var(--ink);background:rgba(228,160,183,.14)}
+.diary{max-height:52vh;overflow-y:auto;display:grid;gap:5px;
+  border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+.dline{font-size:13px;line-height:1.75;color:var(--dim);
+  padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05)}
+.dline:last-child{border-bottom:none;padding-bottom:0}
 
-#minigame{position:fixed;inset:0;z-index:14;display:grid;place-items:center;
-  background:rgba(10,8,16,.94);padding:16px}
-.mg{width:100%;max-width:520px;background:var(--bg2);border:1px solid var(--line);
-  border-radius:20px;padding:18px 18px 20px;box-shadow:0 22px 60px rgba(0,0,0,.55)}
-.mgHead{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
-.mgHead b{font-family:"Bai Jamjuree",sans-serif;font-size:19px}
-.mgHead span{font-size:12px;color:var(--dim)}
-.mgBar{height:4px;border-radius:3px;background:rgba(242,238,247,.12);overflow:hidden;margin-bottom:16px}
-.mgBar i{display:block;height:100%;background:var(--accent);transition:width .1s linear}
-.mgBtn{background:var(--accent);border:0;color:#1a1626;border-radius:12px;padding:12px 18px;
-  font:600 14px/1 "Noto Sans Thai",sans-serif;cursor:pointer}
-.mgBtn.wide{width:100%;margin-top:14px}
-.mgBtn:disabled{opacity:.45}
+/* ───────────────────────── ไลน์ ─────────────────────────
+   ฟองซ้ายคือเขา ฟองขวาคือเรา */
 
-/* ผลลัพธ์ */
-.mg.result{text-align:center}
-.mgScore{font-family:"Bai Jamjuree",sans-serif;font-size:52px;font-weight:700;line-height:1;margin:6px 0 12px}
-.mg.result.great .mgScore{color:#8ec7a0}
-.mg.result.good  .mgScore{color:#c8b06a}
-.mg.result.ok    .mgScore{color:#9aa6c8}
-.mg.result.bad   .mgScore{color:#c88a8a}
-.mgScore small{font-size:18px;font-weight:400;color:var(--dim)}
-.mgLine{font-size:13px;color:var(--dim);margin:4px 0;line-height:1.6}
-.mg.result .mgBtn{width:100%;margin-top:16px}
-
-/* ข้อสอบ */
-.qmeta{font-size:11.5px;color:var(--dim);margin-bottom:6px}
-.qtext{font-size:16px;line-height:1.65;margin-bottom:14px;min-height:3.3em}
-.qchoices{display:grid;gap:8px}
-.qc{background:none;border:1px solid var(--line);color:var(--ink);border-radius:12px;
-  padding:12px 14px;font:400 14px/1.4 "Noto Sans Thai",sans-serif;text-align:left;cursor:pointer}
-.qc:hover:not(:disabled){border-color:var(--accent)}
-.qc.right{border-color:#6ba883;background:rgba(107,168,131,.18)}
-.qc.wrong{border-color:#b06a6a;background:rgba(176,106,106,.16)}
-
-/* วิ่งผลัด */
-.relayInfo{font-size:12.5px;color:var(--dim);margin-bottom:10px}
-.track{position:relative;height:46px;border-radius:12px;background:rgba(242,238,247,.07);
-  border:1px solid var(--line);overflow:hidden}
-.zone{position:absolute;top:0;bottom:0;background:rgba(110,190,140,.3);border-left:2px solid #6ebe8c;
-  border-right:2px solid #6ebe8c}
-.marker{position:absolute;top:4px;bottom:4px;width:5px;border-radius:3px;background:var(--accent);
-  box-shadow:0 0 12px var(--accent)}
-.marker.hit{background:#6ebe8c;box-shadow:0 0 16px #6ebe8c}
-.marker.miss{background:#c07272;box-shadow:none}
-
-/* ดนตรี */
-.stageR{position:relative;height:250px;border-radius:14px;overflow:hidden;
-  background:linear-gradient(180deg,rgba(242,238,247,.04),rgba(242,238,247,.09));
-  border:1px solid var(--line);display:flex}
-.lane{flex:1;border-right:1px solid rgba(242,238,247,.07)}
-.lane:last-child{border-right:0}
-.hitline{position:absolute;left:0;right:0;bottom:36px;height:3px;background:var(--accent);
-  box-shadow:0 0 14px var(--accent);z-index:2}
-.note{position:absolute;top:-36px;width:36px;height:24px;border-radius:7px;
-  background:#8fb6e0;box-shadow:0 2px 10px rgba(0,0,0,.4);opacity:0;
-  transform:translateY(0)}
-.note.hit{background:#6ebe8c}
-.note.perfect{background:#e8c98a;box-shadow:0 0 16px #e8c98a}
-.note.miss{background:#6a5f78;opacity:.4!important}
-.laneBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
-.laneBtn{background:rgba(242,238,247,.06);border:1px solid var(--line);color:var(--ink);
-  border-radius:12px;padding:16px 0;font:600 16px/1 "Bai Jamjuree",sans-serif;cursor:pointer}
-.laneBtn:active{background:var(--accent);color:#1a1626}
-
-/* หลบครู */
-.dodgeWrap{position:relative;text-align:center}
-.teacher{font-family:"Bai Jamjuree",sans-serif;font-size:19px;padding:26px 0;border-radius:14px;
-  border:1px solid var(--line);transition:background .2s ease,color .2s ease}
-.teacher.away{background:rgba(110,190,140,.14);color:#8ec7a0;border-color:#4d7a60}
-.teacher.watch{background:rgba(200,110,110,.18);color:#e0a0a0;border-color:#8a5a5a}
-.dodgeTrack{height:10px;border-radius:5px;background:rgba(242,238,247,.1);overflow:hidden;margin-top:14px}
-.dodgeTrack i{display:block;height:100%;background:var(--accent);transition:width .25s ease}
-.dodgeFlash{position:absolute;left:50%;top:26px;transform:translateX(-50%);
-  font-size:13px;padding:6px 14px;border-radius:999px;background:rgba(10,8,16,.85);
-  border:1px solid var(--line);animation:flashUp .7s ease forwards}
-@keyframes flashUp{0%{opacity:0;transform:translate(-50%,6px)}25%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-10px)}}
-
-/* ═════════ ฉากหลัง ═════════ */
-
-.bd{display:block;width:100%;height:100%}
-/* ฉากหลังต้องจางตรงที่มีตัวหนังสือ (ซ้ายบน) และชัดขึ้นทางขวา */
-.locbg{position:absolute;inset:0;border-radius:16px;overflow:hidden;opacity:.4;
-  -webkit-mask-image:linear-gradient(105deg,transparent 12%,rgba(0,0,0,.35) 42%,#000 100%);
-  mask-image:linear-gradient(105deg,transparent 12%,rgba(0,0,0,.35) 42%,#000 100%);
-  pointer-events:none}
-.locbg .bd{transform:scale(1.02)}
-.locbg img.bd{width:100%;height:100%;object-fit:cover}
-.loc{position:relative;overflow:hidden}
-.loc .ico,.loc .nm,.loc .acts{position:relative;z-index:1}
-
-/* ภาพฉากเป็น 400x150 ถ้าบังคับให้สูง 62vh แล้ว slice มันจะถูกขยายกว่า 5 เท่า
-   แล้วเห็นแค่ 40% ของภาพแบบซูมจนแตก — ต้องคงสัดส่วนเดิมไว้เสมอ
-
-   และภาพต้องอยู่ "ในสายของข้อความ" ไม่ใช่ absolute ติดขอบบนจอ
-   ตอนเป็น absolute บนจอโน้ตบุ๊ก แถบภาพไปกองอยู่บนสุด กล่องบทอยู่ล่างสุด
-   ตรงกลางเป็นพื้นดำเปล่าสูงเกือบ 300px ทุกฉาก ซึ่งไม่ใช่การเว้นที่ แต่คือรู
-   พอเอาเข้า flow แล้ว ภาพจะนั่งชิดบนกล่องบทเสมอไม่ว่าจอสูงเท่าไร */
-#sceneBg{position:relative;z-index:0;overflow:hidden;opacity:.82;
-  width:100%;max-width:640px;margin:0 auto -8px;flex:0 0 auto;
-  border-radius:18px 18px 0 0;
-  -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.92) 62%,transparent 100%);
-  mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.92) 62%,transparent 100%)}
-#sceneBg .bd{width:100%;height:auto;aspect-ratio:400/150}
-/* บนจอสูง (มือถือแนวตั้ง) เหนือภาพเป็นที่ว่างเกือบครึ่งจอทุกฉาก ซึ่งอ่านออกมาว่า "แห้ง"
-   ยืดภาพให้สูงขึ้นเป็นขั้นแทน — ห้ามใช้ vh ตรงๆ ด้วยเหตุผลข้างบน
-   ภาพถ่ายเป็น 16:9 อยู่แล้ว ครอบแนวนอนเข้ามาหน่อยไม่เสียอะไร */
-@media (min-height: 740px) { #sceneBg .bd{aspect-ratio:400/215} }
-/* ภาพฉากที่วาดจริงเป็น 16:9 ส่วนแถบในเกมเป็น 400/150 — ครอบให้เต็มแล้วตัดส่วนเกิน
-   ห้ามบีบให้พอดี ไม่งั้นห้องเรียนจะแบนผิดสัดส่วน */
-#sceneBg img.bd{height:100%;object-fit:cover;object-position:center 62%}
-#scene{isolation:isolate}
-
-/* ───────────────── ไลน์ ─────────────────
-   ฟองซ้ายคือเขา ฟองขวาคือเรา คลาสที่เป็นสถานะขึ้นต้นด้วย is- ตามกติกาในไฟล์นี้ */
 .pwrap.chat{display:flex;flex-direction:column;max-height:82dvh}
-.chead{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.chead.chat{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .cavatar{width:34px;height:34px;border-radius:50%;overflow:hidden;flex:0 0 34px;
   background:var(--bg2);display:grid;place-items:center}
 .cavatar svg,.cavatar img{width:100%;height:100%;object-fit:cover;display:block}
 .cwho{display:flex;flex-direction:column;line-height:1.3}
-.cwho b{font-family:"Bai Jamjuree",sans-serif;font-size:15px}
+.cwho b{font-family:var(--head);font-size:15px}
 .cwho small{font-size:11px;color:var(--dim)}
-
 .bubbles{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;
   padding:12px 2px;min-height:180px;scroll-behavior:smooth}
-.bub{max-width:78%;padding:9px 13px;border-radius:16px;font-size:14.5px;line-height:1.6;
+.bub{max-width:78%;padding:10px 14px;border-radius:17px;font-size:14.5px;line-height:1.6;
   white-space:pre-wrap;animation:bubIn .18s ease}
-.bub.them{align-self:flex-start;background:var(--bg2);border-bottom-left-radius:5px}
-.bub.me{align-self:flex-end;background:rgba(228,160,183,.2);border-bottom-right-radius:5px}
+.bub.them{align-self:flex-start;background:var(--bg3);border-bottom-left-radius:5px}
+.bub.me{align-self:flex-end;background:rgba(228,160,183,.22);border-bottom-right-radius:5px}
 .bub.is-typing{display:flex;gap:4px;align-items:center;padding:12px 14px}
 .bub.is-typing i{width:6px;height:6px;border-radius:50%;background:var(--dim);
   animation:typing 1s infinite ease-in-out}
@@ -403,136 +466,245 @@ button{font-family:inherit;cursor:pointer}
 .bub.is-typing i:nth-child(3){animation-delay:.32s}
 @keyframes bubIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes typing{0%,60%,100%{opacity:.3}30%{opacity:1}}
-
 .replies{display:grid;gap:7px;padding-top:10px;border-top:1px solid var(--line)}
-.reply{background:none;color:var(--ink);border:1px solid rgba(228,160,183,.45);
-  border-radius:12px;padding:9px 13px;font-size:13.5px;min-height:40px;text-align:left}
-.reply:active{background:rgba(228,160,183,.14)}
+.reply{background:rgba(255,255,255,.03);color:var(--ink);border:1px solid rgba(228,160,183,.45);
+  border-radius:var(--r);padding:10px 14px;font-size:13.5px;min-height:42px;text-align:left}
+.reply:active{background:rgba(228,160,183,.16)}
 .reply.close{text-align:center;border-color:var(--line);color:var(--dim)}
-
 .thread{display:flex;align-items:center;gap:10px;width:100%;margin-top:8px;text-align:left;
-  background:none;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+  background:rgba(255,255,255,.03);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r-lg);padding:11px 13px}
 .thread .tinfo{flex:1;display:flex;flex-direction:column;min-width:0}
-.thread .tinfo b{font-family:"Bai Jamjuree",sans-serif;font-size:14px}
+.thread .tinfo b{font-family:var(--head);font-size:14px}
 .thread .tinfo small{font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thread .tday{font-size:10.5px;color:var(--dim);flex:0 0 auto}
-.thread.is-new{border-color:rgba(228,160,183,.55)}
+.thread.is-new{border-color:rgba(228,160,183,.55);background:rgba(228,160,183,.08)}
 .thread .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:0 0 auto}
-.dimline{color:var(--dim);font-size:13px;line-height:1.7}
 
-/* ตัวเลขบนปุ่มไลน์ในแถบบน — ต้องเห็นได้โดยไม่ต้องเปิดเข้าไปดู */
-.tbtn.is-unread{border-color:rgba(228,160,183,.6);color:var(--accent)}
-.tbtn .badge{display:inline-block;margin-left:5px;min-width:16px;padding:0 4px;border-radius:999px;
-  background:var(--accent);color:#2a1620;font-size:10px;font-weight:700;line-height:16px;text-align:center}
-.appt{border:1px solid rgba(228,160,183,.5);border-radius:14px;padding:10px 14px;
-  font-size:13.5px;color:var(--dim);background:rgba(228,160,183,.07)}
-.appt b{font-family:"Bai Jamjuree",sans-serif;font-size:14px;margin-right:6px}
-.who.is-appt{border-color:var(--accent);background:rgba(228,160,183,.12)}
-.who.is-appt em{color:var(--accent)}
-/* บนจอกว้าง #board เป็นกริดสองคอลัมน์ แถบเตือนนัดต้องกินเต็มแถว ไม่งั้นจะกลายเป็นกล่องเปล่าสูงเท่าการ์ด */
-.appt{grid-column:1/-1;align-self:start}
-/* การ์ดการบ้าน — เป็นของที่ "ต้องทำ" ไม่ใช่ของที่เลือกทำ จึงต้องเด่นกว่าการ์ดสถานที่ */
-.loc.hw{border-color:rgba(228,160,183,.5);background:linear-gradient(180deg,rgba(228,160,183,.1),var(--bg2))}
-.chip.hw{border-color:rgba(228,160,183,.5);color:var(--accent)}
+/* ───────────────────────── ข้อความลอย ───────────────────────── */
 
-/* สมุดพก — แถบเกรดรายวิชาแบบ ปพ. */
-.sheet{display:grid;gap:8px;margin-top:6px}
-.sheet .row{display:flex;align-items:center;gap:10px;position:relative;
-  border:1px solid var(--line);border-radius:12px;padding:9px 12px;overflow:hidden}
-.sheet .row b{font-family:"Bai Jamjuree",sans-serif;font-size:14px;width:4.5em;flex:0 0 auto;z-index:1}
-.sheet .row i{position:absolute;left:0;top:0;bottom:0;background:rgba(228,160,183,.16)}
-.sheet .gr{margin-left:auto;font-family:"Bai Jamjuree",sans-serif;font-weight:700;font-size:16px;z-index:1}
-.sheet .g4{color:#8fd6a6}.sheet .g3{color:#cfe08a}.sheet .g2{color:#e8c98a}
-.sheet .g1{color:#e0a07a}.sheet .g0{color:#d67878}
-#chapter{font-size:11px;color:var(--dim);letter-spacing:.4px;margin-bottom:1px}
-.nextchap{width:100%;margin-top:16px;background:rgba(228,160,183,.16);color:var(--ink);
-  border:1px solid rgba(228,160,183,.55);border-radius:12px;padding:12px;
-  font-family:"Bai Jamjuree",sans-serif;font-size:15px;font-weight:600;cursor:pointer}
-.nextchap:active{background:rgba(228,160,183,.28)}
+.toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);
+  background:rgba(37,32,54,.96);backdrop-filter:blur(10px);
+  border:1px solid var(--line2);border-radius:999px;padding:10px 18px;font-size:13px;z-index:11;
+  max-width:92vw;text-align:center;box-shadow:var(--sh1);
+  transition:opacity .55s ease,transform .55s ease}
+.toast.bad{border-color:rgba(224,144,143,.6);color:#f0b8b6}
+.toast.out{opacity:0;transform:translateX(-50%) translateY(-6px)}
 
-/* ภาพตัวละครเป็น PNG ที่ประกอบไว้ล่วงหน้า ไม่ใช่ SVG ที่วาดจากโค้ดอีกแล้ว
-   ต้องบอกขนาดให้ชัด ไม่งั้นการ์ดจะกระตุกตอนภาพโหลดเสร็จ */
-.avatar img,.avatar svg{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
-.avatar{overflow:hidden;border-radius:12px;display:inline-block;line-height:0}
-#portrait img{background:linear-gradient(160deg,#2c2640,#1a1628)}
+.hidden{display:none!important}
 
-/* ═════════ เวลาของวันบนภาพฉาก ═════════
-   ชุดภาพหนึ่งให้มาสี่ช่วงเวลาจริง อีกชุดให้ภาพเดียว จึงต้องไล่สีทับให้ชุดหลัง
-   ใช้แผ่นสีทับแทนการใส่ filter ทั้งภาพ เพราะ hue-rotate ทั้งใบทำให้สีเพี้ยนทั้งฉาก
-   (ลองแล้ว ห้องสมุดกลายเป็นสีฟ้าอมเขียวทั้งห้อง) */
+/* ───────────────────────── มินิเกม ───────────────────────── */
+
+#minigame{position:fixed;inset:0;z-index:14;display:grid;place-items:center;
+  background:rgba(10,8,16,.95);padding:16px}
+.mg{position:relative;width:100%;max-width:520px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:var(--r-xl);padding:18px 18px 20px;box-shadow:var(--sh2);
+  animation:mgIn .3s cubic-bezier(.2,.9,.3,1)}
+@keyframes mgIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes mgShake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.mg.is-shake{animation:mgShake .34s ease}
+.mgHead{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+.mgHead b{font-family:var(--head);font-size:19px}
+.mgHead span{font-size:12px;color:var(--dim)}
+.mgBar{height:4px;border-radius:3px;background:rgba(244,241,248,.12);overflow:hidden;margin-bottom:16px}
+.mgBar i{display:block;height:100%;background:var(--accent);transition:width .1s linear}
+.mgHint{font-size:11.5px;color:var(--dim2);margin-top:12px;line-height:1.6;text-align:center}
+.mgStreak{min-height:16px;margin-top:8px;text-align:center;font-family:var(--head);
+  font-size:12.5px;color:transparent;transition:color .2s ease}
+.mgStreak.on{color:var(--warn)}
+.mgStreak.hot{color:var(--accent);text-shadow:0 0 12px rgba(228,160,183,.6)}
+.mgBtn{background:var(--accent);border:0;color:#1a1626;border-radius:var(--r);padding:13px 18px;
+  font:600 14px/1 var(--font)}
+.mgBtn.wide{width:100%;margin-top:14px}
+.mgBtn:disabled{opacity:.45}
+.mgPop{position:absolute;left:50%;top:44%;transform:translate(-50%,0);pointer-events:none;
+  font-family:var(--head);font-size:21px;font-weight:700;z-index:2;
+  text-shadow:0 2px 12px rgba(0,0,0,.8);animation:popUp .9s ease forwards}
+.mgPop.good{color:var(--good)}.mgPop.bad{color:var(--bad)}
+.mgPop.best{color:var(--warn);font-size:25px}
+@keyframes popUp{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}
+  25%{opacity:1;transform:translate(-50%,0) scale(1.05)}
+  100%{opacity:0;transform:translate(-50%,-26px) scale(1)}}
+
+/* ผลลัพธ์ */
+.mg.result{text-align:center}
+.mgRing{position:relative;width:132px;height:132px;margin:8px auto 14px}
+.mgRing svg{width:100%;height:100%;transform:rotate(-90deg)}
+.mgRing circle{fill:none;stroke-width:7;stroke-linecap:round}
+.mgRing .ringbg{stroke:rgba(244,241,248,.09)}
+.mgRing .ringfg{stroke:currentColor;transition:stroke-dasharray .9s cubic-bezier(.2,.9,.3,1);
+  animation:ringGrow .9s cubic-bezier(.2,.9,.3,1)}
+@keyframes ringGrow{from{stroke-dasharray:0 327}}
+.mgScore{position:absolute;inset:0;display:grid;place-items:center;
+  font-family:var(--head);font-size:38px;font-weight:700;line-height:1}
+.mgScore small{font-size:15px;font-weight:400;color:var(--dim)}
+.mg.result.great{color:var(--good)}
+.mg.result.good{color:var(--warn)}
+.mg.result.ok{color:#9aa6c8}
+.mg.result.bad{color:var(--bad)}
+.mg.result .mgLine{color:var(--dim)}
+.mgLine{font-size:13px;margin:4px 0;line-height:1.65}
+.mg.result .mgBtn{width:100%;margin-top:16px}
+
+/* ข้อสอบ */
+.qmeta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:8px}
+.qsub{border:1px solid var(--line);border-radius:999px;padding:1px 10px}
+.qtext{font-size:16px;line-height:1.7;margin-bottom:14px;min-height:3.3em}
+.qchoices{display:grid;gap:8px}
+.qc{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);
+  border:1px solid var(--line);color:var(--ink);border-radius:var(--r);
+  padding:12px 14px;font:400 14px/1.45 var(--font);text-align:left}
+.qc i{font-style:normal;width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;
+  border-radius:7px;background:rgba(244,241,248,.08);font-size:12px;color:var(--dim)}
+.qc:hover:not(:disabled){border-color:var(--accent)}
+.qc.right{border-color:#6ba883;background:rgba(107,168,131,.18)}
+.qc.right i{background:#6ba883;color:#10200f}
+.qc.wrong{border-color:#b06a6a;background:rgba(176,106,106,.16)}
+
+/* นั่งท่อง */
+.focusInfo{font-size:12.5px;color:var(--dim);margin-bottom:12px;text-align:center}
+.focusSeq{display:grid;gap:8px}
+.fw{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 14px;font-size:15px;background:rgba(255,255,255,.035);
+  animation:fwIn .3s cubic-bezier(.2,.9,.3,1) backwards}
+@keyframes fwIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.fw i{font-style:normal;width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;
+  border-radius:7px;background:var(--accent);color:#1a1626;font-size:12px;font-weight:700}
+.focusPick{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.fpick{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;
+  padding:9px 15px;font-size:13.5px;font-family:var(--font)}
+.fpick.right{border-color:#6ba883;background:rgba(107,168,131,.2);opacity:.55}
+.fpick.wrong{border-color:#b06a6a;background:rgba(176,106,106,.18);opacity:.55}
+.fpick:disabled{cursor:default}
+.focusSlot{display:grid;gap:5px}
+.fslot{min-height:32px;border:1px dashed var(--line);border-radius:var(--r-sm);
+  display:grid;place-items:center;font-size:12.5px;color:var(--dim)}
+.fslot.right{border-style:solid;border-color:#6ba883;color:var(--good)}
+.fslot.wrong{border-style:solid;border-color:#b06a6a;color:var(--bad)}
+
+/* จัดของ */
+.serveInfo{font-size:12.5px;color:var(--dim);margin-bottom:10px;text-align:center}
+.things{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;justify-content:center}
+.thing{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;
+  padding:9px 15px;font-size:13.5px;font-family:var(--font)}
+.thing.is-on{border-color:var(--accent);background:rgba(228,160,183,.2);
+  box-shadow:0 0 0 1px rgba(228,160,183,.3)}
+.bags{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bag{display:flex;flex-direction:column;gap:3px;background:rgba(255,255,255,.035);
+  border:1px dashed var(--line2);border-radius:var(--r);padding:13px 8px;font-family:var(--font)}
+.bag b{font-family:var(--head);font-size:13px}
+.bag small{font-size:10.5px;color:var(--dim2)}
+.bag:active{background:rgba(228,160,183,.14)}
+
+/* อ่านอารมณ์คนตรงหน้า */
+.talkMood{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.talkMood b{font-family:var(--head);font-size:16px}
+.talkMood span{font-size:11.5px;color:var(--dim)}
+.talkFace{position:relative;height:96px;border-radius:var(--r-lg);margin-bottom:14px;
+  background:radial-gradient(60% 80% at 50% 40%,rgba(255,255,255,.07),transparent 70%),
+    rgba(255,255,255,.03);border:1px solid var(--line);transition:background .4s ease}
+.talkFace i{position:absolute;top:34px;width:11px;height:11px;border-radius:50%;background:var(--dim)}
+.talkFace i:nth-child(1){left:calc(50% - 26px)}
+.talkFace i:nth-child(2){left:calc(50% + 15px)}
+.talkFace u{position:absolute;left:50%;top:60px;transform:translateX(-50%);width:34px;height:3px;
+  border-radius:3px;background:var(--dim);text-decoration:none}
+.talkFace.mood-tired i{height:3px;top:38px;border-radius:2px;width:13px}
+.talkFace.mood-tired u{width:22px;opacity:.6}
+.talkFace.mood-lost u{width:12px;height:12px;border-radius:50%;background:none;
+  border:3px solid var(--dim)}
+.talkFace.mood-stuck u{width:26px;transform:translateX(-50%) rotate(-8deg)}
+.talkFace.mood-keen i{width:13px;height:13px;top:31px}
+.talkFace.mood-keen u{width:40px;height:9px;border-radius:0 0 20px 20px;background:var(--dim)}
+.talkOpts{display:grid;gap:8px}
+.topt{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:var(--r);
+  padding:12px 14px;font-size:13.5px;text-align:left;font-family:var(--font)}
+.topt.right{border-color:#6ba883;background:rgba(107,168,131,.18)}
+.topt.wrong{border-color:#b06a6a;background:rgba(176,106,106,.16)}
+
+/* วิ่งผลัด */
+.relayInfo{font-size:12.5px;color:var(--dim);margin-bottom:10px}
+.track{position:relative;height:52px;border-radius:var(--r);background:rgba(244,241,248,.06);
+  border:1px solid var(--line);overflow:hidden}
+.zone{position:absolute;top:0;bottom:0;background:rgba(110,190,140,.28);
+  border-left:2px solid #6ebe8c;border-right:2px solid #6ebe8c}
+.zone .core{position:absolute;top:0;bottom:0;width:2px;background:#9fe8b8;opacity:.8}
+.marker{position:absolute;top:4px;bottom:4px;width:5px;border-radius:3px;background:var(--accent);
+  box-shadow:0 0 12px var(--accent)}
+.marker.hit{background:#6ebe8c;box-shadow:0 0 16px #6ebe8c}
+.marker.miss{background:#c07272;box-shadow:none}
+.runner{position:absolute;bottom:2px;font-size:15px;transition:left .2s linear;pointer-events:none}
+
+/* ดนตรี */
+.stageR{position:relative;height:250px;border-radius:var(--r);overflow:hidden;
+  background:linear-gradient(180deg,rgba(244,241,248,.04),rgba(244,241,248,.09));
+  border:1px solid var(--line);display:flex}
+.lane{flex:1;border-right:1px solid rgba(244,241,248,.07)}
+.lane:last-child{border-right:0}
+.hitline{position:absolute;left:0;right:0;bottom:36px;height:3px;background:var(--accent);
+  box-shadow:0 0 14px var(--accent);z-index:2}
+.note{position:absolute;top:-36px;width:36px;height:24px;border-radius:7px;
+  background:#8fb6e0;box-shadow:0 2px 10px rgba(0,0,0,.4);opacity:0}
+.note.hit{background:#6ebe8c}
+.note.perfect{background:var(--warn);box-shadow:0 0 16px var(--warn)}
+.note.miss{background:#6a5f78;opacity:.4!important}
+.combo{position:absolute;left:0;right:0;top:12px;text-align:center;z-index:3;
+  font-family:var(--head);font-size:16px;font-weight:700;color:transparent;transition:color .2s}
+.combo.on{color:var(--warn)}
+.combo.hot{color:var(--accent);text-shadow:0 0 16px rgba(228,160,183,.7)}
+.laneBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.laneBtn{background:rgba(244,241,248,.06);border:1px solid var(--line);color:var(--ink);
+  border-radius:var(--r);padding:17px 0;font:600 16px/1 var(--head);transition:background .08s}
+.laneBtn.is-hit,.laneBtn:active{background:var(--accent);color:#1a1626}
+
+/* หลบครู */
+.dodgeWrap{position:relative;text-align:center}
+.teacher{font-family:var(--head);font-size:18px;padding:22px 0;border-radius:var(--r);
+  border:1px solid var(--line);transition:background .2s ease,color .2s ease}
+.teacher .teye{display:block;font-size:22px;letter-spacing:6px;margin-bottom:6px}
+.teacher.away{background:rgba(110,190,140,.14);color:var(--good);border-color:#4d7a60}
+.teacher.watch{background:rgba(200,110,110,.18);color:#e0a0a0;border-color:#8a5a5a}
+.dodgeTrack{position:relative;height:12px;border-radius:6px;background:rgba(244,241,248,.1);
+  overflow:visible;margin-top:16px}
+.dodgeTrack i{display:block;height:100%;border-radius:6px;background:var(--accent);
+  transition:width .25s ease}
+.dodgeTrack .you{position:absolute;top:-5px;transform:translateX(-50%);font-size:13px;
+  color:var(--accent);transition:left .25s ease}
+
+/* ───────────────────────── ฉากหลัง ───────────────────────── */
+
+.bd{display:block;width:100%;height:100%}
+/* ชุดภาพหนึ่งให้มาสี่ช่วงเวลาจริง อีกชุดให้ภาพเดียว จึงต้องไล่สีทับให้ชุดหลัง
+   ใช้แผ่นสีทับแทน filter ทั้งภาพ เพราะ hue-rotate ทั้งใบทำให้สีเพี้ยนทั้งฉาก */
 .bdt{position:relative;display:block;width:100%;height:100%}
 .bdt img{width:100%;height:100%;object-fit:cover;display:block}
 .bdt::after{content:"";position:absolute;inset:0;pointer-events:none}
 .bdt.tod-dusk img{filter:saturate(1.12) brightness(.98)}
 .bdt.tod-dusk::after{background:linear-gradient(200deg,rgba(255,164,72,.42),rgba(186,88,62,.24))}
 .bdt.tod-lit img{filter:saturate(.88) brightness(.62)}
-.bdt.tod-lit::after{background:linear-gradient(200deg,rgba(38,30,72,.40),rgba(20,16,40,.52))}
+.bdt.tod-lit::after{background:linear-gradient(200deg,rgba(38,30,72,.4),rgba(20,16,40,.52))}
 .bdt.tod-dark img{filter:saturate(.6) brightness(.5)}
 .bdt.tod-dark::after{background:rgba(12,16,44,.6)}
-.locbg .bdt{transform:scale(1.02)}
 
-/* รับนัดซ้อนกันไว้ — ต้องเห็นก่อนถึงเวลา ไม่ใช่รู้ตอนผิดนัดไปแล้ว */
-.appt .clash{display:block;font-style:normal;font-size:12px;margin-top:4px;
-  color:#e0a45c;border-top:1px solid rgba(224,164,92,.3);padding-top:4px}
+/* ───────────────────────── จอกว้าง ───────────────────────── */
 
-/* กระดานประกาศผลสอบหน้าห้อง — ของที่ทั้งห้องยืนอ่าน
-   แถวของเราต้องเด่นกว่าแถวอื่นชัดเจน ไม่งั้นต้องไล่หาชื่อตัวเองทุกครั้งที่เปิด */
-.board{display:grid;gap:5px;margin-top:8px}
-.brow{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:10px;
-  border:1px solid var(--line);font-size:14px}
-.brow.is-me{border-color:rgba(228,160,183,.6);background:rgba(228,160,183,.13)}
-.brow b{font-family:"Bai Jamjuree",sans-serif;font-weight:600}
-.brank{font-family:"Bai Jamjuree",sans-serif;color:var(--dim);width:2.2em;flex:0 0 auto;
-  text-align:right;font-variant-numeric:tabular-nums}
-.bscore{margin-left:auto;font-family:"Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
-.brow em{font-style:normal;font-size:12px}
-.brow .up{color:#8fd6a6}.brow .down{color:#d67878}
-.btut{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+@media (min-width:560px){
+  #board{grid-template-columns:1fr 1fr}
+  .loc.wide,.place,.appt,.end,.secthead{grid-column:1/-1}
+  #sceneBox{gap:18px}
+  #topBtns .tbtn{flex:0 0 auto}
+}
+@media (max-width:430px){
+  #date{font-size:17px}
+  .avatar{width:34px;height:34px;border-radius:9px}
+  .bags{grid-template-columns:1fr 1fr}
+}
 
-/* ปุ่มที่ต้องฝืนถึงจะกดได้ — ต้องดูต่างจากปุ่มปกติ แต่ห้ามดูเหมือนปุ่มที่กดไม่ได้
-   เพราะทั้งหมดของระบบนี้คือมันกดได้ ถ้าผู้เล่นยอมจ่าย */
-.act.tired{opacity:.72;border-style:dashed}
-.act.tired::after{content:"ต้องฝืน";font-size:11px;color:var(--dim);margin-left:6px}
-.chip.debt i{background:rgba(214,120,120,.3)}
+/* ───────────────────────── การเคลื่อนไหวร่วม ───────────────────────── */
 
-/* หน้าวิธีเล่น — ต้องอ่านได้รวดเดียวบนจอเดียว ไม่ใช่กำแพงตัวหนังสือ
-   หัวข้อหนาแล้วขึ้นบรรทัดใหม่ เพราะคนอ่านจะกวาดหาหัวข้อก่อนเสมอ */
-.howto{display:grid;gap:9px;margin-top:6px}
-.hrow{border:1px solid var(--line);border-radius:11px;padding:9px 12px;
-  font-size:13px;line-height:1.75;color:var(--dim)}
-.hrow b{display:block;font-family:"Bai Jamjuree",sans-serif;font-size:14px;
-  color:var(--ink);font-weight:600;margin-bottom:2px}
-.hrow em{font-style:normal;color:var(--ink)}
-
-/* สมุดบันทึกของเทอม — 200 บรรทัดต้องเลื่อนได้และกรองได้ ไม่งั้นอ่านไม่ออกเหมือนเดิม */
-.dtabs{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}
-.dtab{border:1px solid var(--line);background:none;color:var(--dim);border-radius:999px;
-  padding:5px 13px;font-family:"Bai Jamjuree",sans-serif;font-size:13px;cursor:pointer}
-.dtab.is-on{border-color:rgba(228,160,183,.55);color:var(--ink);background:rgba(228,160,183,.14)}
-.diary{max-height:52vh;overflow-y:auto;display:grid;gap:5px;
-  border:1px solid var(--line);border-radius:12px;padding:9px 11px}
-.dline{font-size:13px;line-height:1.7;color:var(--dim);
-  padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05)}
-.dline:last-child{border-bottom:none;padding-bottom:0}
-
-/* ═════════════════ การเคลื่อนไหวของหน้าจอ ═════════════════
-   เดิมทุกอย่างโผล่มาทันที — กด แล้วกล่องอยู่ตรงนั้นเลย
-   ผลคือผู้เล่นไม่รู้ว่าอะไรเพิ่งเปลี่ยน และหน้าจออ่านเป็นเอกสาร ไม่ใช่เกม
-   ทุกการเคลื่อนไหวที่นี่มีหน้าที่บอกอย่างใดอย่างหนึ่งเสมอ:
-   ของใหม่มาจากไหน · อะไรเพิ่งเปลี่ยน · กดติดแล้วหรือยัง
-   (prefers-reduced-motion ปิดทั้งหมดให้อยู่แล้วที่บรรทัดบน) */
-
-/* แผงเลื่อนขึ้นมาจากขอบล่าง ไม่ใช่โผล่กลางจอ
-   ทิศทางบอกเองว่า "กดปิดแล้วมันจะกลับลงไปทางไหน" */
-@keyframes panelIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
-@keyframes dimIn{from{opacity:0}to{opacity:1}}
-#panel:not(.hidden){animation:dimIn .22s ease}
-#panel:not(.hidden) .pwrap{animation:panelIn .28s cubic-bezier(.2,.9,.3,1)}
-
-/* การ์ดสถานที่ไล่กันขึ้นมาทีละใบตอนขึ้นช่วงเวลาใหม่
-   ไล่กันแปลว่า "นี่คือชุดใหม่" ไม่ใช่ "ของเดิมที่ยังอยู่" */
+/* การ์ดไล่กันขึ้นมาทีละใบตอนขึ้นช่วงเวลาใหม่ — ไล่กันแปลว่า "นี่คือชุดใหม่" */
 @keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-#board.is-fresh .loc{animation:cardIn .34s cubic-bezier(.2,.9,.3,1) backwards}
+#board.is-fresh:not(.is-place) .loc,
+#board.is-fresh:not(.is-place) .appt{animation:cardIn .34s cubic-bezier(.2,.9,.3,1) backwards}
 #board.is-fresh .loc:nth-child(1){animation-delay:.02s}
 #board.is-fresh .loc:nth-child(2){animation-delay:.06s}
 #board.is-fresh .loc:nth-child(3){animation-delay:.10s}
@@ -541,30 +713,41 @@ button{font-family:inherit;cursor:pointer}
 #board.is-fresh .loc:nth-child(6){animation-delay:.22s}
 #board.is-fresh .loc:nth-child(n+7){animation-delay:.26s}
 
-/* กดแล้วต้องรู้สึกว่ากดติด — ปุ่มทุกชนิดในเกมยุบลงเล็กน้อย */
-.loc,.act,.who,.tbtn,.thread,.dtab,.choice button{transition:transform .12s ease,
-  border-color .25s ease,background .25s ease,opacity .2s ease}
-.act:active,.who:active,.tbtn:active,.thread:active,.dtab:active{transform:scale(.97)}
-.loc:active{transform:scale(.99)}
-
-/* ค่าสถานะที่เพิ่งเปลี่ยนต้องเห็นว่าเปลี่ยน ไม่ใช่เปลี่ยนเงียบๆ */
-@keyframes chipBump{0%{transform:none}35%{transform:translateY(-3px) scale(1.06)}100%{transform:none}}
-.chip.is-changed{animation:chipBump .5s cubic-bezier(.2,.9,.3,1)}
-.chip.is-changed b{color:var(--accent)}
-
-/* ตัวเลขที่ลอยขึ้นจากชิปที่เปลี่ยน — บอกว่าได้หรือเสียไปเท่าไหร่ */
-.delta{position:absolute;left:50%;top:-2px;transform:translateX(-50%);
-  font-family:"Bai Jamjuree",sans-serif;font-size:11px;font-weight:600;
-  pointer-events:none;white-space:nowrap;animation:deltaUp 1.1s ease forwards}
-.delta.up{color:#8fd6a6}.delta.down{color:#d67878}
-@keyframes deltaUp{0%{opacity:0;transform:translate(-50%,2px)}
-  20%{opacity:1}100%{opacity:0;transform:translate(-50%,-16px)}}
-
-/* จุดบอกช่วงเวลาที่เดินหน้า — จุดปัจจุบันเต้นเบาๆ ให้รู้ว่าอยู่ตรงไหน */
-@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(228,160,183,.5)}
-  50%{box-shadow:0 0 0 5px rgba(228,160,183,0)}}
-#periodStrip .is-now .pdot{animation:dotPulse 2.4s ease-in-out infinite}
+/* กดแล้วต้องรู้สึกว่ากดติด */
+.act,.who,.tbtn,.thread,.dtab,.metcard,.qc,.fpick,.thing,.bag,.topt,.laneBtn,.choice{
+  transition:transform .12s ease,border-color .25s ease,background .25s ease,opacity .2s ease}
+.act:active,.who:active,.tbtn:active,.thread:active,.dtab:active,
+.qc:active,.fpick:active,.thing:active,.topt:active{transform:scale(.97)}
 
 /* ภาพฉากหลังค่อยๆ จางเข้ามาแทนที่จะกระพริบเปลี่ยน */
 #sceneBg img,.bd{animation:bgIn .5s ease}
 @keyframes bgIn{from{opacity:0}to{opacity:1}}
+
+/* ปิดทั้ง transition และ animation — ของเดิมปิดแค่ transition ทำให้ของที่ใช้ @keyframes
+   (การ์ดที่ไล่ขึ้น ตัวเลขที่ลอย) ยังขยับอยู่ และเทสต์ภาพจับภาพระหว่างที่การ์ดยังขึ้นไม่เสร็จ
+   ได้คนละภาพทุกรอบ */
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ───────────────────── ย้อนอ่านบท และเดินบทอัตโนมัติ ─────────────────────
+   สองอย่างที่คนเล่นเกมแนวนี้คาดว่าจะมีเสมอ และเกมนี้ไม่เคยมีเลย:
+   กดข้ามเร็วไปหนึ่งบรรทัดแล้วอ่านไม่ทัน = อ่านไม่ได้อีกเลยทั้งเกม
+   และการต้องกดทีละบรรทัดตลอดฉากยาวๆ ทำให้คนวางมือถือลง */
+#sceneTools{position:absolute;top:calc(12px + env(safe-area-inset-top));right:16px;
+  display:flex;gap:6px;z-index:3}
+.stool{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--dim);
+  border-radius:999px;padding:6px 13px;font-size:11.5px;font-family:var(--font);
+  backdrop-filter:blur(8px)}
+.stool:active{background:rgba(244,241,248,.14);color:var(--ink)}
+.stool.is-on{border-color:rgba(228,160,183,.6);color:var(--accent);background:rgba(228,160,183,.14)}
+#backlog{position:absolute;inset:0;z-index:4;background:rgba(10,8,16,.96);
+  padding:calc(56px + env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom));
+  overflow-y:auto;animation:dimIn .2s ease}
+#backlog .logwrap{max-width:660px;margin:0 auto;display:grid;gap:10px}
+#backlog h3{font-family:var(--head);font-size:15px;margin:0 0 4px}
+.logline{border-left:2px solid var(--line2);padding:2px 0 2px 12px;font-size:14px;line-height:1.75}
+.logline b{display:block;font-family:var(--head);font-size:11.5px;color:var(--dim2);
+  font-weight:600;margin-bottom:2px}
+.logline.mine{border-left-color:var(--accent)}
+.logline.mine b{color:var(--accent)}

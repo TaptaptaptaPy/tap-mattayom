@@ -26,6 +26,8 @@ import { postBoard, tutor, myBoardRank } from "../sim/board";
 import { isSick } from "../sim/push";
 import { milestoneToday, runMilestone } from "../sim/milestone";
 import { seenWith } from "../sim/seen";
+import { whoIsAt, noteEncounter, bumpInto, hasMet } from "../sim/presence";
+import { applyBackground, BACKGROUNDS } from "../sim/background";
 import { askAmount, giveHome, refuseHome } from "../sim/home";
 import { rivalLead, stepRivals } from "../sim/rival";
 import { hasHomework, doHomework } from "../sim/homework";
@@ -84,6 +86,11 @@ interface Run {
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
   offscreen: number; memories: number;
+  /** บังเอิญเจอคนกี่ครั้ง · รู้จักกี่คนตอนจบ · กว่าจะรู้จักคนแรกใช้เวลากี่วัน
+   *  สามตัวนี้คือตัวนับของระบบเจอกันแบบบังเอิญ ถ้าเป็นศูนย์แปลว่าระบบตายแล้วไม่มีใครรู้ */
+  encounters: number; metCount: number; firstMetDay: number;
+  /** ภูมิหลังที่เล่นรอบนี้ */
+  background: string;
   /** ผลต่างของสองแกน (สนิท − เชื่อใจ) ต่อตัวละครหนึ่งคน ตอนจบเทอม */
   axisGap: number[];
   homeworkDone: number; homeworkMissed: number;
@@ -134,8 +141,12 @@ function nextExamIn(s: GameState): number {
  *  "ฝืนเท่าที่ยังไหว" คือหยุดก่อนถึงระดับที่เริ่มหลับในคาบ · "ฝืนทุกครั้ง" คือโลภสุดตัว */
 type PushPolicy = "never" | "careful" | "always";
 
-function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy): Run {
-  const s = newState();
+function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy,
+              bgId?: string): Run {
+  // เมล็ดของโลกต้องมาจาก seed เดียวกับที่ทอยทุกอย่าง ไม่งั้นรันซ้ำแล้วได้คนละตารางชีวิต
+  const s = newState(seed);
+  // ภูมิหลังหมุนไปตาม seed ถ้าไม่ระบุ — ทุกอันต้องถูกเดินอย่างน้อยหนึ่งรอบ
+  applyBackground(s, bgId ?? BACKGROUNDS[seed % BACKGROUNDS.length].id);
   const rnd: Rnd = mulberry32(seed);
   /** จำลองผลมินิเกม: ฝีมือเป็นฐาน บวกความคลาดเคลื่อนของแต่ละรอบ */
   const mg = () => clamp01(skill + (rnd() - 0.5) * 0.3);
@@ -145,7 +156,7 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
   let lied = 0, tutored = 0, pushes = 0, dozes = 0, sickDays = 0, milestoneTier = -1;
   // ต้องจำไว้ตอนวันงาน ไม่ใช่ไปอ่านตอนจบ — ขึ้นปีหนึ่งแล้ว s.clubDays ถูกล้างเป็น 0
   let milestoneAttended = 0, bigCount = 0, caughtOut = 0, homeGiven = 0, homeRefused = 0;
-  let retakesDone = 0, projectDone = 0;
+  let retakesDone = 0, projectDone = 0, encounters = 0, firstMetDay = -1;
   /** ใครตามเก็บภาระให้ครบ — เด็กหลังห้องกับคนขี้เกียจปล่อยทิ้ง จะได้เห็นราคาของการไม่ตาม */
   const doesChores = strat === "mind" || strat === "spread" || strat === "social";
   /** ใครใส่ใจทรงผม — เด็กหลังห้องกับคนขี้เกียจไม่ตัด จะได้เห็นราคาของการปล่อยไว้ */
@@ -171,6 +182,34 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
   // "ฝืนเท่าที่ไหว" = ยอมหลับในคาบได้ แต่ไม่ยอมเสี่ยงล้มป่วยทั้งวัน
   const pushesOn = () => pol === "always" ||
     (pol === "careful" && s.sleepDebt + game.push.debtPerPush < game.push.sickAt);
+  /** ใครแวะเข้าไปดูตามที่ต่างๆ แล้วทักคนที่บังเอิญเจอ
+   *  ถ้าไม่มีกลยุทธ์ไหนทำเลย ระบบเจอกันทั้งระบบ (รวมถึงไลน์ ซึ่งต้องรู้จักกันก่อน) จะตายเงียบ */
+  const meetsPeople = strat === "social" || strat === "spread" || strat === "rebel";
+
+  /** เดินเข้าไปในที่ที่มีคนอยู่แล้วทักเขา — คืน true ถ้าใช้ช่วงเวลานี้ไปแล้ว */
+  const tryMeet = (): boolean => {
+    if (rnd() > 0.55) return false;
+    const period = game.periods[s.periodIndex].id;
+    const open = availableLocations(s).filter((l) => !l.blocked);
+    // เดินดูทีละที่ ไม่ใช่รู้ล่วงหน้าว่าใครอยู่ไหน — ลำดับที่เดินดูก็สุ่มเหมือนกัน
+    for (const loc of [...open].sort(() => rnd() - 0.5)) {
+      const here = whoIsAt(s, loc.id, period);
+      if (!here.length) continue;
+      const who = here[Math.floor(rnd() * here.length)];
+      const first = noteEncounter(s, who, loc.id, period);
+      if (first && firstMetDay < 0) firstMetDay = s.dayIndex;
+      s.metToday[who] = true;
+      s.encounters++;
+      encounters++;
+      visited(s, who);
+      keepPlan(s, who);
+      caughtOut += seenWith(s, who, loc.id).filter((w) => w.hadPlan).length;
+      rollChoice(s, who, rnd);
+      return true;
+    }
+    return false;
+  };
+
   const VERSIONS = ["busy", "other", "tired"];
   const pick = () => VERSIONS[Math.floor(rnd() * VERSIONS.length)];
   const maxedAt: Partial<Record<StatId, number>> = {};
@@ -282,6 +321,8 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     } else if (strat === "lazy") {
       const home = availableLocations(s).find((l) => l.rest);
       if (home) { doRest(s, home); restPeriods++; }
+    } else if (meetsPeople && tryMeet()) {
+      // เดินเข้าไปในที่สักแห่งแล้วเจอใครเข้าพอดี — กินช่วงเวลาไปทั้งช่วงเหมือนในเกมจริง
     } else {
       if (inTrouble(s)) troublePeriods++;
       const club = clubToday(s);
@@ -314,6 +355,8 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
         maxedAt[id] = s.dayIndex + 1;
     }
     advance(s, rnd);
+    // เดินสวนกับใครสักคนระหว่างทาง — ทางเดียวกับที่ main.ts เรียกใน afterStep()
+    if (bumpInto(s, rnd)) encounters++;
     // ป่วยแล้วเสียทั้งวัน เหมือนที่เกมจริงข้ามวันให้ — เทสต์ต้องเดินทางเดียวกัน
     if (isSick(s) && s.periodIndex === 0) {
       sickDays++;
@@ -351,6 +394,9 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy)
     calledHome: s.history.filter((h) => h.includes("โทรหาที่บ้าน")).length,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
+    encounters, firstMetDay,
+    metCount: Object.keys(s.affinity).filter((id) => hasMet(s, id)).length,
+    background: s.background ?? "",
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
     axisGap: Object.keys(s.affinity).map((id) =>
       affinityRank(s.affinity[id] ?? 0) - trustRank(s.trust[id] ?? 0)),
@@ -445,6 +491,15 @@ function report(strat: Strategy, runs: Run[]) {
   console.log(`    ทรงผม: ตัด ${r0(mean(runs.map((r) => r.haircuts)))} ครั้ง` +
               ` · โดนเรียกหน้าแถว ${r0(mean(runs.map((r) => r.inspected)))} ครั้ง`);
 
+  // แยก "คนที่รู้จักอยู่แล้วตั้งแต่ก่อนเทอม (ภูมิหลัง)" ออกจาก "คนที่ไปเจอเอง"
+  // ไม่งั้นบรรทัดนี้จะอ่านว่า "รู้จัก 1 คน · ไม่เคยรู้จักใครเลย" ซึ่งขัดกันเอง
+  const found = runs.filter((r) => r.firstMetDay >= 0);
+  console.log(`    คนที่รู้จัก: ${r0(mean(runs.map((r) => r.metCount)))} คน` +
+              ` · บังเอิญเจอ ${r0(mean(runs.map((r) => r.encounters)))} ครั้ง` +
+              (found.length
+                ? ` · ไปเจอเองคนแรกวันที่ ${r0(mean(found.map((r) => r.firstMetDay + 1)))}`
+                : " · ไม่ได้ไปเจอใครใหม่เลยทั้งเทอม (รู้จักมาก่อนเท่านั้น)"));
+
   const ch = mean(runs.map((r) => r.chats));
   if (ch >= 0.5)
     console.log(`    ไลน์: มีคนทักมา ${r0(ch)} คืน · รับนัด ${r0(mean(runs.map((r) => r.invites)))}` +
@@ -489,6 +544,31 @@ for (const x of sweep)
   console.log(`  ฝีมือ ${x.sk.toFixed(2)}  สอบปลายภาค ${r0(x.final)} · คะแนนปลายทาง ${r0(x.score)}`);
 const skillSwing = sweep[2].score - sweep[0].score;
 
+// ───────────────────────── ภูมิหลังเปลี่ยนเกมจริงไหม ─────────────────────────
+// ถ้าเลือกภูมิหลังแล้วทุกอันจบเหมือนกันหมด แปลว่ามันคือตัวเลือกหลอก
+// ต้องวัดที่ *ปลายทาง* ไม่ใช่ที่ค่าตั้งต้น เพราะค่าตั้งต้นต่างกันอยู่แล้วโดยนิยาม
+
+console.log("\n" + "─".repeat(58));
+console.log("ภูมิหลังเปลี่ยนเกมจริงไหม (กลยุทธ์เฉลี่ยทุกค่า ทุก seed)");
+const bgRuns = BACKGROUNDS.map((b) => {
+  const rs = SEEDS.map((sd) => play("spread", sd, SKILL, undefined, b.id));
+  return {
+    id: b.id, name: b.name,
+    score: mean(rs.map((r) => r.ending.score)),
+    money: mean(rs.map((r) => r.money)),
+    met: mean(rs.map((r) => r.metCount)),
+    enc: mean(rs.map((r) => r.encounters)),
+    caught: mean(rs.map((r) => r.caught + r.escaped)),
+    gpa: mean(rs.map((r) => r.gpa)),
+  };
+});
+for (const b of bgRuns)
+  console.log(`  ${b.name.padEnd(26)} คะแนนปลายทาง ${r0(b.score).toString().padStart(3)}` +
+              ` · เกรด ${b.gpa.toFixed(2)} · เงิน ${r0(b.money).toString().padStart(6)}` +
+              ` · รู้จัก ${r0(b.met)} คน · เจอ ${r0(b.enc)} ครั้ง · โดนจับ ${r0(b.caught)}`);
+const bgScoreSpread = Math.max(...bgRuns.map((b) => b.score)) - Math.min(...bgRuns.map((b) => b.score));
+const bgMoneySpread = Math.max(...bgRuns.map((b) => b.money)) - Math.min(...bgRuns.map((b) => b.money));
+
 // ───────────────────────── สรุปและคำเตือน ─────────────────────────
 
 console.log("\n" + "─".repeat(58));
@@ -515,6 +595,27 @@ console.log(`สองแกนแยกกันจริงไหม: วั�
             ` · ห่างกันมากสุด ${gaps.length ? Math.max(...gaps.map(Math.abs)) : 0} ระดับ`);
 if (gaps.length && diverged / gaps.length < 0.2)
   console.log("  ← สองแกนขยับไปด้วยกันเกือบตลอด แยกออกมาแล้วแทบไม่ได้อะไร");
+
+// ระบบที่ไม่มีตัวนับ ตายแล้วไม่มีใครรู้ — สองระบบใหม่ต้องมีทั้งตัวนับและคำเตือน
+const totalEnc = sum(allRuns.map((r) => r.encounters));
+const metAvg = mean(allRuns.map((r) => r.metCount));
+const metFull = allRuns.filter((r) => r.metCount >= 4).length;
+console.log(`เจอกันแบบบังเอิญทำงานจริงไหม: บังเอิญเจอรวม ${totalEnc} ครั้ง` +
+            ` · รู้จักเฉลี่ย ${metAvg.toFixed(1)} คนต่อรอบ` +
+            ` · รอบที่รู้จักครบทั้งสี่คน ${metFull}/${allRuns.length}`);
+if (totalEnc === 0)
+  console.log("  ← ไม่เคยบังเอิญเจอใครเลยสักครั้ง ตารางชีวิตของทุกคนอาจไม่ทับกับที่ที่เราไปได้");
+if (metAvg < 1)
+  console.log("  ← เล่นจนจบเทอมแล้วแทบไม่รู้จักใครเลย เจอกันยากเกินไป");
+if (metFull === allRuns.length)
+  console.log("  ← ทุกรอบรู้จักครบทุกคน การเจอกันไม่ได้เป็นความบังเอิญอีกแล้ว");
+
+console.log(`ภูมิหลังทำให้เล่นซ้ำแล้วไม่เหมือนเดิมไหม: คะแนนปลายทางห่างกัน ${r0(bgScoreSpread)}` +
+            ` · เงินตอนจบห่างกัน ${r0(bgMoneySpread)}`);
+// วัดสองทางเพราะกลยุทธ์ที่เล่นเก่งจะดันคะแนนปลายทางไปชนเพดานเหมือนกันหมด
+// สิ่งที่ยังต่างกันตอนนั้นคือ *ทางที่เดินมา* ซึ่งเงินตอนจบสะท้อนได้ตรงที่สุด
+if (bgScoreSpread < 2 && bgMoneySpread < 800)
+  console.log("  ← ทุกภูมิหลังจบเหมือนกันหมดทั้งคะแนนและเงิน เลือกแล้วไม่ได้อะไร");
 
 const totalClash = sum(allRuns.map((r) => r.clashDays));
 const totalLied = sum(allRuns.map((r) => r.lied));
@@ -631,9 +732,10 @@ if (sum(allRuns.map((r) => r.shielded)) === 0)
   console.log("  ← ครูไม่เคยพูดแทนใครเลย รางวัลของการเป็นเด็กดีไม่ถูกทดสอบ");
 if (sum(allRuns.map((r) => r.calledHome)) === 0)
   console.log("  ← ครูไม่เคยโทรหาที่บ้านเลย ราคาของการเป็นเด็กมีปัญหาไม่ถูกทดสอบ");
-console.log(`ทางบ้าน: ส่งให้เฉลี่ย ${r0(mean(givers.map((r) => r.homeGiven)))} บาท` +
-            ` · คนที่เก็บไว้เองจบด้วยบ้านตึง ${r0(mean(keepers.map((r) => r.homeStrain)))}` +
-            ` · คนที่ส่งให้ ${r0(mean(givers.map((r) => r.homeStrain)))}`);
+console.log(`ทางบ้าน: คนที่ส่งให้มี ${givers.length}/${allRuns.length} รอบ` +
+            ` · ส่งให้เฉลี่ยรอบละ ${r0(mean(givers.map((r) => r.homeGiven)))} บาท` +
+            ` · บ้านตึงตอนจบ: คนที่เก็บไว้เอง ${r0(mean(keepers.map((r) => r.homeStrain)))}` +
+            ` vs คนที่ส่งให้ ${r0(mean(givers.map((r) => r.homeStrain)))}`);
 if (!givers.length || !keepers.length)
   console.log("  ← ไม่มีทั้งคนที่ให้และคนที่ไม่ให้ ราคาของการเลือกยังไม่ถูกวัด");
 else if (mean(keepers.map((r) => r.homeStrain)) <= mean(givers.map((r) => r.homeStrain)))

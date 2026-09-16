@@ -1,4 +1,5 @@
 import game from "../../data/game.json";
+import { trait } from "./traits";
 import { remember, type GameState } from "./state";
 import { noteBehaviour, teacherShields } from "./teacher";
 
@@ -11,8 +12,9 @@ export interface CaughtResult { caught: boolean; message: string | null; penalty
 /** ฝ่ายปกครอง: ที่ที่ครูไม่ควรเห็นเรา มีโอกาสโดนจับได้จริง
  *  ความซ่าสูงช่วยให้รอด นี่คือส่วนของ Bully ที่โครงเดิมยังไม่มีเลย */
 export function rollCatch(s: GameState, catchBase: number, rnd: Rnd = Math.random): CaughtResult {
-  const dodge = Math.min(0.75, s.stats.nerve / 60);
-  const chance = Math.max(0.02, catchBase * (1 - dodge));
+  // ความซ่าคือของที่เล่นมาแล้วได้ · `escape` คือของที่ติดตัวมาตั้งแต่ก่อนเปิดเทอม
+  const dodge = Math.min(0.75, s.stats.nerve / 60 + trait(s, "escape", 0));
+  const chance = Math.max(0.02, catchBase * trait(s, "catch", 1) * (1 - dodge));
   if (rnd() > chance) return { caught: false, message: null, penalty: 0 };
 
   const raw = 6 + Math.round(rnd() * 6);

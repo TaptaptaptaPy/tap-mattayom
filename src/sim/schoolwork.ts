@@ -33,8 +33,12 @@ export const hasRetake = (s: GameState) => s.retakes.length > 0;
 export const retakeNames = (s: GameState) =>
   s.retakes.map((id) => subjectById(id)?.name ?? id);
 
-/** ไปซ่อมหนึ่งวิชา — เสียเงิน เสียแรง และเสียหนึ่งช่วงเวลา */
-export function doRetake(s: GameState, subjectId: string): string {
+/** ไปซ่อมหนึ่งวิชา — เสียเงิน เสียแรง และเสียหนึ่งช่วงเวลา
+ *
+ *  `focus` คือผลของมินิเกมนั่งท่อง (0.6–1.4) · ไปซ่อมแล้วผ่านเสมอ นั่นคือประเด็นของการไป
+ *  แต่ *ผ่านที่เท่าไหร่* ขึ้นกับว่ากลับไปท่องมาจริงไหม — เดิมได้ 55 เท่ากันหมดทุกครั้ง
+ *  ซึ่งแปลว่าการไปนั่งสอบซ่อมไม่มีอะไรให้ทำนอกจากจ่ายเงิน */
+export function doRetake(s: GameState, subjectId: string, focus = 1): string {
   const i = s.retakes.indexOf(subjectId);
   if (i < 0) return "วิชานี้ไม่ได้ติดซ่อม";
   if (s.money < R.cost) return "เงินไม่พอค่าสอบซ่อม";
@@ -43,11 +47,12 @@ export function doRetake(s: GameState, subjectId: string): string {
   s.retakes.splice(i, 1);
   s.money -= R.cost;
   s.energy = Math.max(0, s.energy + R.energy);
-  s.grades[subjectId] = Math.max(s.grades[subjectId] ?? 0, R.fixTo);
+  const got = Math.max(R.failBelow + 1, Math.min(80, Math.round(R.fixTo * focus)));
+  s.grades[subjectId] = Math.max(s.grades[subjectId] ?? 0, got);
   const name = subjectById(subjectId)?.name ?? subjectId;
-  remember(s, `ไปสอบซ่อม${name}`);
+  remember(s, `ไปสอบซ่อม${name} ได้ ${got}`);
   noteBehaviour(s, game.teacher.perRetake, "ไปสอบซ่อม");
-  return `สอบซ่อม${name}ผ่านแล้ว · -${R.cost} บาท`;
+  return `สอบซ่อม${name}ผ่านแล้วที่ ${got} · -${R.cost} บาท`;
 }
 
 /** วิชาที่ยังติดซ่อมอยู่ตอนจบเทอม ดึงเกรดเฉลี่ยลงจริง */
@@ -76,15 +81,17 @@ export const projectPartner = (s: GameState) =>
 export const projectName = (s: GameState) =>
   chars.find((c) => c.id === s.project?.charId)?.name ?? "";
 
-/** ทำงานกลุ่มหนึ่งครั้ง — กินหนึ่งช่วงเวลา ได้เกรดทุกวิชานิดหน่อยและได้ใจคู่ด้วย */
-export function workProject(s: GameState): string {
+/** ทำงานกลุ่มหนึ่งครั้ง — กินหนึ่งช่วงเวลา ได้เกรดทุกวิชานิดหน่อยและได้ใจคู่ด้วย
+ *  `read` คือผลของมินิเกมอ่านอารมณ์ (0.6–1.4) — อ่านคู่ตัวเองออกแล้วงานเดินเร็วกว่า
+ *  และเขารู้สึกดีกว่า ซึ่งเป็นสองอย่างที่แยกกันไม่ออกเวลาทำงานกับคนที่ยังไม่สนิท */
+export function workProject(s: GameState, read = 1): string {
   const p = projectPartner(s);
   if (!p) return "ไม่มีงานกลุ่มค้างอยู่";
   p.done++;
   for (const sub of SUBJECTS)
-    s.grades[sub.id] = Math.min(100, (s.grades[sub.id] ?? 0) + PJ.gradePerSession);
-  changeAffinity(s, p.charId, PJ.affinityPerSession);
-  applyStat(s, "kind", 2, p.done - 1);
+    s.grades[sub.id] = Math.min(100, (s.grades[sub.id] ?? 0) + PJ.gradePerSession * read);
+  changeAffinity(s, p.charId, PJ.affinityPerSession * read);
+  applyStat(s, "kind", 2 * read, p.done - 1);
   const left = Math.max(0, PJ.sessionsNeeded - p.done);
   if (left === 0) {
     p.settled = true;

@@ -24,7 +24,7 @@ function shell(charId: string, sub: string) {
   const p = el();
   p.classList.remove("hidden");
   p.innerHTML = `<div class="pwrap chat">
-    <div class="chead">
+    <div class="chead chat">
       <span class="cavatar">${portraitHTML(charId)}</span>
       <span class="cwho"><b style="color:${c?.color ?? "#fff"}">${nameOf(charId)}</b>
         <small>${sub}</small></span>

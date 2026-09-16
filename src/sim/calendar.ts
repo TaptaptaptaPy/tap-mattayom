@@ -1,4 +1,5 @@
 import game from "../../data/game.json";
+import { maxEnergy, trait } from "./traits";
 import events from "../../data/events.json";
 import { settleMissedPlan } from "./chat";
 import { stepLives } from "./offscreen";
@@ -86,7 +87,7 @@ export function advance(s: GameState, rnd: Rnd = Math.random): void {
     // หนี้ถูกทยอยใช้คืน ไม่ใช่ล้างทิ้งทุกเช้า — ไม่งั้นฝืนติดกันสิบคืนก็เท่ากับฝืนคืนเดียว
     // และผลที่เกิด "ระหว่างวัน" (หลับในคาบ) จะไม่มีวันเห็นหนี้เลยสักครั้ง
     const restore = Math.max(20, game.energy.sleepRestore - s.sleepDebt);
-    s.energy = Math.min(game.energy.max, s.energy + restore);
+    s.energy = Math.min(maxEnergy(s), s.energy + restore);
     // ฝืนมาหลายคืนแล้วร่างกายเก็บบิล — ต้องอยู่ *หลัง* ฟื้นแรง (ไม่งั้นแรงที่ฟื้นจะลบผลของการป่วย)
     // และ *ก่อน* ล้างหนี้ (ไม่งั้นมันจะไม่มีวันเกิดเลย)
     stepSickness(s, rnd);
@@ -123,6 +124,8 @@ function payAllowance(s: GameState) {
   if (s.behaviour < B.troubleAt) amount -= M.behaviourPenalty;
   // ที่บ้านตึงแล้วค่าขนมก็ลดลงจริงๆ ไม่ใช่การลงโทษ — เขาไม่มีจะให้
   amount -= allowanceCut(s);
+  // บ้านแต่ละบ้านให้ไม่เท่ากันตั้งแต่ต้น — ของภูมิหลัง ไม่ใช่ของที่เล่นมา
+  amount += trait(s, "allowance", 0);
   amount = Math.max(60, amount);
   s.money += amount;
   s.behaviour = Math.min(B.start, s.behaviour + B.recoverPerWeek);
