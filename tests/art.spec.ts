@@ -20,7 +20,8 @@ test("ภาพตัวละครทุกคน ทุกอารมณ์ 
   const html = await page.evaluate(async () => {
     const { portraitHTML } = await import("/src/ui/portrait.ts");
     const chars = (await import("/data/characters.json")).default as { id: string; name: string }[];
-    const moods = ["calm", "happy", "away", "tense"] as const;
+    const { MOODS } = await import("/src/ui/portrait.ts");
+    const moods = MOODS as readonly string[];
     // ทุกคน × ทุกอารมณ์ อยู่ในแผ่นเดียว — ถ้าไฟล์ไหนหาย จะเห็นเป็นช่องว่างทันที
     const cells = chars.flatMap((c) =>
       moods.map((m) => `<figure><div class="p">${portraitHTML(c.id, m)}</div>

@@ -36,6 +36,7 @@ INCLUDE _shared.ink
     ~ gainStat("charm", 1)
     ~ gainAffinity("ploy", 2)
     ~ setFlag("meet_ploy_open")
+    ~ feel("think")
     เธอเงยหน้าขึ้นมา มองเราหนึ่งวินาที แล้วขยับสมุดเข้าหาตัวเอง
     ~ introduce("ploy")
     "ไม่มี" เธอพูดสั้นๆ "พลอย ห้อง 5/2 เธอล่ะ"
@@ -55,6 +56,7 @@ INCLUDE _shared.ink
     ~ gainStat("mind", 1)
     ~ gainAffinity("ploy", 3)
     ~ setFlag("meet_ploy_sharp")
+    ~ feel("shock")
     เธอเงยหน้าขึ้นมาเร็วกว่าครั้งไหน
     "…เธอดูออกเหรอ"
     ~ introduce("ploy")
@@ -97,6 +99,7 @@ INCLUDE _shared.ink
     ~ gainAffinity("ploy", 3)
     ~ setFlag("meet_ploy_open")
     เธอหยุดมองเราอีกครั้ง นานกว่ารอบแรก
+    ~ feel("firm")
     "ดี" เธอพูด "เพราะฉันไม่ได้อยากคุยกับห้องพักครู"
     -> DONE
 
@@ -104,6 +107,7 @@ INCLUDE _shared.ink
     ~ gainStat("nerve", 1)
     ~ gainAffinity("ploy", -1)
     ~ setFlag("meet_ploy_cold")
+    ~ feel("away")
     "ไม่มี" เธอก้มลงไปเขียนต่อ "แค่จะได้รู้ว่าพูดอะไรได้บ้าง"
     -> DONE
 

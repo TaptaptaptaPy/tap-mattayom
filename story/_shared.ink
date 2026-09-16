@@ -79,3 +79,6 @@ EXTERNAL background()
 EXTERNAL knewBefore(charId)
 // เพิ่งได้รู้ชื่อเขา — ป้ายชื่อบนกล่องบทเปลี่ยนจาก "ใครสักคน" เป็นชื่อจริงตรงบรรทัดนี้
 EXTERNAL introduce(charId)
+// สีหน้าของบรรทัด *ถัดไป* — calm happy laugh shy sad away think firm angry shock
+// ผู้เขียนบทรู้ดีกว่าตัวเดาเสมอ ไม่สั่งก็เดาจากคำในประโยคให้เอง
+EXTERNAL feel(mood)

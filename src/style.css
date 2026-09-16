@@ -71,40 +71,70 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   50%{box-shadow:0 0 0 5px rgba(228,160,183,0)}}
 #periodStrip .is-now .pdot{animation:dotPulse 2.4s ease-in-out infinite}
 
-/* ชิปสถานะ — สองชั้น ชั้นล่างพับเก็บได้ */
-#stats{margin-top:9px;display:grid;gap:5px}
-.chiprow{display:flex;flex-wrap:wrap;gap:5px}
-.chip{position:relative;overflow:hidden;font-size:11px;color:var(--dim);
-  border:1px solid var(--line);border-radius:9px;padding:3px 9px 4px;
-  background:rgba(255,255,255,.028);line-height:1.5}
-.chip u{text-decoration:none;color:var(--dim2)}
-.chip b{color:var(--ink);font-weight:600;margin-left:5px}
-.chip i{position:absolute;left:0;bottom:0;height:2px;background:var(--dim);opacity:.45;
-  transition:width .45s cubic-bezier(.2,.9,.3,1)}
-.chip.stat i,.chip.energy i{background:var(--period-accent,var(--accent));opacity:.6}
-.chip.energy b{color:var(--accent)}
-.chip.money b{color:var(--warn)}
-.chip.energy.low,.chip.low{border-color:rgba(224,144,143,.45);color:#e0a0a0}
-.chip.energy.low b{color:#f0a0a0}
-.chip.alert{border-color:rgba(232,201,138,.42);background:rgba(232,201,138,.08);color:var(--warn)}
-.chip.alert b{color:var(--warn)}
-.chip.alert i{background:rgba(232,201,138,.5)}
-.chip.alert.hot{border-color:rgba(224,144,143,.55);background:rgba(224,144,143,.12);color:#f0aaa8}
-.chip.alert.hot b{color:#f0aaa8}
-.chip.club b{color:var(--period-accent,var(--accent))}
-.chip.more{border-style:dashed;color:var(--dim2);padding:3px 11px 4px;font-family:var(--font)}
-.chip.more:active{color:var(--ink)}
+/* ───────── แถบความคืบหน้าของเทอม ─────────
+   ตอบคำถาม "เหลือเวลาอีกเท่าไหร่" ด้วยตา ไม่ต้องอ่านตัวเลข */
+#termBar{position:relative;height:16px;margin-top:8px;border-radius:999px;
+  background:rgba(244,241,248,.07);overflow:hidden}
+#termBar i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,rgba(228,160,183,.35),var(--period-accent,var(--accent)));
+  transition:width .6s cubic-bezier(.2,.9,.3,1)}
+#termBar em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;
+  font-size:10px;color:var(--ink);letter-spacing:.2px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+
+/* ───────── เกจค่าสถานะ ─────────
+   ของเดิมเป็นชิปตัวหนังสือล้วน สิบกว่าใบหน้าตาเหมือนกันหมด ต่างแค่คำข้างใน
+   ผู้เล่นต้อง *อ่าน* ทั้งแถบทุกครั้งเพื่อหาว่าอะไรเปลี่ยน ซึ่งช้ากว่าการมองเห็นมาก
+   ตอนนี้ทุกอันมีไอคอนของตัวเองและมีหลอด — กวาดตาเจอในแวบเดียว */
+#stats{margin-top:8px;display:grid;gap:5px}
+.gaugerow{display:flex;flex-wrap:wrap;gap:5px}
+.gauge{position:relative;display:flex;align-items:center;gap:6px;
+  border:1px solid var(--line);border-radius:11px;padding:4px 9px 4px 7px;
+  background:rgba(255,255,255,.03);font-size:11px;color:var(--dim);min-height:30px}
+.gauge .gico{display:grid;place-items:center;flex:0 0 auto;color:var(--dim2)}
+.gauge .gico .ico-svg{width:15px;height:15px;stroke-width:1.7}
+.gauge .gbody{display:flex;flex-direction:column;gap:2px;min-width:46px}
+.gauge .gname{font-size:9.5px;color:var(--dim2);line-height:1;letter-spacing:.2px}
+.gauge .gbar{display:block;height:4px;border-radius:2px;background:rgba(244,241,248,.12);overflow:hidden}
+.gauge .gbar i{display:block;height:100%;border-radius:2px;background:var(--dim);
+  transition:width .5s cubic-bezier(.2,.9,.3,1)}
+.gauge b{color:var(--ink);font-weight:600;font-size:12px;line-height:1;
+  font-variant-numeric:tabular-nums}
+.gauge.flat{padding:5px 11px 5px 8px}
+.gauge.flat .gname{font-size:10.5px;color:var(--dim)}
+
+.gauge.stat .gico{color:var(--period-accent,var(--accent))}
+.gauge.stat .gbar i{background:var(--period-accent,var(--accent));opacity:.8}
+.gauge.energy .gico,.gauge.energy b{color:var(--accent)}
+.gauge.energy .gbar i{background:var(--accent)}
+.gauge.money .gico,.gauge.money b{color:var(--warn)}
+.gauge.low{border-color:rgba(224,144,143,.45)}
+.gauge.low .gico,.gauge.low b{color:#f0a0a0}
+.gauge.low .gbar i{background:#e0908f}
+.gauge.alert{border-color:rgba(232,201,138,.42);background:rgba(232,201,138,.08)}
+.gauge.alert .gico,.gauge.alert b,.gauge.alert .gname{color:var(--warn)}
+.gauge.alert.hot{border-color:rgba(224,144,143,.55);background:rgba(224,144,143,.12)}
+.gauge.alert.hot .gico,.gauge.alert.hot b,.gauge.alert.hot .gname{color:#f0aaa8}
+.gauge.club .gico,.gauge.club b{color:var(--period-accent,var(--accent))}
+.gauge.more{border-style:dashed;color:var(--dim2);min-width:38px;justify-content:center;
+  font-family:var(--font);letter-spacing:1px}
+.gauge.more:active{color:var(--ink)}
+/* เรื่องที่กำลังไล่หลังอยู่ต้องสะดุดตาตอนเพิ่งโผล่มา ไม่ใช่โผล่เงียบๆ */
+@keyframes alertIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.gaugerow.alerts .gauge{animation:alertIn .3s cubic-bezier(.2,.9,.3,1) backwards}
+.gaugerow.alerts .gauge:nth-child(2){animation-delay:.05s}
+.gaugerow.alerts .gauge:nth-child(3){animation-delay:.1s}
 
 /* ค่าที่เพิ่งเปลี่ยนต้องเห็นว่าเปลี่ยน ไม่ใช่เปลี่ยนเงียบๆ */
 @keyframes chipBump{0%{transform:none}35%{transform:translateY(-3px) scale(1.06)}100%{transform:none}}
-.chip.is-changed{animation:chipBump .5s cubic-bezier(.2,.9,.3,1)}
-.chip.is-changed b{color:var(--accent)}
-.delta{position:absolute;left:50%;top:-2px;transform:translateX(-50%);
+.gauge.is-changed{animation:chipBump .5s cubic-bezier(.2,.9,.3,1)}
+.gauge.is-changed b{color:var(--accent)}
+.gauge.is-changed .gico{color:var(--accent)}
+.delta{position:absolute;left:50%;top:-4px;transform:translateX(-50%);
   font-family:var(--head);font-size:11px;font-weight:600;
-  pointer-events:none;white-space:nowrap;animation:deltaUp 1.1s ease forwards}
+  pointer-events:none;white-space:nowrap;animation:deltaUp 1.1s ease forwards;z-index:2}
 .delta.up{color:var(--good)}.delta.down{color:var(--bad)}
 @keyframes deltaUp{0%{opacity:0;transform:translate(-50%,2px)}
-  20%{opacity:1}100%{opacity:0;transform:translate(-50%,-16px)}}
+  20%{opacity:1}100%{opacity:0;transform:translate(-50%,-18px)}}
 
 /* ───────────────────────── กระดานของวัน ───────────────────────── */
 
@@ -758,3 +788,44 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   font-weight:600;margin-bottom:2px}
 .logline.mine{border-left-color:var(--accent)}
 .logline.mine b{color:var(--accent)}
+
+/* ───────── ราคากับผลของปุ่ม ─────────
+   ของเดิมเป็นข้อความยาวเส้นเดียว "ความพร้อมสอบ + · ปัญญา + · แรง -10"
+   ต้องอ่านทั้งบรรทัดถึงจะรู้ว่าแพงแค่ไหน · ชิปแยกอ่านได้ทีละชิ้นด้วยตา
+   และ "เวลา 1 ช่วง" ต้องอยู่ทุกปุ่ม เพราะมันคือทรัพยากรที่แพงที่สุดในเกม
+   แต่ของเดิมไม่เคยมีอะไรบอกเลยว่ามันถูกใช้ไป */
+.costs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.cost{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;color:var(--dim2);
+  border:1px solid var(--line);border-radius:7px;padding:1px 6px 2px 4px;line-height:1.5;
+  background:rgba(0,0,0,.18)}
+.cost .ico-svg{width:12px;height:12px;stroke-width:1.9;flex:0 0 auto}
+.cost.gain{color:var(--good);border-color:rgba(143,214,166,.3)}
+.cost.cost{color:#e8a89a;border-color:rgba(232,168,154,.28)}
+.cost.time{color:var(--dim2);border-style:dashed}
+.act .alab{font-weight:600;font-size:13.5px;line-height:1.35}
+
+/* ───────── หน้าสถานะเต็ม ─────────
+   เกจบนแถบบนตอบ "ตอนนี้เท่าไหร่" ด้วยตา · ที่นี่ตอบ "แล้วมันแปลว่าอะไร" ด้วยคำ */
+.statlist{display:grid;gap:10px;margin-top:8px}
+.statrow{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--line);
+  border-radius:var(--r);padding:11px 13px;background:rgba(255,255,255,.025)}
+.statrow .sico{flex:0 0 auto;color:var(--period-accent,var(--accent));padding-top:2px}
+.statrow .sico .ico-svg{width:20px;height:20px}
+.statrow .sbody{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.statrow .shead{display:flex;align-items:baseline;gap:8px}
+.statrow .shead b{font-family:var(--head);font-size:14.5px}
+.statrow .shead em{font-style:normal;font-size:12.5px;color:var(--period-accent,var(--accent));
+  margin-left:auto}
+.statrow .sbar{position:relative;display:block;height:7px;border-radius:4px;
+  background:rgba(244,241,248,.1);overflow:hidden}
+.statrow .sbar u{position:absolute;left:0;top:0;bottom:0;text-decoration:none;border-radius:4px;
+  background:linear-gradient(90deg,rgba(228,160,183,.55),var(--period-accent,var(--accent)));
+  transition:width .6s cubic-bezier(.2,.9,.3,1)}
+/* ขีดบอกเขตของแต่ละระดับ — ระดับห่างกันไม่เท่ากัน หลอดเปล่าจึงบอกไม่ได้ว่าใกล้ขึ้นระดับหรือยัง */
+.statrow .sbar .tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(18,16,27,.75);z-index:1}
+.statrow .sfoot{font-size:11px;color:var(--dim2);line-height:1.6}
+
+/* หลอดสองแกนบนการ์ดคนที่เจอ — "สนิท 3 · เชื่อใจ 1" ต้องแปลในหัวก่อนถึงจะรู้ว่าไกลแค่ไหน */
+.metcard .wbars{display:flex;gap:5px;margin-top:4px}
+.wbar{display:block;flex:1;height:4px;border-radius:2px;background:rgba(244,241,248,.12);overflow:hidden;max-width:64px}
+.wbar i{display:block;height:100%;border-radius:2px;transition:width .5s cubic-bezier(.2,.9,.3,1)}

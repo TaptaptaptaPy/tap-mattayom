@@ -1,5 +1,5 @@
 import type { Story } from "inkjs/types";
-import { portraitHTML, type Mood } from "./portrait";
+import { portraitHTML, MOODS, type Mood } from "./portrait";
 import { backdrop } from "./backdrop";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -16,11 +16,30 @@ let auto = false;
 interface LogLine { who: string; text: string; mine: boolean; }
 let backlog: LogLine[] = [];
 
-/** เดาอารมณ์จากเครื่องหมายในประโยค — ถูกบ้างผิดบ้าง แต่ทำให้หน้าไม่นิ่งสนิท */
+/** อารมณ์ที่บทสั่งไว้เองสำหรับบรรทัดถัดไป — ตั้งผ่าน `~ feel("shy")` ในบท
+ *  ผู้เขียนบทรู้ดีกว่าตัวเดาเสมอ ตัวเดาเป็นแค่ของสำรองตอนที่บทไม่ได้บอก */
+let forced: Mood | null = null;
+export function setMood(m: string) {
+  forced = (MOODS as string[]).includes(m) ? (m as Mood) : null;
+}
+
+/** เดาอารมณ์จากคำในประโยค — ใช้เมื่อบทไม่ได้สั่งไว้
+ *
+ *  ของเดิมเดาจากเครื่องหมายท้ายประโยคอย่างเดียว: ลงท้ายด้วย ! หรือ ? = หน้าตึงทุกครั้ง
+ *  ซึ่งแปลว่าทุกคำถามในเกมทำให้ตัวละครทำหน้าโกรธ · ตอนนี้ดูคำที่อยู่ในประโยคจริงๆ
+ *  และเรียงจากเฉพาะเจาะจงไปหากว้าง เพราะบรรทัดหนึ่งเข้าได้หลายข้อ */
 function moodOf(line: string): Mood {
-  if (/[!?]$/.test(line.trim())) return "tense";
-  if (/ยิ้ม|หัวเราะ|ขอบคุณ/.test(line)) return "happy";
-  if (/เงียบ|ก้มหน้า|มองพื้น|ไม่พูด/.test(line)) return "away";
+  if (forced) { const m = forced; forced = null; return m; }
+  const s = line.trim();
+  if (/หัวเราะ|ขำ|ฮ่า|555/.test(s)) return "laugh";
+  if (/เขิน|หน้าแดง|กระแอม|พูดไม่ออก|ลนลาน/.test(s)) return "shy";
+  if (/ร้องไห้|น้ำตา|เสียใจ|ขอโทษ|เศร้า|สะอื้น/.test(s)) return "sad";
+  if (/ตกใจ|สะดุ้ง|อ้าปากค้าง|ไม่อยากเชื่อ|หา\?|เฮ้ย/.test(s)) return "shock";
+  if (/โกรธ|ตวาด|เสียงดัง|ตะโกน|ว่าไง.*วะ|กัดฟัน/.test(s)) return "angry";
+  if (/เงียบ|ก้มหน้า|มองพื้น|ไม่พูด|มองออกไปนอกหน้าต่าง|ถอนหายใจ/.test(s)) return "away";
+  if (/ยิ้ม|ขอบคุณ|ดีใจ|โล่ง/.test(s)) return "happy";
+  if (/คิด|ลังเล|นึก|สงสัย|เอ่อ|\?$/.test(s)) return "think";
+  if (/จริงจัง|มองตรงมา|ตัดสินใจ|ไม่ยอม|พอแล้ว/.test(s)) return "firm";
   return "calm";
 }
 
@@ -118,8 +137,10 @@ export function playScene(story: Story, speaker: string, color: string,
     if (story.canContinue) {
       current = story.Continue()?.trim() ?? "";
       backlog.push({ who: spEl.textContent ?? "", text: current, mine: false });
-      artEl.dataset.mood = moodOf(current);
-      artEl.innerHTML = portraitHTML(charId, moodOf(current));
+      // เรียก moodOf() ครั้งเดียว — มันกิน `forced` ทิ้งหลังใช้ เรียกสองรอบได้คนละอารมณ์
+      const mood = moodOf(current);
+      artEl.dataset.mood = mood;
+      artEl.innerHTML = portraitHTML(charId, mood);
       reveal(lineEl, current, settled);
       return;
     }

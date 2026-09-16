@@ -33,7 +33,9 @@ function serve(root) {
   });
 }
 
-/** วาดภาพหลายใบซ้อนกันแล้วย่อ คืนค่าเป็น PNG (base64) */
+/** วาดภาพหลายใบซ้อนกันแล้วย่อ คืนค่าเป็นภาพ (base64)
+ *  ออกเป็น WebP เพราะสิบอารมณ์ × หกคน = หกสิบใบ ถ้าเป็น PNG รวมกัน 4.7MB
+ *  ซึ่งหนักเกินไปสำหรับ iPad ที่โหลดผ่าน Wi-Fi บ้าน · Safari รองรับ WebP ตั้งแต่ปี 2020 */
 const COMPOSE = `async (job) => {
   const cv = document.createElement("canvas");
   cv.width = job.w; cv.height = job.h;
@@ -47,7 +49,7 @@ const COMPOSE = `async (job) => {
     g.drawImage(img, job.sx || 0, job.sy || 0, job.sw || img.width, job.sh || img.height,
                 0, 0, job.w, job.h);
   }
-  return cv.toDataURL("image/png").split(",")[1];
+  return cv.toDataURL("image/webp", job.q ?? 0.92).split(",")[1];
 }`;
 
 async function sheet(dir, out, cols = 7) {
@@ -104,6 +106,8 @@ async function build() {
         at(look.backHair), at(look.body), at(look.clothes), at(look.face),
         at(look.sclera?.replace("{expr}", face.eyes)),
         at(look.iris),
+        // เงาเปลือกตาต้องอยู่เหนือม่านตาแต่ใต้เส้นขอบตา ไม่งั้นตาจะแบนและจ้องตรงมาเหมือนหุ่น
+        at(look.shadow?.replace("{expr}", face.eyes)),
         at(look.eyes.replace("{expr}", face.eyes)),
         at(look.brows.replace("{expr}", face.brows)),
         at(look.mouth.replace("{expr}", face.mouth)),
@@ -111,8 +115,8 @@ async function build() {
       ].filter(Boolean);
       const b64 = await page.evaluate(new Function("job", `return (${COMPOSE})(job)`),
         { layers, w: looks.size.w, h: looks.size.h, sx: looks.crop.x, sy: looks.crop.y,
-          sw: looks.crop.w, sh: looks.crop.h });
-      await writeFile(join(outDir, `${id}-${mood}.png`), Buffer.from(b64, "base64"));
+          sw: looks.crop.w, sh: looks.crop.h, q: looks.quality ?? 0.92 });
+      await writeFile(join(outDir, `${id}-${mood}.webp`), Buffer.from(b64, "base64"));
       n++;
     }
   }

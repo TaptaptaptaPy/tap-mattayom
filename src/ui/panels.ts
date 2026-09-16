@@ -112,6 +112,54 @@ function knownSpots(s: GameState, charId: string): string[] {
   return out.slice(0, 3);
 }
 
+/** หน้าสถานะเต็ม — ที่ที่ชื่อระดับกับคำอธิบายมีที่ให้เขียนเป็นคำ
+ *
+ *  เกจบนแถบบนตอบคำถาม "ตอนนี้เท่าไหร่" ได้ด้วยตา แต่ตอบไม่ได้ว่า "แล้วมันแปลว่าอะไร"
+ *  และ "อีกเท่าไหร่ถึงระดับถัดไป" · สองคำถามนั้นอยู่ที่นี่ */
+export function statusPanel(s: GameState) {
+  const ladder = game.statRanks;
+  const top = ladder[ladder.length - 1];
+  let h = `<h2>สถานะตอนนี้<small>วันที่ ${s.dayIndex + 1}</small></h2><div class="statlist">`;
+  for (const st of game.stats) {
+    const v = s.stats[st.id as StatId];
+    const r = statRank(v);
+    const next = ladder[Math.min(r + 1, ladder.length - 1)];
+    const more = r >= ladder.length - 1 ? "สูงสุดแล้ว"
+      : `อีก ${Math.ceil(next - v)} ถึง “${game.statRankNames[r + 1]}”`;
+    h += `<div class="statrow">
+      <span class="sico">${icon(st.id)}</span>
+      <span class="sbody">
+        <span class="shead"><b>${st.name}</b><em>${game.statRankNames[r]}</em></span>
+        <span class="sbar">${ladder.map((x) =>
+          `<i class="tick" style="left:${(x / top) * 100}%"></i>`).join("")}
+          <u style="width:${Math.min(100, (v / top) * 100)}%"></u></span>
+        <span class="sfoot">${st.desc} · ${more}</span>
+      </span></div>`;
+  }
+  h += `</div>`;
+  const eMax = Math.round(game.energy.max * (backgroundOf(s)?.traits.energyMax ?? 1));
+  h += `<h3>วันนี้</h3>
+    <div class="kv"><span>แรงที่เหลือ</span>
+      <div class="minibar"><i style="width:${(s.energy / eMax) * 100}%;background:var(--accent)"></i></div>
+      <b>${Math.round(s.energy)} / ${eMax}</b></div>
+    <div class="kv"><span>เงินในกระเป๋า</span><b>${Math.round(s.money)} บาท</b></div>
+    <div class="kv"><span>ความพร้อมสอบ</span><b>${Math.round(s.study)}</b></div>
+    <h3>ทั้งเทอม</h3>
+    <div class="kv"><span>ความประพฤติ</span>
+      <div class="minibar"><i style="width:${s.behaviour}%;background:#8fd6a6"></i></div>
+      <b>${behaviourLabel(s.behaviour)}</b></div>
+    <div class="kv"><span>ชื่อเสียงในโรงเรียน</span>
+      <div class="minibar"><i style="width:${s.standing}%;background:#e8c98a"></i></div>
+      <b>${standingLabel(s.standing)}</b></div>
+    <div class="kv"><span>ครูประจำชั้น</span>
+      <div class="minibar"><i style="width:${s.teacher}%;background:#8fb6e0"></i></div>
+      <b>${game.teacher.levelNames[s.teacher >= game.teacher.trustedAt ? 2
+            : s.teacher >= game.teacher.watchedAt ? 1 : 0]}</b></div>
+    <div class="kv"><span>รู้จักคนไปแล้ว</span><b>${
+      Object.keys(s.met).length} คน · บังเอิญเจอ ${s.encounters} ครั้ง</b></div>`;
+  open(h);
+}
+
 /** เลือกภูมิหลังก่อนเปิดเทอม — หน้าจอแรกสุดของเกมรอบใหม่
  *  นี่คือที่เดียวที่ผู้เล่นได้เลือก "เราเป็นใครก่อนเรื่องนี้จะเริ่ม" */
 export function backgroundPanel(onPick: (id: string) => void) {

@@ -11,6 +11,7 @@ INCLUDE _shared.ink
     ~ gainStat("charm", 1)
     ~ gainAffinity("tar", 2)
     ~ setFlag("meet_tar_open")
+    ~ feel("happy")
     "เพราะน้องยืนอยู่ตรงประตู" เขาชี้ "คนที่เข้าชุมนุมแล้วเขานั่งกันไปแล้ว"
     ~ introduce("tar")
     "ต้าร์" เขาโดดลงจากโต๊ะ "ปีอะไรไม่ต้องถาม เดี๋ยวเศร้า"
@@ -26,6 +27,7 @@ INCLUDE _shared.ink
     ~ gainStat("nerve", 1)
     ~ gainAffinity("tar", 3)
     ~ setFlag("meet_tar_sharp")
+    ~ feel("laugh")
     ห้องเงียบไปครึ่งวินาที แล้วเขาก็หัวเราะดังกว่าใคร
     "โห น้องถามเลย" เขาชอบ "ไม่มีใครถามตรงๆ มาสองปีแล้ว"
     ~ introduce("tar")

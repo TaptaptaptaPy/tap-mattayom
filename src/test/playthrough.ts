@@ -98,6 +98,7 @@ function hooksFor(s: GameState, t: Tally): SceneHooks {
     onStanding: (amount, why) => { note("standing"); shiftStanding(s, amount, why || undefined); },
     onSide: (cid) => { note("side"); takeSide(s, cid); },
     onIntroduce: () => note("introduce"),
+    onFeel: () => note("feel"),
   };
 }
 

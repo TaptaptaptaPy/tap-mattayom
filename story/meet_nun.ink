@@ -9,6 +9,7 @@ INCLUDE _shared.ink
     ~ gainStat("kind", 1)
     ~ gainAffinity("nun", 2)
     ~ setFlag("meet_nun_open")
+    ~ feel("shy")
     เธอขยับกระเป๋าออกจากเก้าอี้ข้างๆ เร็วมาก เหมือนกลัวว่าเราจะเปลี่ยนใจ
     ~ introduce("nun")
     "นุ่นค่ะ" เธอบอกชื่อพร้อมกับกดปากกาสองครั้งโดยไม่รู้ตัว
@@ -26,6 +27,7 @@ INCLUDE _shared.ink
     ~ gainStat("kind", 1)
     ~ gainAffinity("nun", 3)
     ~ setFlag("meet_nun_sharp")
+    ~ feel("shock")
     เธอหุบสมุดทันทีแล้วก็เปิดใหม่ช้าๆ
     "…เห็นเหรอคะ"
     ~ introduce("nun")
@@ -51,5 +53,6 @@ INCLUDE _shared.ink
 
 + ["ไปก่อนนะ"]
     ~ setFlag("meet_nun_cold")
+    ~ feel("sad")
     เธอพยักหน้ารับ แล้วยืนอยู่ตรงนั้นต่ออีกนาน กว่าฝนจะซา
     -> DONE

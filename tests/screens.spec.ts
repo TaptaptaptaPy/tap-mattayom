@@ -214,11 +214,15 @@ test("แถบบน: หลอดค่าสถานะต้องมอง
   });
 
   const widths = await page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>("#stats .chip.stat i")]
+    [...document.querySelectorAll<HTMLElement>("#stats .gauge.stat .gbar i")]
       .map((i) => i.getBoundingClientRect().width));
   console.log("ความกว้างหลอดค่าสถานะ: " + widths.map((w) => w.toFixed(1)).join(" · "));
   expect(widths.length, "ไม่มีหลอดค่าสถานะเลย").toBe(5);
   expect(Math.max(...widths), "หลอดกว้างศูนย์ทุกใบ — แปลว่าไม่มีกฎ CSS ให้มัน").toBeGreaterThan(4);
+  // ทุกเกจต้องมีไอคอนของตัวเอง ไม่งั้นก็กลับไปเป็นกำแพงตัวหนังสือเหมือนเดิม
+  expect(await page.locator("#stats .gauge .gico svg").count()).toBeGreaterThan(5);
+  // แถบความคืบหน้าของเทอมต้องบอกได้ว่าเหลือเวลาเท่าไหร่
+  expect(await page.locator("#termBar i").count()).toBe(1);
   // ค่าไม่เท่ากันต้องได้หลอดไม่เท่ากัน ไม่งั้นหลอดก็ไม่ได้บอกอะไร
   expect(new Set(widths.map((w) => Math.round(w))).size).toBeGreaterThan(2);
 

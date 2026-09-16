@@ -16,6 +16,7 @@ INCLUDE _shared.ink
     ~ gainStat("kind", 2)
     ~ gainAffinity("palm", 2)
     ~ setFlag("meet_palm_open")
+    ~ feel("shy")
     เขาเงยหน้าขึ้นมาแบบคนที่ไม่ได้เตรียมคำตอบไว้
     "…ได้ครับ" เสียงเบามาก
     ~ introduce("palm")
@@ -34,6 +35,7 @@ INCLUDE _shared.ink
     ~ gainStat("kind", 1)
     ~ gainAffinity("palm", 3)
     ~ setFlag("meet_palm_sharp")
+    ~ feel("shock")
     เขาหยุดกินแล้วมองเรานานกว่าที่คนเพิ่งเจอกันจะมองกัน
     "…พี่รู้ได้ไงว่าผมหนาว"
     ~ introduce("palm")
@@ -61,6 +63,7 @@ INCLUDE _shared.ink
 + ["โรงเรียนเก่าอยู่ไหน"]
     ~ gainAffinity("palm", -1)
     ~ setFlag("meet_palm_cold")
+    ~ feel("sad")
     เขาเงียบไปนานพอที่คำถามจะกลายเป็นอย่างอื่น
     "…ไกลครับ" แล้วก็ไม่พูดอะไรอีกเลยจนลุกจากโต๊ะ
     -> DONE

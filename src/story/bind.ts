@@ -38,6 +38,7 @@ export interface SceneHooks {
   onStanding: (amount: number, why: string) => void;
   onSide: (charId: string) => void;
   onIntroduce: (charId: string) => void;
+  onFeel: (mood: string) => void;
 }
 
 /** ตัวแปรทุกตัวที่บทอ่านได้ — ประกาศคู่กันไว้ใน story/_shared.ink
@@ -137,6 +138,8 @@ export function bindStory(story: Story, s: GameState, charId: string | null, hoo
   story.BindExternalFunction("knewBefore", (cid: string) =>
     (backgroundOf(s)?.knows.some((k) => k.id === cid) ? 1 : 0));
   story.BindExternalFunction("introduce", (cid: string) => { hooks.onIntroduce(cid); return null; });
+  // สีหน้าของบรรทัดถัดไป — บทสั่งเองได้ ไม่ต้องให้ตัวเดาทาย
+  story.BindExternalFunction("feel", (m: string) => { hooks.onFeel(m); return null; });
   story.BindExternalFunction("sideTaken", () => (s.sided ? 1 : 0));
   story.BindExternalFunction("sidedWith", (cid: string) => (s.sided === cid ? 1 : 0));
 

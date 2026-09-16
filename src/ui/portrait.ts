@@ -5,13 +5,20 @@ import { asset } from "../core/asset";
  *
  *  เคยวาดด้วย SVG จากโค้ดทั้งหมด ซึ่งได้เพดานอยู่แค่ "หกคนหน้าเดียวกัน ต่างแค่สีผม"
  *  ตอนนี้เป็นภาพที่ประกอบไว้ล่วงหน้าจากชิ้นส่วน CC0 ของ Tainara-P
- *  หนึ่งคนสี่ภาพ ตามอารมณ์สี่แบบ ประกอบด้วย `node tools/sprites.mjs build`
+ *  หนึ่งคนสิบภาพ ตามอารมณ์สิบแบบ ประกอบด้วย `node tools/sprites.mjs build`
+ *
+ *  สามอย่างที่เคยทำให้หน้าทุกคนดูเหมือน "คนโรคจิต" และแก้ไปแล้ว (ดู data/looks.json):
+ *  หน้ากับคอคนละสีผิว · ม่านตาสีบานเย็น/ฟ้านีออน/เขียวนีออน · ไม่มีชั้นเงาเปลือกตา
  *
  *  ทำไมประกอบล่วงหน้าแทนที่จะซ้อนชั้นตอนรัน: ชิ้นส่วนหนึ่งตัวมีสิบเอ็ดชั้น
  *  ถ้าซ้อนตอนรันต้องโหลดสิบเอ็ดไฟล์ต่อหนึ่งภาพ และลำดับชั้นผิดได้ทุกที่ที่เรียก
  *  ประกอบไว้ก่อนแล้วเหลือไฟล์เดียวต่อหนึ่งอารมณ์ ทั้งเบากว่าและพังยากกว่า
  */
-export type Mood = "calm" | "happy" | "away" | "tense";
+/** สิบอารมณ์ ตรงกับ `moods` ใน data/looks.json — เพิ่มอันไหนต้องเพิ่มทั้งสองที่แล้ว build ใหม่ */
+export type Mood = "calm" | "happy" | "laugh" | "shy" | "sad"
+                 | "away" | "think" | "firm" | "angry" | "shock";
+export const MOODS: Mood[] =
+  ["calm", "happy", "laugh", "shy", "sad", "away", "think", "firm", "angry", "shock"];
 
 const HAS = new Set(chars.map((c) => c.id));
 
@@ -31,7 +38,7 @@ export function portraitHTML(charId: string | null, mood: Mood = "calm"): string
   if (!charId || !HAS.has(charId)) return NARRATOR;
   const c = chars.find((x) => x.id === charId)!;
   // decoding="sync" เพื่อไม่ให้ภาพกะพริบตอนเปลี่ยนสีหน้ากลางประโยค
-  return `<img class="pface" src="${asset(`assets/portraits/${charId}-${mood}.png`)}"
+  return `<img class="pface" src="${asset(`assets/portraits/${charId}-${mood}.webp`)}"
     alt="${c.name}" width="420" height="420" decoding="sync">`;
 }
 

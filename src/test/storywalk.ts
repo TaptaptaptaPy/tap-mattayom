@@ -105,6 +105,7 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("introduce", (c: string) => {
     note("introduce:" + c); introduced = true; return null;
   });
+  story.BindExternalFunction("feel", (m: string) => { note("feel:" + m); return null; });
   return story;
 }
 

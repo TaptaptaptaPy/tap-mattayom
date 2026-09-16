@@ -1,6 +1,6 @@
 {
   "_note": "หน้าตาของตัวละคร ประกอบจากชิ้นส่วน CC0 ของ Tainara-P — ดู tools/sprites.mjs",
-  "_layers": "ลำดับชั้นสำคัญมาก: ผมหลัง → ตัว → เสื้อ → หน้า → ตาขาว → ม่านตา → เปลือกตา → คิ้ว → ปาก → ผมหน้า → แว่น",
+  "_layers": "ลำดับชั้นสำคัญมาก: ผมหลัง → ตัว → เสื้อ → หน้า → ตาขาว → ม่านตา → เงาเปลือกตา → เปลือกตา → คิ้ว → ปาก → ปื้นแก้ม → ผมหน้า → แว่น",
   "_credit": "Tainara-P · Female/Male Character Sprite Creator · CC0",
   "packs": {
     "f": "Female Character Sprite Creator",
@@ -17,7 +17,7 @@
     "w": 560,
     "h": 560
   },
-  "_moods": "อารมณ์ในเกมมีสี่แบบ แต่ละแบบเลือกตา คิ้ว ปาก คนละชุด",
+  "_moods": "อารมณ์สิบแบบ แต่ละแบบเลือกตา คิ้ว ปาก คนละชุด ของเดิมมีสี่แบบ และ `tense` ใช้ตา Surprised + คิ้ว Angry + ปาก Grit พร้อมกัน ซึ่งอ่านออกมาว่า *ตกใจกลัว* ไม่ใช่ *ตึง* · ตอนนี้แยก firm/angry/shock ออกจากกัน",
   "moods": {
     "calm": {
       "eyes": "Normal",
@@ -29,98 +29,139 @@
       "brows": "Curved",
       "mouth": "Smile"
     },
-    "away": {
+    "laugh": {
+      "eyes": "Spread",
+      "brows": "Curved",
+      "mouth": "Big Laugh"
+    },
+    "shy": {
       "eyes": "Sorrow",
       "brows": "Confused",
+      "mouth": "Embarrassed"
+    },
+    "sad": {
+      "eyes": "Sorrow",
+      "brows": "Sad",
+      "mouth": "Sad"
+    },
+    "away": {
+      "eyes": "Sorrow",
+      "brows": "Neutro",
       "mouth": "Uninterested"
     },
-    "tense": {
-      "eyes": "Surprised",
+    "think": {
+      "eyes": "Normal",
+      "brows": "Confused",
+      "mouth": "Small"
+    },
+    "firm": {
+      "eyes": "Normal",
+      "brows": "Serious",
+      "mouth": "Down"
+    },
+    "angry": {
+      "eyes": "Normal",
       "brows": "Angry",
-      "mouth": "Grit"
+      "mouth": "Angry"
+    },
+    "shock": {
+      "eyes": "Surprised",
+      "brows": "Up",
+      "mouth": "Surprised"
     }
   },
   "characters": {
     "ploy": {
       "pack": "f",
       "backHair": "Hair/Back/Back 3/Color 1.png",
-      "body": "Body/Body/Body 3.png",
+      "body": "Body/Body/Body 2.png",
       "clothes": "Body/Clothes/Clothes 1/Color 1.png",
-      "face": "Head/Face/Face 1.png",
+      "face": "Head/Face/Face 2.png",
       "sclera": "Head/Eyes/Eye Type 1/Sclera/{expr}/Sclera 1.png",
-      "iris": "Head/Eyes/Iris/Type 1/Iris 18.png",
+      "iris": "Head/Eyes/Iris/Type 1/Iris 1.png",
       "eyes": "Head/Eyes/Eye Type 1/{expr}.png",
       "brows": "Head/Brows/Brow Type 1/{expr}.png",
       "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
       "bangs": "Hair/Bangs/Bangs 2/Color 1.png",
-      "extra": "Accessory/Glasses/Glasses 1/Color 1.png"
+      "extra": "Accessory/Glasses/Glasses 1/Color 1.png",
+      "shadow": "Head/Eyes/Eye Type 1/Shadow/{expr}/Shadow 2.png"
     },
     "minta": {
       "pack": "f",
-      "backHair": "Hair/Back/Back 16/Color 7.png",
+      "backHair": "Hair/Back/Back 16/Color 1.png",
       "body": "Body/Body/Body 2.png",
       "clothes": "Body/Clothes/Clothes 2/Color 1.png",
-      "face": "Head/Face/Face 1.png",
+      "face": "Head/Face/Face 2.png",
       "sclera": "Head/Eyes/Eye Type 2/Sclera/{expr}/Sclera 1.png",
-      "iris": "Head/Eyes/Iris/Type 2/Iris 15.png",
+      "iris": "Head/Eyes/Iris/Type 2/Iris 6.png",
       "eyes": "Head/Eyes/Eye Type 2/{expr}.png",
       "brows": "Head/Brows/Brow Type 1/{expr}.png",
       "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
-      "bangs": "Hair/Bangs/Bangs 20/Color 7.png"
+      "bangs": "Hair/Bangs/Bangs 20/Color 1.png",
+      "shadow": "Head/Eyes/Eye Type 2/Shadow/{expr}/Shadow 2.png"
     },
     "nun": {
       "pack": "f",
       "backHair": "Hair/Back/Back 14/Color 2.png",
-      "body": "Body/Body/Body 4.png",
+      "body": "Body/Body/Body 3.png",
       "clothes": "Body/Clothes/Clothes 45/Color 1.png",
-      "face": "Head/Face/Face 1.png",
+      "face": "Head/Face/Face 3.png",
       "sclera": "Head/Eyes/Eye Type 3/Sclera/{expr}/Sclera 1.png",
-      "iris": "Head/Eyes/Iris/Type 3/Iris 7.png",
+      "iris": "Head/Eyes/Iris/Type 3/Iris 6.png",
       "eyes": "Head/Eyes/Eye Type 3/{expr}.png",
       "brows": "Head/Brows/Brow Type 1/{expr}.png",
       "mouth": "Head/Mouth/Mouth Type 2/{expr}.png",
-      "bangs": "Hair/Bangs/Bangs 22/Color 2.png"
+      "bangs": "Hair/Bangs/Bangs 22/Color 2.png",
+      "shadow": "Head/Eyes/Eye Type 3/Shadow/{expr}/Shadow 2.png"
     },
     "kanin": {
       "pack": "m",
       "backHair": "Hair/Back/Back 9/Color 1.png",
-      "body": "Body/Body/Body 5.png",
+      "body": "Body/Body/Body 4.png",
       "clothes": "Body/Clothes/Clothes 4/Color 1.png",
-      "face": "Head/Face/Face 1.png",
+      "face": "Head/Face/Face 4.png",
       "sclera": "Head/Eyes/Eye Type 1/Sclera/{expr}/Sclera 1.png",
-      "iris": "Head/Eyes/Iris/Type 1/Iris 14.png",
+      "iris": "Head/Eyes/Iris/Type 1/Iris 2.png",
       "eyes": "Head/Eyes/Eye Type 1/{expr}.png",
       "brows": "Head/Brows/Brow Type 1/{expr}.png",
       "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
-      "bangs": "Hair/Bangs/Bangs 26/Color 1.png"
+      "bangs": "Hair/Bangs/Bangs 26/Color 1.png",
+      "shadow": "Head/Eyes/Eye Type 1/Shadow/{expr}/Shadow 2.png"
     },
     "palm": {
       "pack": "m",
       "backHair": "Hair/Back/Back 1/Color 2.png",
-      "body": "Body/Body/Body 4.png",
+      "body": "Body/Body/Body 3.png",
       "clothes": "Body/Clothes/Clothes 50/Color 1.png",
-      "face": "Head/Face/Face 1.png",
+      "face": "Head/Face/Face 3.png",
       "sclera": "Head/Eyes/Eye Type 2/Sclera/{expr}/Sclera 1.png",
-      "iris": "Head/Eyes/Iris/Type 2/Iris 8.png",
+      "iris": "Head/Eyes/Iris/Type 2/Iris 1.png",
       "eyes": "Head/Eyes/Eye Type 2/{expr}.png",
       "brows": "Head/Brows/Brow Type 1/{expr}.png",
       "mouth": "Head/Mouth/Mouth Type 1/{expr}.png",
-      "bangs": "Hair/Bangs/Bangs 27/Color 2.png"
+      "bangs": "Hair/Bangs/Bangs 27/Color 2.png",
+      "shadow": "Head/Eyes/Eye Type 2/Shadow/{expr}/Shadow 2.png"
     },
     "tar": {
       "pack": "m",
       "backHair": "Hair/Back/Back 1/Color 1.png",
-      "body": "Body/Body/Body 6.png",
+      "body": "Body/Body/Body 3.png",
       "clothes": "Body/Clothes/Clothes 31/Color 1.png",
-      "face": "Head/Face/Face 1.png",
+      "face": "Head/Face/Face 3.png",
       "sclera": "Head/Eyes/Eye Type 3/Sclera/{expr}/Sclera 1.png",
-      "iris": "Head/Eyes/Iris/Type 3/Iris 9.png",
+      "iris": "Head/Eyes/Iris/Type 3/Iris 1.png",
       "eyes": "Head/Eyes/Eye Type 3/{expr}.png",
       "brows": "Head/Brows/Brow Type 1/{expr}.png",
       "mouth": "Head/Mouth/Mouth Type 2/{expr}.png",
-      "bangs": "Hair/Bangs/Bangs 30/Color 1.png"
+      "bangs": "Hair/Bangs/Bangs 30/Color 1.png",
+      "shadow": "Head/Eyes/Eye Type 3/Shadow/{expr}/Shadow 2.png"
     }
   },
   "_brows": "มีแต่ Brow Type 1 ที่แยกตามอารมณ์ อีกสองแบบแยกตามสี ใช้ไม่ได้กับระบบอารมณ์",
-  "_iris": "สีม่านตาให้ตรงกับสีประจำตัวใน characters.json"
+  "_iris": "สีม่านตาต้องเป็นสีตาคนจริง ไม่ใช่สีประจำตัวใน characters.json ของเดิมจับคู่กับสี UI ได้ตาสีบานเย็น ฟ้านีออน เขียวนีออน ซึ่งอ่านออกมาว่าไม่ใช่คน สีประจำตัวใช้กับป้ายชื่อและขอบการ์ดพอ",
+  "_skin": "เลข Body N กับ Face N คือ *สีผิวเดียวกัน* — Face เป็นโทนสว่าง Body เป็นโทนเงา ของเดิมใช้ Face 1 (ซีดที่สุด) กับ Body 2-6 ทุกคน ผลคือหน้ากับคอคนละสี อ่านออกมาเป็นหน้ากาก และรอยต่อที่คอดูเหมือนแผล · Body 6-9 เป็นผิวแฟนตาซี (เขียว ฟ้า ชมพู แดง) ต้าร์เคยคอเขียวอยู่ทั้งเกม · ใช้ได้แค่ 1-5 และต้องเท่ากันเสมอ",
+  "_shadow": "เงาเปลือกตา — ชั้นที่ของเดิมไม่ได้ใส่เลย ทำให้ตาแบนและจ้องตรงมาเหมือนหุ่น",
+  "_format": "ออกเป็น .webp — หกสิบใบเป็น PNG รวม 4.7MB ซึ่งหนักเกินไปสำหรับ iPad ผ่าน Wi-Fi",
+  "quality": 0.92,
+  "_hair": "สีผมใช้ได้แค่ Color 1 (ดำ) กับ Color 2 (น้ำตาลเข้ม) ที่เหลือเป็นสีการ์ตูน (ส้ม บลอนด์ แดง ชมพู ม่วง ฟ้า เขียว ขาว) · เกมนี้มีระบบตรวจทรงผมอยู่ ผมม่วงจึงขัดกับโลกของเกมเอง · ความต่างของแต่ละคนมาจาก *ทรง* ไม่ใช่สี"
 }

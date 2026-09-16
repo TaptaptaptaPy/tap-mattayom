@@ -46,6 +46,7 @@ INCLUDE _shared.ink
     ~ gainStat("charm", 1)
     ~ gainAffinity("minta", 3)
     ~ setFlag("meet_minta_sharp")
+    ~ feel("shock")
     ไม้กลองในมือเธอหยุดค้างกลางอากาศ
     "…นายได้ยินเหรอ"
     ~ introduce("minta")
@@ -78,6 +79,7 @@ INCLUDE _shared.ink
     ~ gainAffinity("minta", -1)
     ~ setFlag("meet_minta_cold")
     เธอหยุดเก็บของไปหนึ่งจังหวะ
+    ~ feel("sad")
     "เบื่อ" เธอตอบตรงๆ ซึ่งแย่กว่าถ้าเธอโกรธ "แต่ไม่มีใครมาซ้อมด้วยนี่"
     -> DONE
 
@@ -89,6 +91,7 @@ INCLUDE _shared.ink
 + ["จำได้ครับ"]
     ~ gainAffinity("minta", 3)
     ~ setFlag("meet_minta_open")
+    ~ feel("laugh")
     "โลกแคบจัง" เธอหัวเราะ "งั้นก็ไม่ต้องแนะนำตัวใหม่แล้วเนอะ"
     -> DONE
 

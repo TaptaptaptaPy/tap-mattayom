@@ -6,7 +6,7 @@ import game2 from "../data/game.json";
 import { newState, statRank, affinityRank, trustRank, remember,
          type GameState, type StatId } from "./sim/state";
 import { advance, dateLabel, eventNow, isLocked, isTermOver, daysLeft, isSchoolDay,
-         nextEvent, periodId, type TermEvent } from "./sim/calendar";
+         nextEvent, periodId, termDays, type TermEvent } from "./sim/calendar";
 import { availableLocations, doAction, doRest, attendClass, skipClass,
          morningInspect, type LocationOption } from "./sim/actions";
 import { apptSpot, bumpInto, hasMet, noteEncounter } from "./sim/presence";
@@ -43,9 +43,10 @@ import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { Bgm } from "./core/bgm";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
-import { playScene, setSpeaker, showHint } from "./ui/scene";
+import { playScene, setMood, setSpeaker, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
+import { trait } from "./sim/traits";
 import { backdrop, eventBackdrop } from "./ui/backdrop";
 import { portraitHTML } from "./ui/portrait";
 import * as P from "./ui/panels";
@@ -74,7 +75,7 @@ let lastChips: Record<string, number> = {};
  *  ไม่เคยกระพริบเลยสักครั้งเดียว** ทั้งที่ทั้งระบบถูกสร้างมาเพื่อบอกว่าอะไรเพิ่งเปลี่ยน */
 function markChanged() {
   const now: Record<string, number> = {};
-  const chips = [...document.querySelectorAll<HTMLElement>("#stats .chip")];
+  const chips = [...document.querySelectorAll<HTMLElement>("#stats .gauge")];
   const first = Object.keys(lastChips).length === 0;
   for (const c of chips) {
     const key = c.dataset.k ?? "";
@@ -93,14 +94,24 @@ function markChanged() {
   lastChips = now;
 }
 
-/** แถบบนเคยเป็นกำแพงชิปสิบกว่าใบเรียงกันเป็นสามบรรทัด ทุกใบน้ำหนักเท่ากันหมด
- *  ผู้เล่นจึงต้องอ่านทั้งกำแพงทุกครั้งเพื่อหาว่าอะไรเปลี่ยน
+/** แถบบนเคยเป็นกำแพงตัวหนังสือล้วน สิบกว่าชิ้นหน้าตาเหมือนกันหมด ต่างแค่คำข้างใน
+ *  ผู้เล่นต้อง *อ่าน* ทั้งแถบทุกครั้งเพื่อหาว่าอะไรเปลี่ยน ซึ่งช้ากว่าการมองเห็นมาก
  *
- *  ตอนนี้แบ่งเป็นสองชั้นตามคำถามที่มันตอบ:
- *  - **แถวแรก** ของที่ตัดสินใจด้วยตอนนี้ — ค่าสถานะห้าตัว แรง เงิน และเรื่องที่กำลังไล่หลังเราอยู่
- *  - **แถวที่สอง** ของที่ค่อยๆ ขยับทั้งเทอม — ครู ความประพฤติ ชื่อเสียง ชมรม (พับเก็บได้)
- *  เรื่องที่ *เร่ง* (บ้านตึง หนี้การนอน ผมยาว การบ้านค้าง) ขึ้นแถวแรกเสมอตอนที่มันมีจริง */
+ *  ตอนนี้แบ่งเป็นสามชั้นตามคำถามที่มันตอบ:
+ *  - **เกจ** ค่าสถานะห้าตัว แรง เงิน — ไอคอน + หลอด อ่านด้วยตาไม่ต้องอ่านด้วยคำ
+ *  - **เรื่องที่ไล่หลังอยู่** บ้านตึง หนี้การนอน ผมยาว การบ้านค้าง — โผล่เฉพาะตอนมีจริง
+ *  - **ของที่ค่อยๆ ขยับทั้งเทอม** ครู ความประพฤติ ชื่อเสียง ชมรม — พับเก็บได้ */
 let statsOpen = false;
+
+/** หนึ่งเกจ: ไอคอน + หลอด + ตัวเลข — กวาดตาเจอได้โดยไม่ต้องอ่าน */
+function gauge(o: { k: string; icon: string; name: string; pct: number; value: string;
+                    v: number; tone?: string; title: string }) {
+  return `<span class="gauge ${o.tone ?? ""}" data-k="${o.k}" data-v="${o.v}" title="${o.title}">
+    <span class="gico">${icon(o.icon)}</span>
+    <span class="gbody"><span class="gname">${o.name}</span>
+      <span class="gbar"><i style="width:${Math.max(0, Math.min(100, o.pct))}%"></i></span></span>
+    <b>${o.value}</b></span>`;
+}
 
 function renderTop() {
   applyTheme(s);
@@ -108,82 +119,103 @@ function renderTop() {
   // แยกเป็นชิ้นๆ แล้วห้ามตัดคำกลางชิ้น ไม่งั้นบนจอมือถือจะได้ "กลาง / คืน" คนละบรรทัด
   const parts = dateLabel(s).split(" · ");
   if (isLocked(s)) parts.push("คาบเรียน");
-  $("date").innerHTML = parts.map((p) => `<span class="dseg">${p}</span>`).join('<i class="dsep">·</i>') +
-    `<small class="dseg">เหลืออีก ${daysLeft(s)} วัน</small>`;
+  $("date").innerHTML = parts.map((p) => `<span class="dseg">${p}</span>`).join('<i class="dsep">·</i>');
   $("periodStrip").innerHTML = periodStrip(s);
   const bg = backgroundOf(s);
   $("chapter").textContent = chapterName(s) + " · " + chapterDef(s).sub +
     (bg ? " · " + bg.name : "");
 
+  // เทอมเดินไปถึงไหนแล้ว — เส้นเดียวใต้หัวข้อ ตอบคำถาม "เหลือเวลาอีกเท่าไหร่" ด้วยตา
+  const gone = s.dayIndex / Math.max(1, termDays(s));
+  $("termBar").innerHTML =
+    `<i style="width:${Math.min(100, gone * 100)}%"></i>` +
+    `<em>วันที่ ${s.dayIndex + 1} / ${termDays(s)} · เหลืออีก ${daysLeft(s)} วัน</em>`;
+
   const chatBtn = $("bChat");
   chatBtn.classList.toggle("is-unread", !!s.pendingChat);
   chatBtn.innerHTML = s.pendingChat ? 'ไลน์<span class="badge">1</span>' : "ไลน์";
 
-  const energyPct = (s.energy / maxEnergy(s)) * 100;
-  const low = s.energy < game.energy.lowThreshold;
   const ladder = game2.statRanks;
+  const top = ladder[ladder.length - 1];
 
+  // หลอดบอก "มาไกลแค่ไหนจากศูนย์ถึงตำนาน" ไม่ใช่ "ใกล้ระดับถัดไปแค่ไหน"
+  // เพราะห้าเกจนี้อยู่ติดกันเพื่อให้ *เทียบกันเอง* — ถ้าแต่ละอันวัดจากฐานคนละอัน
+  // ค่าที่เพิ่งขึ้นระดับใหม่จะดูแย่กว่าค่าที่ค้างอยู่ท้ายระดับเดิม ซึ่งกลับหัว
   let now = game.stats.map((st) => {
     const v = s.stats[st.id as StatId];
     const r = statRank(v);
-    const top = ladder[ladder.length - 1];
-    // หลอดบอก "มาไกลแค่ไหนจากศูนย์ถึงตำนาน" ไม่ใช่ "ใกล้ระดับถัดไปแค่ไหน"
-    // เพราะชิปห้าใบนี้อยู่ติดกันเพื่อให้*เทียบกันเอง* — ถ้าแต่ละใบวัดจากฐานคนละอัน
-    // ค่าสถานะที่เพิ่งขึ้นระดับใหม่จะดูแย่กว่าค่าที่ค้างอยู่ท้ายระดับเดิม ซึ่งกลับหัว
-    // ส่วน "อีกเท่าไหร่ถึงระดับถัดไป" ย้ายไปอยู่ใน title ซึ่งมีที่ให้เขียนเป็นคำ
-    const pct = Math.min(100, (v / top) * 100);
     const next = ladder[Math.min(r + 1, ladder.length - 1)];
     const more = r >= ladder.length - 1 ? "สูงสุดแล้ว"
       : `อีก ${Math.ceil(next - v)} ถึง "${game.statRankNames[r + 1]}"`;
-    return `<span class="chip stat" data-k="${st.id}" data-v="${v}"
-      title="${st.desc} · ${more}"><u>${st.name}</u>
-      <b>${game.statRankNames[r]}</b><i style="width:${pct}%"></i></span>`;
+    return gauge({ k: st.id, icon: st.id, name: st.name, pct: (v / top) * 100,
+      value: `${r}/${ladder.length - 1}`, v, tone: "stat",
+      title: `${st.name} — ${st.desc}\n${game.statRankNames[r]} · ${more}` });
   }).join("");
-  now += `<span class="chip energy${low ? " low" : ""}" data-k="energy" data-v="${Math.round(s.energy)}"
-      title="แรงที่เหลือวันนี้ · เต็มของเราคือ ${maxEnergy(s)}"><u>แรง</u>
-      <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
-  now += `<span class="chip money" data-k="money" data-v="${Math.round(s.money)}"
-      title="เงินในกระเป๋า"><u>เงิน</u> <b>${Math.round(s.money)}</b></span>`;
 
-  // เรื่องที่กำลังไล่หลังอยู่ — ขึ้นแถวแรกเฉพาะตอนที่มันมีจริง
-  // เรื่องที่บ้านกินแรงทุกคืนโดยไม่มีอะไรบอก · หนี้การนอนคือเช็คที่เซ็นไปแล้วแต่ยังไม่เห็นยอด
+  const eMax = maxEnergy(s);
+  now += gauge({ k: "energy", icon: "energy", name: "แรง", pct: (s.energy / eMax) * 100,
+    value: String(Math.round(s.energy)), v: Math.round(s.energy),
+    tone: s.energy < game.energy.lowThreshold ? "energy low" : "energy",
+    title: `แรงที่เหลือวันนี้ · เต็มของเราคือ ${eMax}` });
+  now += `<span class="gauge flat money" data-k="money" data-v="${Math.round(s.money)}"
+      title="เงินในกระเป๋า"><span class="gico">${icon("money")}</span>
+      <b>${Math.round(s.money)}</b></span>`;
+
+  // เรื่องที่กำลังไล่หลังอยู่ — โผล่เฉพาะตอนที่มันมีจริง ไม่งั้นแถบบนจะเต็มไปด้วยศูนย์
+  const alerts: string[] = [];
+  const alert = (k: string, ic: string, name: string, value: string, v: number,
+                 title: string, hot = false) =>
+    alerts.push(`<span class="gauge flat alert${hot ? " hot" : ""}" data-k="${k}" data-v="${v}"
+      title="${title}"><span class="gico">${icon(ic)}</span>
+      <span class="gname">${name}</span><b>${value}</b></span>`);
+
   if (homeLevel(s) > 0)
-    now += `<span class="chip alert" data-k="home" data-v="${homeLevel(s)}"
-      title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง"><u>บ้าน</u>
-      <b>${homeName(s)}</b></span>`;
+    alert("home", "home", "บ้าน", homeName(s), homeLevel(s),
+      "เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง", homeLevel(s) >= 2);
   if (s.sleepDebt > 0)
-    now += `<span class="chip alert${s.sleepDebt >= game.push.dozeAt ? " hot" : ""}"
-      data-k="sleepDebt" data-v="${Math.round(s.sleepDebt)}"
-      title="ฝืนมาแล้วกี่ครั้ง — ไปหักแรงที่ควรได้คืนตอนเช้า"><u>นอน</u>
-      <b>${debtName(s)}</b><i style="width:${Math.min(100, (s.sleepDebt / game.push.maxDebt) * 100)}%"></i></span>`;
+    alert("sleepDebt", "sleep", "นอน", debtName(s), Math.round(s.sleepDebt),
+      "ฝืนมาแล้วกี่ครั้ง — ไปหักแรงที่ควรได้คืนตอนเช้า", s.sleepDebt >= game.push.dozeAt);
   if (needsHaircut(s))
-    now += `<span class="chip alert" data-k="grooming" data-v="${Math.round(s.grooming)}"
-      title="${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว"><u>ทรงผม</u> <b>${Math.round(s.grooming)}</b></span>`;
+    alert("grooming", "barber", "ทรงผม", String(Math.round(s.grooming)), Math.round(s.grooming),
+      `${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว`);
   if (s.homework > 0)
-    now += `<span class="chip alert" data-k="homework" data-v="${s.homework}"
-      title="ไม่ส่งแล้วครูหักคะแนน"><u>การบ้าน</u> <b>${s.homework} ชิ้น</b></span>`;
+    alert("homework", "duty", "การบ้าน", `${s.homework} ชิ้น`, s.homework,
+      "ไม่ส่งเช้าวันเปิดเรียนถัดไป ครูหักคะแนนความประพฤติ");
   if (isUni(s) && s.debt > 0)
-    now += `<span class="chip alert hot" data-k="debt" data-v="${Math.round(s.debt)}"
-      title="ยืมเขามาเพราะจ่ายค่าหอไม่ไหว"><u>หนี้</u> <b>${Math.round(s.debt)}</b></span>`;
+    alert("debt", "money", "หนี้", String(Math.round(s.debt)), Math.round(s.debt),
+      "ยืมเขามาเพราะจ่ายค่าหอไม่ไหว", true);
 
-  // ของที่ค่อยๆ ขยับทั้งเทอม — พับเก็บได้ เพราะมันไม่ใช่ของที่ต้องอ่านทุกช่วงเวลา
-  let slow = `<span class="chip${teacherLevel(s) === 0 ? " low" : ""}" data-k="teacher" data-v="${Math.round(s.teacher)}"
-      title="ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ"><u>ครู</u>
-      <b>${teacherName(s)}</b><i style="width:${s.teacher}%"></i></span>`;
-  slow += `<span class="chip" data-k="behaviour" data-v="${Math.round(s.behaviour)}"
-      title="${behaviourLabel(s.behaviour)}"><u>ความประพฤติ</u> <b>${Math.round(s.behaviour)}</b></span>`;
+  // ของที่ค่อยๆ ขยับทั้งเทอม — พับเก็บได้ เพราะไม่ใช่ของที่ต้องอ่านทุกช่วงเวลา
+  let slow = gauge({ k: "teacher", icon: "teacher", name: "ครู", pct: s.teacher,
+    value: teacherName(s), v: Math.round(s.teacher),
+    tone: teacherLevel(s) === 0 ? "low" : "",
+    title: "ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ" });
+  slow += gauge({ k: "behaviour", icon: "behaviour", name: "ความประพฤติ", pct: s.behaviour,
+    value: String(Math.round(s.behaviour)), v: Math.round(s.behaviour),
+    tone: s.behaviour < game.behaviour.troubleAt ? "low" : "",
+    title: behaviourLabel(s.behaviour) });
   // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
-  slow += `<span class="chip" data-k="standing" data-v="${Math.round(s.standing)}"
-      title="${standingLabel(s.standing)}"><u>ชื่อเสียง</u> <b>${Math.round(s.standing)}</b></span>`;
+  slow += gauge({ k: "standing", icon: "standing", name: "ชื่อเสียง", pct: s.standing,
+    value: String(Math.round(s.standing)), v: Math.round(s.standing),
+    title: standingLabel(s.standing) });
   if (isUni(s))
-    slow += `<span class="chip" title="ค่าหอค่ากินรายสัปดาห์"><u>ค่าหอ</u> <b>${rentPerWeek}</b>/สัปดาห์</span>`;
-  if (club) slow += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
+    slow += `<span class="gauge flat" title="ค่าหอค่ากินรายสัปดาห์">
+      <span class="gico">${icon("dorm")}</span><span class="gname">ค่าหอ</span>
+      <b>${rentPerWeek}</b></span>`;
+  if (club)
+    slow += `<span class="gauge flat club" title="${club.blurb}">
+      <span class="gico">${icon(club.id)}</span><span class="gname">ชมรม</span>
+      <b>${club.name}</b></span>`;
 
   $("stats").innerHTML =
-    `<div class="chiprow">${now}<button class="chip more" id="bMore"
-       aria-expanded="${statsOpen}">${statsOpen ? "ย่อ" : "อื่นๆ"}</button></div>` +
-    `<div class="chiprow slow${statsOpen ? "" : " hidden"}">${slow}</div>`;
+    `<div class="gaugerow">${now}<button class="gauge more" id="bMore"
+       aria-expanded="${statsOpen}" title="ของที่ค่อยๆ ขยับทั้งเทอม">${statsOpen ? "ย่อ" : "···"}</button></div>` +
+    (alerts.length ? `<div class="gaugerow alerts">${alerts.join("")}</div>` : "") +
+    `<div class="gaugerow slow${statsOpen ? "" : " hidden"}">${slow}</div>`;
   $("bMore").onclick = () => { statsOpen = !statsOpen; renderTop(); };
+  // แตะเกจไหนก็ได้เพื่อเปิดหน้าสถานะเต็ม — ที่ที่ชื่อระดับกับคำอธิบายมีที่ให้เขียนเป็นคำ
+  $("stats").querySelectorAll<HTMLElement>(".gauge:not(.more)").forEach((g) =>
+    (g.onclick = () => P.statusPanel(s)));
   markChanged();
 }
 
@@ -299,10 +331,15 @@ function renderDuties(board: HTMLElement) {
         flash(msg, ok ? "ok" : "bad");
         if (ok) { sfx.gain(); next(); } else { sfx.deny(); render(); }
       };
-      const b1 = actBtn(`ท่องก่อนเข้าห้อง${name}`, `${retakeCost} บาท · แรง ${game.retake.energy} · ได้คะแนนตามที่ท่องมา`);
+      const b1 = actBtn(`ท่องก่อนเข้าห้อง${name}`, [
+        { icon: "money", text: `-${retakeCost}`, tone: "cost" },
+        { icon: "energy", text: String(game.retake.energy), tone: "cost" },
+        TIME_COST, { icon: "mind", text: "ได้คะแนนตามที่ท่องมา", tone: "gain" }]);
       b1.onclick = () => void go(null);
       card.acts.appendChild(b1);
-      const b2 = actBtn(`เข้าไปนั่งสอบเฉยๆ`, `${retakeCost} บาท · ผ่านแบบพอดีตัว`);
+      const b2 = actBtn(`เข้าไปนั่งสอบเฉยๆ`, [
+        { icon: "money", text: `-${retakeCost}`, tone: "cost" },
+        TIME_COST, { icon: "mind", text: "ผ่านแบบพอดีตัว" }]);
       b2.onclick = () => void go(SKIP_YIELD);
       card.acts.appendChild(b2);
     }
@@ -329,10 +366,14 @@ function renderDuties(board: HTMLElement) {
       sfx.gain();
       next();
     };
-    const b1 = actBtn("นั่งคุยกับคู่จริงๆ", "อ่านให้ออกว่าเขาต้องการอะไร · ได้มากกว่าถ้าอ่านออก");
+    const b1 = actBtn("นั่งคุยกับคู่จริงๆ", [
+      { icon: "mind", text: "เกรดทุกวิชา +", tone: "gain" },
+      { icon: "meet", text: "สนิทขึ้น", tone: "gain" }, TIME_COST]);
     b1.onclick = () => void work(null);
     card.acts.appendChild(b1);
-    const b2 = actBtn("แบ่งงานแล้วต่างคนต่างทำ", "เสร็จเหมือนกัน แต่ไม่ได้รู้จักเขาเพิ่ม");
+    const b2 = actBtn("แบ่งงานแล้วต่างคนต่างทำ", [
+      { icon: "mind", text: "เกรดทุกวิชา +", tone: "gain" },
+      { icon: "meet", text: "ไม่ได้รู้จักเขาเพิ่ม" }, TIME_COST]);
     b2.onclick = () => void work(SKIP_YIELD);
     card.acts.appendChild(b2);
     board.appendChild(card.el);
@@ -352,10 +393,14 @@ function renderDuties(board: HTMLElement) {
       flash(msg, ok ? "ok" : "bad");
       if (ok) { sfx.homework(); next(); } else { sfx.deny(); render(); }
     };
-    const b1 = actBtn("ตั้งใจนั่งทำ", `ความพร้อมสอบ + · ปัญญา + · แรง ${game.homework.energy}`);
+    const b1 = actBtn("ตั้งใจนั่งทำ", [
+      { icon: "mind", text: "ปัญญา + · ความพร้อมสอบ +", tone: "gain" },
+      { icon: "energy", text: String(game.homework.energy), tone: "cost" }, TIME_COST]);
     b1.onclick = () => void doHw(null);
     card.acts.appendChild(b1);
-    const b2 = actBtn("ลอกให้เสร็จๆ", `ส่งทันเหมือนกัน แต่ไม่ได้อะไรติดหัว`);
+    const b2 = actBtn("ลอกให้เสร็จๆ", [
+      { icon: "mind", text: "ได้น้อยกว่า" },
+      { icon: "energy", text: String(game.homework.energy), tone: "cost" }, TIME_COST]);
     b2.onclick = () => void doHw(SKIP_YIELD);
     card.acts.appendChild(b2);
     board.appendChild(card.el);
@@ -376,12 +421,27 @@ function duty(iconId: string, title: string, warn: string) {
   return { el, acts };
 }
 
-function actBtn(label: string, note: string, cls = "act") {
+/** ราคาหรือผลของการกดปุ่มหนึ่งครั้ง — ไอคอน + ตัวเลข
+ *  ของเดิมเป็นข้อความยาวเส้นเดียว "ความพร้อมสอบ + · ปัญญา + · แรง -10"
+ *  ซึ่งต้องอ่านทั้งบรรทัดถึงจะรู้ว่าแพงแค่ไหน · ชิปแยกอ่านได้ทีละชิ้นด้วยตา */
+type Cost = { icon: string; text: string; tone?: "cost" | "gain" | "time" };
+function costChips(cs: Cost[]): string {
+  return `<span class="costs">${cs.map((c) =>
+    `<span class="cost ${c.tone ?? ""}">${icon(c.icon)}${c.text}</span>`).join("")}</span>`;
+}
+
+function actBtn(label: string, costs: Cost[] | string, cls = "act") {
   const b = document.createElement("button");
   b.className = cls;
-  b.innerHTML = `<span class="alab">${label}</span><em>${note}</em>`;
+  const body = typeof costs === "string"
+    ? `<em>${costs}</em>`
+    : costChips(costs);
+  b.innerHTML = `<span class="alab">${label}</span>${body}`;
   return b;
 }
+
+/** หนึ่งช่วงเวลาคือทรัพยากรที่แพงที่สุดในเกม และไม่เคยมีอะไรบอกเลยว่ามันถูกใช้ไป */
+const TIME_COST: Cost = { icon: "time", text: "1 ช่วง", tone: "time" };
 
 // ───────────────────────── จะไปไหน ─────────────────────────
 
@@ -459,9 +519,15 @@ function renderPlace(board: HTMLElement, loc: LocationOption, fresh: boolean) {
       b.style.setProperty("--who", p.color);
       const rank = affinityRank(s.affinity[p.id] ?? 0);
       const tr = trustRank(s.trust[p.id] ?? 0);
+      // ความสัมพันธ์สองแกนเป็นหลอด ไม่ใช่ตัวเลข — "สนิท 3 · เชื่อใจ 1" ต้องแปลในหัวก่อนถึงจะรู้ว่าไกลแค่ไหน
+      const bars = first || waiting ? "" : `<span class="wbars">
+        <span class="wbar" title="ความสนิท ${rank}/10"><i style="width:${(rank / 10) * 100}%;background:${p.color}"></i></span>
+        <span class="wbar" title="ความเชื่อใจ ${tr}/5"><i style="width:${(tr / 5) * 100}%;background:var(--good)"></i></span>
+      </span>`;
       b.innerHTML = `<span class="avatar lg">${portraitHTML(p.id)}</span>
         <span class="wname"><b style="color:${p.color}">${first ? unknownLabel(p.id) : p.name}</b>
-        <em>${waiting ? "รออยู่ตามนัด" : first ? "ยังไม่เคยคุยกัน" : `สนิท ${rank} · เชื่อใจ ${tr}`}</em></span>
+        <em>${waiting ? "รออยู่ตามนัด" : first ? "ยังไม่เคยคุยกัน"
+             : `สนิท ${rank}/10 · เชื่อใจ ${game.trust.rankNames[tr]}`}</em>${bars}</span>
         <span class="talkgo">${first ? "ทักดู" : "เข้าไปคุย"}</span>`;
       b.onclick = () => talkTo(p.id, loc.id);
       found.appendChild(b);
@@ -498,8 +564,8 @@ function unknownLabel(charId: string): string {
 /** คาบเรียน — เข้าแถว เข้าเรียน หรือโดด */
 function classroomActs(acts: HTMLElement) {
   const flagRaised = s.doneToday["_assembly"] > 0;
-  const b1 = actBtn(flagRaised ? "เข้าเรียนต่อ" : "เข้าแถว แล้วเข้าเรียน",
-    flagRaised ? "ปัญญา +" : "ปัญญา + · ความพร้อมสอบ +");
+  const b1 = actBtn(flagRaised ? "เข้าเรียนต่อ" : "เข้าแถว แล้วเข้าเรียน", [
+    { icon: "mind", text: "ปัญญา + · เกรดทุกวิชา +", tone: "gain" }, TIME_COST]);
   b1.onclick = () => {
     if (!flagRaised) {
       s.doneToday["_assembly"] = 1;
@@ -514,7 +580,9 @@ function classroomActs(acts: HTMLElement) {
   };
   acts.appendChild(b1);
 
-  const b2 = actBtn("โดดคาบ", "ความซ่า + · เสี่ยงโดนจับ", "act risky");
+  const b2 = actBtn("โดดคาบ", [
+    { icon: "nerve", text: "+4", tone: "gain" },
+    { icon: "behaviour", text: "เสี่ยงโดนจับ", tone: "cost" }, TIME_COST], "act risky");
   b2.onclick = async () => {
     const r = skipClass(s);
     flash(r.message);
@@ -526,7 +594,13 @@ function classroomActs(acts: HTMLElement) {
 
 function placeActs(acts: HTMLElement, loc: LocationOption) {
   if (loc.club) {
-    const b = actBtn(loc.club.label, "ไปซ้อม · นับเข้าผลงานวันงานใหญ่", "act club");
+    const cl = clubOf(s);
+    const b = actBtn(loc.club.label, [
+      { icon: cl?.stat ?? "heart", text: `+${cl?.gain ?? 4}`, tone: "gain" },
+      { icon: "energy", text: String(cl?.energy ?? -12), tone: "cost" },
+      TIME_COST,
+      { icon: "meet", text: "นับเข้าผลงานวันงานใหญ่" },
+    ], "act club");
     b.onclick = async () => {
       const club = clubOf(s);
       const mg: MgKind | null = club?.id === "music" ? "rhythm" : club?.id === "sport" ? "relay"
@@ -547,10 +621,19 @@ function placeActs(acts: HTMLElement, loc: LocationOption) {
   if (loc.action) {
     const a = loc.action;
     const times = s.doneToday[loc.id] ?? 0;
-    const note = `${a.energy < 0 ? `แรง ${a.energy}` : `แรง +${a.energy}`}` +
-      `${a.cost ? ` · ${a.cost} บาท` : ""}${a.pay ? ` · ได้ ${a.pay} บาท` : ""}` +
-      `${times ? " · ทำแล้ววันนี้" : ""}`;
-    const b = actBtn(a.label, note);
+    const statName = game.stats.find((x) => x.id === a.stat)?.name ?? a.stat;
+    const costs: Cost[] = [
+      { icon: a.stat, text: `+${a.gain}`, tone: "gain" },
+      { icon: "energy", text: `${a.energy > 0 ? "+" : ""}${a.energy}`,
+        tone: a.energy < 0 ? "cost" : "gain" },
+      TIME_COST,
+    ];
+    if (a.cost) costs.push({ icon: "money", text: `-${a.cost}`, tone: "cost" });
+    if (a.pay) costs.push({ icon: "money", text: `+${Math.round(a.pay * trait(s, "pay", 1))}`, tone: "gain" });
+    if (a.study) costs.push({ icon: "mind", text: "ความพร้อมสอบ +", tone: "gain" });
+    if (times) costs.push({ icon: "time", text: "ทำแล้ววันนี้ ได้น้อยลง" });
+    void statName;
+    const b = actBtn(a.label, costs);
     b.disabled = !!loc.blocked;
     // แรงไม่พอไม่ทำให้ปุ่มดับอีกแล้ว — กดได้ แล้วเกมจะถามว่าจะฝืนไหม
     const tooTired = a.energy < 0 && energyLowFor(s) && !loc.blocked;
@@ -615,7 +698,8 @@ function placeActs(acts: HTMLElement, loc: LocationOption) {
   }
 
   if (loc.rest) {
-    const b = actBtn(loc.rest.label, `แรง +${loc.rest.energy}`, "act rest");
+    const b = actBtn(loc.rest.label,
+      [{ icon: "energy", text: `+${loc.rest.energy}`, tone: "gain" }, TIME_COST], "act rest");
     b.onclick = () => { flash(doRest(s, loc) ?? ""); next(); };
     acts.appendChild(b);
   }
@@ -671,6 +755,7 @@ function hooks() {
     onSide: (cid: string) => { takeSide(s, cid); flash(`เลือกยืนข้าง${nameOf(cid)}แล้ว — อีกฝั่งปิดถาวร`, "bad"); },
     // เพิ่งได้รู้ชื่อเขา — ป้ายชื่อเปลี่ยนตรงบรรทัดนั้นเลย ไม่ใช่รู้ไว้ก่อนตั้งแต่เปิดฉาก
     onIntroduce: (cid: string) => setSpeaker(nameOf(cid)),
+    onFeel: (m: string) => setMood(m),
   };
 }
 

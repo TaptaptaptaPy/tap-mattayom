@@ -31,6 +31,7 @@ INCLUDE _shared.ink
     ~ gainStat("nerve", 1)
     ~ gainAffinity("kanin", 2)
     ~ setFlag("meet_kanin_open")
+    ~ feel("think")
     เขาเงยหน้าขึ้นมามองจริงจังเป็นครั้งแรก
     ~ introduce("kanin")
     "กนิน" เขาพูดชื่อตัวเองแบบคนที่ชินกับการถูกถามว่าใคร "เดินก็เดิน อย่ามายืนบัง"
@@ -49,6 +50,7 @@ INCLUDE _shared.ink
     ~ gainStat("nerve", 1)
     ~ gainAffinity("kanin", 3)
     ~ setFlag("meet_kanin_sharp")
+    ~ feel("shock")
     เขาหันมาเร็วกว่าที่ควร
     "…มึงนับเหรอ"
     ~ introduce("kanin")
@@ -96,6 +98,7 @@ INCLUDE _shared.ink
     ~ gainStat("nerve", 2)
     ~ gainAffinity("kanin", -2)
     ~ setFlag("meet_kanin_cold")
+    ~ feel("angry")
     "กลัว" เขาตอบทันทีโดยไม่เถียง ซึ่งแย่กว่าการเถียง
     แล้วก็ลุกเดินออกไปโดยไม่หันกลับมาอีกเลย
     -> DONE
@@ -108,6 +111,7 @@ INCLUDE _shared.ink
 + ["ใช่ เคยเจอกัน"]
     ~ gainAffinity("kanin", 3)
     ~ setFlag("meet_kanin_open")
+    ~ feel("laugh")
     "เออว่ะ" เขาหัวเราะเสียงเดียว "โลกแม่งแคบ"
     -> DONE
 
