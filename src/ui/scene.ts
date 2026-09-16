@@ -23,6 +23,31 @@ export function setMood(m: string) {
   forced = (MOODS as string[]).includes(m) ? (m as Mood) : null;
 }
 
+/** ใครอยู่บนจอตอนนี้ — เป็นของระดับโมดูลเพราะบทสลับคนพูดกลางฉากได้ (`~ speak("ploy")`)
+ *  ฉากเหตุการณ์เคยส่ง charId เป็น null ตลอด แปลว่าฉากที่มีตัวละครพูดอยู่ด้วย
+ *  (ที่ประชุมกรรมการ ฉากที่พลอยมาดัก งานกีฬาสี) ขึ้นธงโรงเรียนแทนหน้าคนทั้งฉาก
+ *  และ `~ feel(...)` ทุกบรรทัดในนั้นก็ไม่มีผลอะไรเลย */
+let who: string | null = null;
+/** เจ้าของฉากนี้ตอนเปิดมา — `~ speak("")` พาป้ายชื่อกลับมาที่นี่
+ *  ไม่ใช่ล้างเป็นค่าว่าง ไม่งั้นชื่อฉาก ("ที่ประชุมกรรมการ") จะหายไปกลางทาง */
+let base = { charId: null as string | null, name: "", color: "#cfc8e8", unknown: false };
+
+/** เปลี่ยนคนที่อยู่บนจอกลางฉาก — ภาพ ป้ายชื่อ และสีของกล่องขยับไปพร้อมกัน
+ *  เรียกโดยไม่ใส่ชื่อ = กลับไปเป็นเจ้าของฉากคนเดิม */
+export function setFace(charId: string | null, name?: string, color?: string, unknown = false) {
+  const back = charId === null && name === undefined;
+  const at = back ? base : { charId, name: name ?? "", color: color ?? base.color, unknown };
+  who = at.charId;
+  const artEl = $("portrait"), spEl = $("speaker"), box = $("scene");
+  // ยังไม่เคยเจอกันก็ยังไม่ควรเห็นหน้า กติกาเดียวกับฉากเจอกันครั้งแรก
+  artEl.classList.toggle("is-unknown", at.unknown);
+  artEl.innerHTML = portraitHTML(who, (artEl.dataset.mood as Mood) || "calm");
+  spEl.textContent = at.name;
+  spEl.classList.remove("is-named");
+  (spEl as HTMLElement).style.color = at.color;
+  box.style.setProperty("--who", at.color);
+}
+
 /** เดาอารมณ์จากคำในประโยค — ใช้เมื่อบทไม่ได้สั่งไว้
  *
  *  ของเดิมเดาจากเครื่องหมายท้ายประโยคอย่างเดียว: ลงท้ายด้วย ! หรือ ? = หน้าตึงทุกครั้ง
@@ -87,7 +112,10 @@ export function playScene(story: Story, speaker: string, color: string,
   hintEl.textContent = "";
   // ยังไม่รู้ว่าเป็นใคร ก็ยังไม่ควรเห็นหน้า — ภาพเป็นเงาจนกว่าบทจะเรียก introduce()
   artEl.classList.toggle("is-unknown", unknown);
-  artEl.innerHTML = portraitHTML(charId);
+  who = charId;
+  base = { charId, name: speaker, color, unknown };
+  artEl.dataset.mood = "calm";
+  artEl.innerHTML = portraitHTML(who);
   backlog = [];
   closeBacklog();
   wireTools();
@@ -140,7 +168,7 @@ export function playScene(story: Story, speaker: string, color: string,
       // เรียก moodOf() ครั้งเดียว — มันกิน `forced` ทิ้งหลังใช้ เรียกสองรอบได้คนละอารมณ์
       const mood = moodOf(current);
       artEl.dataset.mood = mood;
-      artEl.innerHTML = portraitHTML(charId, mood);
+      artEl.innerHTML = portraitHTML(who, mood);
       reveal(lineEl, current, settled);
       return;
     }
@@ -160,6 +188,9 @@ export function setSpeaker(name: string) {
   const el = $("speaker");
   // รู้ชื่อเขาแล้ว ก็เห็นหน้าเขาได้แล้ว — สองอย่างนี้เกิดพร้อมกันเสมอ
   $("portrait").classList.remove("is-unknown");
+  // เจ้าของฉากเปลี่ยนชื่อไปแล้วจริงๆ ไม่ใช่แค่ป้ายบนจอ — ถ้าไม่จำ `~ speak("")`
+  // ทีหลังในฉากเดียวกันจะพาชื่อย้อนกลับไปเป็น "รุ่นพี่คนหนึ่ง" อีกรอบ
+  base = { ...base, name, unknown: false };
   if (el.textContent === name) return;
   el.textContent = name;
   el.classList.remove("is-named");

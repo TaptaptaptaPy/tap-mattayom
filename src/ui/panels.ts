@@ -85,6 +85,8 @@ export function characterPanel(s: GameState) {
       <div class="kv"><span>ความเชื่อใจ</span>
         <div class="minibar"><i style="width:${(tr / 5) * 100}%;background:#8fd6a6"></i></div>
         <b>${game.trust.rankNames[tr]}</b></div>
+      <div class="want" style="--who:${c.color}"><em>สิ่งที่เขาอยากได้เทอมนี้</em>${
+        (c as { want?: string }).want ?? ""}</div>
       <div class="kv"><span>ให้ค่ากับ</span><b>${likes}</b></div>
       ${spots.length ? `<div class="kv"><span>มักเจอเขาที่</span><b>${spots.join(" · ")}</b></div>` : ""}
       ${rival && rv > 0 ? `<div class="kv"><span>คนอื่นที่สนิทกับเขา</span><b>${rival.name} — ${rival.blurb}</b></div>` : ""}
@@ -453,6 +455,13 @@ export function diaryPanel(s: GameState, onClose: () => void) {
 export function howToPanel(onClose: () => void) {
   const h = `<h2>ชีวิตหนึ่งเทอม<small>วันละสี่ช่วงเวลา · ${game.term.days} วัน</small></h2>
     <div class="howto">
+      <div class="hrow aimrow"><b>เกมนี้เกี่ยวกับอะไร</b>
+        ปีนี้โรงเรียนใช้ <em>สมุดปกแดง</em> — สมุดความประพฤติประจำห้อง — ตัดสินว่าใครได้เข้า
+        โครงการแนะแนวปลายเทอม หัวหน้าห้องเป็นคนจด ครูเป็นคนเซ็น และนักเรียนไม่มีสิทธิ์อ่าน
+        กลางเทอมสมุดหายไปหนึ่งหน้า และ<em>เราคือคนที่ถูกเรียกถามเป็นคนแรก</em>
+        <br>ปลายเทอมมีที่ประชุมกรรมการ เราจะพูดอะไรในนั้น ขึ้นกับสองอย่างที่สะสมมาคนละทาง —
+        <em>สิ่งที่เรารู้</em> และ <em>คนที่ยอมยืนขึ้นด้วย</em>
+        <br>การรู้จักคน ชมรม เกรด เงิน ล้วนเป็นทางที่พาไปถึงตรงนั้น ไม่ใช่เป้าหมายในตัวเอง</div>
       <div class="hrow"><b>เวลาคือของที่มีจำกัด</b>
         ทุกอย่างที่ทำกินไปหนึ่งช่วงเวลา เลือกอันหนึ่งคือไม่ได้อีกอันเสมอ
         <em>เดินเข้าไปดูในที่ต่างๆ ไม่เสียเวลา</em> เสียเมื่อลงมือทำอะไรสักอย่าง</div>

@@ -37,6 +37,19 @@ async function toBoard(page: Page, patch: (s: any) => void = () => {}) {
   }, `(${patch.toString()})(s)`);
 }
 
+/** กด "▸" ไปเรื่อยๆ จนบทยื่นทางเลือกจริงๆ ให้เลือก
+ *  ฉากยาวๆ อย่างที่ประชุมกรรมการมีสิบกว่าบรรทัดกว่าจะถึงจุดที่ต้องตัดสินใจ */
+async function toChoices(page: Page, max = 40) {
+  for (let i = 0; i < max; i++) {
+    const btns = page.locator("#choices button");
+    await expect.poll(async () => btns.count(), { timeout: 10_000 }).toBeGreaterThan(0);
+    const only = await btns.count();
+    if (only !== 1 || (await btns.first().textContent())?.trim() !== "▸") return;
+    await btns.first().click();
+  }
+  throw new Error("เดินบทไปสี่สิบบรรทัดแล้วยังไม่มีทางเลือกให้กด");
+}
+
 /** รอจนตัวพิมพ์ดีดพิมพ์จบ ไม่งั้นภาพจะจับข้อความครึ่งประโยค */
 async function typed(page: Page) {
   await page.waitForSelector("#scene:not(.hidden)");
@@ -360,4 +373,64 @@ test("ซ่อนจอกลางมินิเกมแล้วกลั�
   // (ข้อสอบระดับ 1 ให้ข้อละ 15 วินาที · 2 วินาทีที่หายไป = ราว 13% ของแถบ)
   expect(elapsed.before - elapsed.after,
          "เวลาเดินต่อตอนที่ผู้เล่นไม่ได้มองอยู่").toBeLessThan(8);
+});
+
+// ── ฉากเหตุการณ์มีคนจริงอยู่ในนั้น ไม่ใช่เสียงบรรยายล้วน ──
+// ที่ประชุมกรรมการคือปลายทางของทั้งเทอม ตอนที่เพื่อนเดินเข้ามายืนข้างเก้าอี้เรา
+// ต้องเห็นหน้าเขาจริงๆ ไม่ใช่เห็นธงโรงเรียนค้างอยู่เหมือนตอนที่ไม่มีใครพูด
+// (`~ speak(backerId())` ใน story/mp_hearing.ink)
+test("ฉากที่ประชุม — พอเพื่อนยืนขึ้นด้วย ต้องเห็นหน้าเขาบนจอ", async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom, s = M.s;
+    // รู้ความจริงครบและมีคนไว้ใจเราพอจะยืนขึ้นด้วยสองคน — เงื่อนไขของทางที่ชี้ไปที่คนสั่ง
+    s.plot.stage = 3;
+    s.plot.clues = ["clue_order", "clue_saw", "clue_seat"];
+    for (const id of ["ploy", "kanin"]) { s.met[id] = 1; s.trust[id] = 40; s.affinity[id] = 40; }
+    document.getElementById("scene")!.classList.add("hidden");
+    M.showEvent("mp_hearing", "ที่ประชุมกรรมการ");
+  });
+  await typed(page);
+  // ก่อนเลือก ยังเป็นเสียงบรรยาย — ภาพต้องเป็นธงโรงเรียน ไม่ใช่หน้าใคร
+  expect(await page.locator("#portrait .pnar").count()).toBe(1);
+  await toChoices(page);
+  const pick = page.locator("#choices button", { hasText: "มีคนสั่งให้เติมชื่อ" });
+  await expect(pick).toHaveCount(1);
+  await pick.click();
+  // เดินบทต่อไปทีละบรรทัดจนถึงจังหวะที่เพื่อนพูดแทนเรา
+  let faced = false;
+  for (let i = 0; i < 15 && !faced; i++) {
+    faced = (await page.locator("#portrait img.pface").count()) === 1;
+    if (faced) break;
+    // ปุ่ม "▸" โผล่หลังตัวพิมพ์ดีดพิมพ์จบ ต้องรอให้มันมาก่อน ไม่ใช่เลิกเพราะยังไม่เห็น
+    const next = page.locator("#choices button", { hasText: "▸" });
+    await expect.poll(async () => next.count(), { timeout: 10_000 }).toBe(1);
+    await next.first().click();
+  }
+  expect(faced, "เพื่อนยืนขึ้นด้วยแล้วแต่บนจอยังเป็นธงโรงเรียนอยู่").toBe(true);
+  const who = await page.locator("#speaker").textContent();
+  expect(who, "ป้ายชื่อต้องเปลี่ยนเป็นคนที่ยืนขึ้นด้วย").not.toBe("ที่ประชุมกรรมการ");
+  await expect(page).toHaveScreenshot("hearing.png");
+});
+
+// ── ฟองขวาคือสิ่งที่เราพิมพ์จริงๆ ──
+// ทางเลือกในบทแชทเขียนเป็น ["ข้อความ" — สิ่งที่มันแปลว่า] ท่อนหลังขีดยาวมีไว้ให้อ่านบนปุ่ม
+// ของเดิมยัดทั้งก้อนลงฟองขวา ในแชทเราเลยพิมพ์ว่า «ดีใจด้วยนะ" — ยินดีกับเขาไปตรงๆ»
+test("แชท — ฟองขวาต้องเป็นข้อความที่เราพิมพ์ ไม่ใช่คำอธิบายของปุ่ม", async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom, s = M.s;
+    s.met["ploy"] = 1; s.affinity["ploy"] = 30; s.trust["ploy"] = 20;
+    document.getElementById("scene")!.classList.add("hidden");
+    M.showChat("ploy");
+  });
+  // ฝั่งเขาพิมพ์มาก่อนทีละฟอง ต้องรอจนมีปุ่มตอบขึ้นมา
+  await page.waitForSelector("#chatReplies .reply", { timeout: 15_000 });
+  const label = (await page.locator("#chatReplies .reply").first().textContent()) ?? "";
+  await page.locator("#chatReplies .reply").first().click();
+  await page.waitForSelector(".bub.me");
+  const said = (await page.locator(".bub.me").last().textContent()) ?? "";
+  expect(said, "ฟองขวามีอัญประกาศค้างอยู่").not.toContain('"');
+  expect(said, "ฟองขวามีคำอธิบายของปุ่มติดมาด้วย").not.toContain("—");
+  expect(label.startsWith(said) || label.includes(said)).toBe(true);
 });

@@ -15,6 +15,7 @@ import { Compiler } from "inkjs/full";
 import { Story as InkStory } from "inkjs";
 import type { Story } from "inkjs/types";
 import game from "../../data/game.json";
+import gameCfg from "../../data/game.json";
 import chars from "../../data/characters.json";
 import { mulberry32, clamp01, type Rnd } from "../core/rng";
 import { newState, remember, type GameState } from "../sim/state";
@@ -44,6 +45,8 @@ import { buy, use, gift, ITEMS } from "../sim/shop";
 import { computeEnding } from "../sim/ending";
 import { epilogues, selfEpilogue } from "../sim/epilogue";
 import { startUni } from "../sim/chapter";
+import { takeClue, settleVerdict, plotOnEvent, canSearchArchive, plotStage,
+         clueCount, plotVerdict, type Verdict } from "../sim/plot";
 
 // ───────────────────── โหลดบทจากดิสก์ (ฝั่ง Vite ใช้ import.meta.glob) ─────────────────────
 
@@ -99,6 +102,9 @@ function hooksFor(s: GameState, t: Tally): SceneHooks {
     onSide: (cid) => { note("side"); takeSide(s, cid); },
     onIntroduce: () => note("introduce"),
     onFeel: () => note("feel"),
+    onSpeak: () => note("speak"),
+    onClue: (id) => { note("clue"); takeClue(s, id); },
+    onVerdict: (v) => { note("verdict"); settleVerdict(s, v as Verdict); },
   };
 }
 
@@ -127,6 +133,7 @@ function playTerm(s: GameState, t: Tally, rnd: Rnd, mg: () => number) {
     if (ev) {
       s.seenEvents[ev.id] = true;
       t.events.push(`${s.chapter}/${ev.id}`);
+      plotOnEvent(s, ev.id);
       if (ev.pickClub && !s.club) joinClub(s, clubsFor(s)[Math.floor(rnd() * clubsFor(s).length)].id);
       if (ev.assignProject && !s.project) assignProject(s, s.chapter);
       if (ev.exam) { takeExam(s, ev.exam, mg()); postBoard(s, ev.exam); }
@@ -195,6 +202,7 @@ function act(s: GameState, t: Tally, rnd: Rnd, mg: () => number) {
   const here = whoIsAt(s, loc.id, period);
   if (here.length && rnd() < 0.55) { meet(s, here[0], t, rnd, loc.id); return; }
 
+  if (canSearchArchive(s, loc.id) && rnd() < 0.5) { playInk("mp_archive", s, null, t, rnd); return; }
   if (loc.club) { doClubActivity(s, s.doneToday[loc.id] ?? 0, 0.6 + mg() * 0.9); return; }
   if (loc.rest && rnd() < 0.3) { doRest(s, loc); return; }
   if (loc.action) {
@@ -233,7 +241,7 @@ function meet(s: GameState, charId: string, t: Tally, rnd: Rnd, at?: string) {
 // ───────────────────── เดินจริง ─────────────────────
 
 const SEEDS = [11, 47];
-const tallies: { name: string; t: Tally; end: string; uni: string | null }[] = [];
+const tallies: { name: string; t: Tally; end: string; uni: string | null; plot: string }[] = [];
 
 console.log(`เล่นจนจบด้วยบทจริง · ${BACKGROUNDS.length} ภูมิหลัง × ${SEEDS.length} seed · สองภาค\n`);
 
@@ -253,10 +261,11 @@ for (const bg of BACKGROUNDS) {
         playTerm(s, t, rnd, mg);
         uni = computeEnding(s).tier;
       }
-      tallies.push({ name: `${bg.name} · seed ${seed}`, t, end: en.tier, uni });
+      tallies.push({ name: `${bg.name} · seed ${seed}`, t, end: en.tier, uni,
+                     plot: `องก์ ${plotStage(s)} · เบาะแส ${clueCount(s)} · ${plotVerdict(s) ?? "ไม่ได้ให้การ"}` });
     } catch (e) {
       t.errors.push((e as Error).stack?.split("\n").slice(0, 3).join(" | ") ?? String(e));
-      tallies.push({ name: `${bg.name} · seed ${seed}`, t, end: "พังกลางทาง", uni: null });
+      tallies.push({ name: `${bg.name} · seed ${seed}`, t, end: "พังกลางทาง", uni: null, plot: "-" });
     }
   }
 }
@@ -266,8 +275,9 @@ for (const r of tallies) {
   const ok = !r.t.errors.length && !r.t.missingInk.length;
   if (!ok) bad++;
   console.log(`${ok ? "  ok  " : "  พัง  "} ${r.name.padEnd(30)} ` +
-    `ฉาก ${String(r.t.scenes).padStart(3)} · บรรทัด ${String(r.t.lines).padStart(5)} · ` +
-    `ทางเลือก ${String(r.t.choices).padStart(4)} · ${r.end}${r.uni ? " → " + r.uni : ""}`);
+    `ฉาก ${String(r.t.scenes).padStart(3)} · ทางเลือก ${String(r.t.choices).padStart(4)} · ` +
+    `${r.plot}`);
+  console.log(`         ${r.end}${r.uni ? " → " + r.uni : ""}`);
   for (const m of [...new Set(r.t.missingInk)]) console.log(`         ← ไม่มีไฟล์บท: ${m}`);
   for (const e of r.t.errors) console.log(`         ← ${e}`);
 }
@@ -291,8 +301,18 @@ for (const r of tallies) for (const [k, n] of Object.entries(r.t.externals)) cal
 console.log(`\nสะพาน ink → TS ที่ถูกเรียกจริง:`);
 console.log("  " + Object.entries(calls).sort((a, b) => b[1] - a[1])
   .map(([k, n]) => `${k} ${n}`).join(" · "));
-for (const need of ["stat", "affinity", "flag", "invite", "trust", "introduce"])
+for (const need of ["stat", "affinity", "flag", "invite", "trust", "introduce", "feel", "speak", "verdict"])
   if (!calls[need]) { console.log(`  ← ไม่มีใครเรียก ${need}() เลย สะพานฝั่งนั้นไม่ถูกทดสอบ`); bad++; }
+
+// เรื่องหลักของเทอมต้องเดินจบจริง และต้องจบได้หลายแบบ ไม่ใช่ลงทางเดียวทุกรอบ
+const verdicts = new Set(tallies.map((r) => r.t.events.length ? r.plot.split(" · ").pop() : ""));
+// วัดที่จำนวนเบาะแส ไม่ใช่ที่องก์ — องก์ 4 ถูกตั้งให้ทุกรอบตอนให้การ ตัวนับจึงจริงเสมอ
+const solved = tallies.filter((r) => Number(/เบาะแส (\d+)/.exec(r.plot)?.[1] ?? 0)
+                                     >= gameCfg.plot.cluesToSolve).length;
+console.log(`\nเรื่องหลัก: สืบจนปะติดปะต่อได้ ${solved}/${tallies.length} รอบ · ` +
+            `ปลายทางที่เจอ: ${[...verdicts].filter(Boolean).join(" · ")}`);
+if (!solved) { console.log("  ← ไม่มีรอบไหนสืบจนปะติดปะต่อได้เลย เบาะแสอาจหายากเกินไป"); bad++; }
+if (verdicts.size < 2) { console.log("  ← ทุกรอบจบทางเดียวกันหมด ทางเลือกในที่ประชุมไม่ได้ถูกทดสอบ"); bad++; }
 
 console.log(bad ? `\nมีปัญหา ${bad} จุด` : `\nเล่นจบครบทุกภูมิหลัง ไม่มีบทไหนหาย ไม่มีเส้นทางไหนพัง`);
 process.exit(bad ? 1 : 0);

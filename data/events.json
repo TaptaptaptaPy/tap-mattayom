@@ -22,6 +22,14 @@
     "chapter": "school"
   },
   {
+    "id": "mp_book",
+    "day": 6,
+    "period": "morning",
+    "name": "สมุดปกแดง",
+    "ink": "mp_book",
+    "chapter": "school"
+  },
+  {
     "id": "wai_kru",
     "day": 10,
     "period": "morning",
@@ -30,11 +38,44 @@
     "chapter": "school"
   },
   {
+    "id": "home_ask_1",
+    "day": 20,
+    "period": "night",
+    "name": "โทรศัพท์จากที่บ้าน",
+    "ink": "ev_home_ask",
+    "chapter": "school"
+  },
+  {
     "id": "midterm",
     "day": 49,
     "period": "morning",
     "name": "สอบกลางภาค",
     "exam": "midterm",
+    "chapter": "school"
+  },
+  {
+    "id": "mp_gone",
+    "day": 51,
+    "period": "morning",
+    "name": "สมุดหาย",
+    "ink": "mp_gone",
+    "chapter": "school"
+  },
+  {
+    "id": "group_work",
+    "day": 56,
+    "period": "morning",
+    "name": "ประกาศงานกลุ่ม",
+    "chapter": "school",
+    "ink": "ev_group",
+    "assignProject": true
+  },
+  {
+    "id": "home_ask_2",
+    "day": 57,
+    "period": "night",
+    "name": "โทรศัพท์จากที่บ้าน",
+    "ink": "ev_home_ask",
     "chapter": "school"
   },
   {
@@ -65,6 +106,14 @@
     "chapter": "school"
   },
   {
+    "id": "mp_squeeze",
+    "day": 84,
+    "period": "after",
+    "name": "ครูเรียกไปคุยอีกรอบ",
+    "ink": "mp_squeeze",
+    "chapter": "school"
+  },
+  {
     "id": "mothers_day",
     "day": 85,
     "period": "morning",
@@ -81,11 +130,28 @@
     "chapter": "school"
   },
   {
+    "id": "home_ask_3",
+    "day": 92,
+    "period": "night",
+    "name": "โทรศัพท์จากที่บ้าน",
+    "ink": "ev_home_ask",
+    "chapter": "school"
+  },
+  {
     "id": "scout_camp",
     "day": 95,
     "period": "morning",
     "name": "เข้าค่ายลูกเสือ",
     "ink": "ev_scout_camp",
+    "wholeDay": true,
+    "chapter": "school"
+  },
+  {
+    "id": "mp_hearing",
+    "day": 110,
+    "period": "morning",
+    "name": "ที่ประชุมกรรมการ",
+    "ink": "mp_hearing",
     "wholeDay": true,
     "chapter": "school"
   },
@@ -165,15 +231,6 @@
     "ending": true
   },
   {
-    "id": "group_work",
-    "day": 56,
-    "period": "morning",
-    "name": "ประกาศงานกลุ่ม",
-    "chapter": "school",
-    "ink": "ev_group",
-    "assignProject": true
-  },
-  {
     "id": "u_group",
     "day": 42,
     "period": "morning",
@@ -181,29 +238,5 @@
     "chapter": "uni",
     "ink": "ev_group",
     "assignProject": true
-  },
-  {
-    "id": "home_ask_1",
-    "day": 20,
-    "period": "night",
-    "name": "โทรศัพท์จากที่บ้าน",
-    "ink": "ev_home_ask",
-    "chapter": "school"
-  },
-  {
-    "id": "home_ask_2",
-    "day": 57,
-    "period": "night",
-    "name": "โทรศัพท์จากที่บ้าน",
-    "ink": "ev_home_ask",
-    "chapter": "school"
-  },
-  {
-    "id": "home_ask_3",
-    "day": 92,
-    "period": "night",
-    "name": "โทรศัพท์จากที่บ้าน",
-    "ink": "ev_home_ask",
-    "chapter": "school"
   }
 ]

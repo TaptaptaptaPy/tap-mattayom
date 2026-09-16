@@ -17,7 +17,18 @@ const charOf = (id: string) => chars.find((c) => c.id === id);
 /** บทเขียนทางเลือกเป็น "..." เหมือนบทสนทนาปกติทั้งโปรเจกต์ (ดู ploy.ink)
  *  แต่ในหน้าแชท เครื่องหมายคำพูดดูแปลกเพราะฟองข้อความบอกอยู่แล้วว่าใครพูด จึงตัดออกตอนแสดง
  *  ทำที่ชั้นแสดงผล ไม่ใช่ที่บท เพื่อให้คนเขียนบทใช้รูปแบบเดียวกันได้ทุกไฟล์ */
-const strip = (t: string) => t.trim().replace(/^["“”]+|["“”]+$/g, "").trim();
+/** ข้อความที่จะกลายเป็นฟองขวา
+ *
+ *  ทางเลือกในบทแชทเขียนเป็น `["ข้อความที่เราพิมพ์" — สิ่งที่มันแปลว่า]`
+ *  ท่อนหลังขีดยาวมีไว้ให้ *ผู้เล่น* อ่านบนปุ่ม ไม่ใช่สิ่งที่เราพิมพ์ส่งไปจริงๆ
+ *  ของเดิมยัดทั้งก้อนลงฟองขวา ผลคือในแชทเราพิมพ์ว่า
+ *  «ดีใจด้วยนะ" — ยินดีกับเขาไปตรงๆ» พร้อมอัญประกาศค้างอยู่กลางประโยค */
+const strip = (t: string) => {
+  const s = t.trim();
+  const q = /^["“](.+?)["”](\s*—.*)?$/.exec(s);
+  if (q) return q[1].trim();
+  return s.replace(/\s*—.*$/, "").replace(/^["“”]+|["“”]+$/g, "").trim();
+};
 
 function shell(charId: string, sub: string) {
   const c = charOf(charId);
@@ -90,7 +101,8 @@ export function playChat(story: Story, charId: string, onDone: (msgs: ChatMsg[])
     if (story.currentChoices.length) {
       story.currentChoices.forEach((ch, i) => {
         const said = strip(ch.text);
-        button(replies, said, () => { say(said, true); story.ChooseChoiceIndex(i); step(); });
+        const label = ch.text.trim().replace(/^["“”]+|["“”]+$/g, "");
+        button(replies, label, () => { say(said, true); story.ChooseChoiceIndex(i); step(); });
       });
       return;
     }

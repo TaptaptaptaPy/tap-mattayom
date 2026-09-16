@@ -64,6 +64,9 @@ const knowsOf = (id: string) =>
  *  ทั้งที่หน้าคนรู้จักขึ้นชื่อเขาไปแล้วเรียบร้อย — สองหน้าจอขัดกันเอง */
 let introduced = false;
 let unnamedEndings = 0;
+/** สถานะเรื่องหลักที่กำลังเดินอยู่ — สลับไปตามโปรไฟล์ ไม่งั้นกิ่งของที่ประชุมกรรมการ
+ *  (ซึ่งเป็นปลายทางของทั้งเทอม) จะถูกเดินแค่เส้นเดียวจากห้าเส้น */
+const plotVars = { stage: 0, clues: 0, suspect: 0, backers: 0 };
 
 function build(src: string, calls: Record<string, number>, flags: Set<string>, hints: string[],
                sides: Set<string> = new Set()): Story {
@@ -106,6 +109,16 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
     note("introduce:" + c); introduced = true; return null;
   });
   story.BindExternalFunction("feel", (m: string) => { note("feel:" + m); return null; });
+  story.BindExternalFunction("speak", (c: string) => { note("speak:" + c); return null; });
+  // เรื่องหลัก — สลับค่าไปตามโปรไฟล์เพื่อให้กิ่งทั้งหมดถูกเดิน ไม่ใช่ค้างอยู่ค่าเดียว
+  story.BindExternalFunction("plotStage", () => plotVars.stage);
+  story.BindExternalFunction("plotClues", () => plotVars.clues);
+  story.BindExternalFunction("suspectLevel", () => plotVars.suspect);
+  story.BindExternalFunction("backerCount", () => plotVars.backers);
+  story.BindExternalFunction("backerId", () => (plotVars.backers > 0 ? "ploy" : ""));
+  story.BindExternalFunction("hasClue", () => (plotVars.clues > 2 ? 1 : 0));
+  story.BindExternalFunction("learnClue", (id: string) => { note("clue:" + id); return null; });
+  story.BindExternalFunction("verdict", (v: string) => { note("verdict:" + v); return null; });
   return story;
 }
 
@@ -179,6 +192,10 @@ for (const f of files) {
   for (const [pi, p] of PROFILES.entries()) {
     // ภูมิหลังสลับไปตามโปรไฟล์ เพื่อให้กิ่งของบททักทายครั้งแรกถูกเดินครบทุกอัน
     bgId = BG_IDS[pi % BG_IDS.length];
+    plotVars.stage = pi % 5;
+    plotVars.clues = pi % 6;
+    plotVars.suspect = pi % 3;
+    plotVars.backers = pi % 4;
     const before = { ...stat, calls: { ...stat.calls } };
     try {
       if (isRandom(src)) walkRandom(src, p.vars, stat, problems);
@@ -315,6 +332,39 @@ console.log(`\nสะพานที่บทเรียกได้: ประ
 if (unusedExt.length)
   console.log(`  ← ประกาศไว้แต่ไม่มีบทไหนเรียก ${unusedExt.length} ตัว: ${unusedExt.join("  ")}`);
 
+// ───────────────────── สีหน้าครบสิบแบบหรือเปล่า ─────────────────────
+// ภาพตัวละครมีสิบอารมณ์ต่อคน ประกอบไว้แล้วทั้งหกสิบไฟล์
+// ถ้าไม่มีบทไหนเรียกอารมณ์ไหนเลย แปลว่าภาพชุดนั้นถูกสร้างขึ้นมาแล้วไม่มีใครได้เห็น
+// และตัวเดาก็เดาได้แค่อารมณ์ที่มีคำใบ้อยู่ในประโยค ซึ่งไม่ใช่ทั้งสิบแบบ
+const portraitSrc = readFileSync(join(tsDir, "ui/portrait.ts"), "utf8");
+const moodList = [...(/export const MOODS: Mood\[\] =\s*\[([^\]]+)\]/.exec(portraitSrc)?.[1] ?? "")
+  .matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
+const feltInInk = new Set([...srcAll.matchAll(/feel\("([a-z]+)"\)/g)].map((m) => m[1]));
+const neverFelt = moodList.filter((m) => !feltInInk.has(m));
+const wrongMood = [...feltInInk].filter((m) => !moodList.includes(m));
+console.log(`\nสีหน้าที่บทสั่งเอง: มีภาพ ${moodList.length} แบบ · บทเรียกจริง ${feltInInk.size} แบบ`);
+if (neverFelt.length)
+  console.log(`  ← ไม่มีบทไหนเรียกเลย ${neverFelt.length} แบบ (ภาพที่ไม่มีใครได้เห็น): ${neverFelt.join("  ")}`);
+if (wrongMood.length)
+  console.log(`  ← บทเรียกอารมณ์ที่ไม่มีภาพรองรับ: ${wrongMood.join("  ")}`);
+// บทของตัวละครที่ใช้สีหน้าเดียวทั้งไฟล์ = คนที่หน้าไม่เปลี่ยนเลยตลอดร้อยยี่สิบวัน
+//
+// นับเฉพาะบทที่ *มีหน้าคนอยู่บนจอ* จริงๆ — บทประจำตัว บททักทาย และฉากจบรายคน
+// ฉากเหตุการณ์กับฉากจบของเราเองเล่นด้วย charId เป็น null (ดู playInk ใน main.ts)
+// ตรงนั้นเป็นธงโรงเรียนไม่ใช่หน้าคน สั่งสีหน้าไปก็ไม่มีอะไรเปลี่ยน
+// ยกเว้นตอนบทเรียก `~ speak(...)` ซึ่งดึงคนจริงขึ้นมาบนจอกลางฉาก
+const charIds = [...chars.map((c) => c.id)];
+const faced = (x: string) => charIds.some((id) =>
+  x === `${id}.ink` || x === `meet_${id}.ink` || x === `epi_${id}.ink`);
+const flatChars: string[] = [];
+for (const f of files.filter(faced)) {
+  const src = readFileSync(join(dir, f), "utf8");
+  const moods = new Set([...src.matchAll(/feel\("([a-z]+)"\)/g)].map((m) => m[1]));
+  if (moods.size < 3) flatChars.push(`${f}(${moods.size})`);
+}
+if (flatChars.length)
+  console.log(`  ← บทที่สั่งสีหน้าน้อยกว่า 3 แบบ: ${flatChars.join("  ")}`);
+
 // เสียงที่นิยามไว้แต่ไม่มีใครเรียก = เหตุการณ์ที่เกิดขึ้นแล้วเงียบสนิท
 // เป็นบั๊กชนิดที่ไม่มีวันมี error ให้เห็น และเล่นเองก็ไม่รู้ว่าพลาดอะไรไป
 const audio = readFileSync(join(tsDir, "core/audio.ts"), "utf8");
@@ -337,6 +387,6 @@ if (dangling.length)
   console.log(`  ← ธงที่มีคนอ่านแต่ไม่มีใครตั้ง ${dangling.length} อัน: ${dangling.join("  ")}`);
 
 const flagBad = orphans.length > 0 || dangling.length > 0 || epiBad > 0 || silent.length > 0
-              || unusedExt.length > 0;
+              || unusedExt.length > 0 || neverFelt.length > 0 || wrongMood.length > 0;
 if (!flagBad) console.log("  ทุกทางเลือกมีปลายทางของมัน");
 process.exit(bad || flagBad ? 1 : 0);

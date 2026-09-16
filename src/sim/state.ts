@@ -40,6 +40,10 @@ export interface GameState {
   habits: Record<string, number>;
   /** บังเอิญเจอคนมากี่ครั้งทั้งเทอม — เทสต์สมดุลใช้ดูว่าระบบยังเดินอยู่ */
   encounters: number;
+  /** เรื่องหลักของเทอม — สมุดปกแดง ดู src/sim/plot.ts
+   *  `stage` คือองก์ที่เดินอยู่ · `clues` คือเบาะแสที่เก็บได้ ·
+   *  `suspect` คือครูสงสัยเราแค่ไหน · `verdict` คือสิ่งที่เราพูดในที่ประชุม */
+  plot: { stage: number; clues: string[]; suspect: number; verdict: string | null };
   dayIndex: number;          // 0 = วันเปิดเทอม
   periodIndex: number;       // อ้างอิง data/game.json > periods
   energy: number;
@@ -156,7 +160,8 @@ export interface GameState {
 // 20: เพิ่มคู่แข่ง (rivals · conceded)
 // 21: เพิ่มรสนิยมของฝากรายคน (gifted)
 // 22: เพิ่มภูมิหลังและการเจอกันแบบบังเอิญ (seed · background · met · habits · encounters)
-export const SAVE_VERSION = 22;
+// 23: เพิ่มเรื่องหลักของเทอม — สมุดปกแดง (plot)
+export const SAVE_VERSION = 23;
 
 export function newState(seed = Math.floor(Math.random() * 2 ** 31)): GameState {
   const stats = {} as Record<StatId, number>;
@@ -167,6 +172,7 @@ export function newState(seed = Math.floor(Math.random() * 2 ** 31)): GameState 
   return {
     v: SAVE_VERSION,
     seed, background: null, met: {}, habits: {}, encounters: 0,
+    plot: { stage: 0, clues: [], suspect: 0, verdict: null },
     dayIndex: 0, periodIndex: 0, energy: game.energy.max,
     stats, affinity, trust, flags: {}, metToday: {}, doneToday: {}, history: [],
     money: game.money.start, behaviour: game.behaviour.start, study: 0,

@@ -82,3 +82,20 @@ EXTERNAL introduce(charId)
 // สีหน้าของบรรทัด *ถัดไป* — calm happy laugh shy sad away think firm angry shock
 // ผู้เขียนบทรู้ดีกว่าตัวเดาเสมอ ไม่สั่งก็เดาจากคำในประโยคให้เอง
 EXTERNAL feel(mood)
+// ใครกำลังพูด — เปลี่ยนภาพกับป้ายชื่อกลางฉากได้ ใช้ในฉากเหตุการณ์ที่มีตัวละครจริงอยู่ด้วย
+// ส่ง "" เพื่อกลับไปเป็นเสียงบรรยาย · บทของตัวละครไม่ต้องเรียก เพราะเปิดฉากมาก็เป็นเขาอยู่แล้ว
+EXTERNAL speak(charId)
+
+// ── เรื่องหลักของเทอม: สมุดปกแดง (ดู src/sim/plot.ts) ──
+// องก์ที่เดินอยู่ 0-4 · เบาะแสที่เก็บได้กี่ชิ้น · ครูสงสัยเราแค่ไหน 0-2
+// · คนที่ยอมยืนขึ้นพูดด้วยในที่ประชุมมีกี่คน
+EXTERNAL plotStage()
+EXTERNAL plotClues()
+EXTERNAL suspectLevel()
+EXTERNAL backerCount()
+// id ของคนแรกที่ยืนขึ้นด้วย — ส่งต่อให้ speak() ได้ตรงๆ คืน "" ถ้าไม่มีใคร
+EXTERNAL backerId()
+// เก็บเบาะแสหนึ่งชิ้น (เรียกจากบทของคนที่รู้เรื่องนั้น) และให้การในที่ประชุม
+EXTERNAL hasClue(id)
+EXTERNAL learnClue(id)
+EXTERNAL verdict(choice)

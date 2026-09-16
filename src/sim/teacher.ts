@@ -1,6 +1,7 @@
 import game from "../../data/game.json";
 import { remember, type GameState } from "./state";
 import { addStrain } from "./home";
+import { suspect } from "./plot";
 
 /** ครูประจำชั้น
  *
@@ -20,8 +21,14 @@ const T = game.teacher;
 
 export const teacherEye = (s: GameState) => s.teacher;
 
-/** ครูเห็นสิ่งที่เราทำ — ทางเดียวที่ค่านี้ขยับ */
+/** ครูเห็นสิ่งที่เราทำ — ทางเดียวที่ค่านี้ขยับ
+ *
+ *  และเป็นทางเดียวที่ **ความสงสัยในเรื่องสมุดปกแดง** ขยับด้วย (ดู src/sim/plot.ts)
+ *  เพราะมันคือเรื่องเดียวกัน: สิ่งที่ครูเห็นเราทำมาทั้งเทอม คือสิ่งที่พูดแทนเรา
+ *  ในห้องประชุมก่อนที่เราจะได้พูดเอง · วางไว้ที่นี่ที่เดียวแปลว่าไม่มีทางที่หลุด */
 export function noteBehaviour(s: GameState, delta: number, why: string): void {
+  if (delta < 0) suspect(s, -delta * game.plot.suspectPerBadMark);
+  else suspect(s, -delta * game.plot.suspectPerGoodMark);
   const before = s.teacher;
   s.teacher = Math.max(0, Math.min(100, s.teacher + delta));
   if (before < T.trustedAt && s.teacher >= T.trustedAt) {

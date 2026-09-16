@@ -28,6 +28,8 @@ import { milestoneToday, runMilestone } from "../sim/milestone";
 import { seenWith } from "../sim/seen";
 import { whoIsAt, noteEncounter, bumpInto, hasMet } from "../sim/presence";
 import { applyBackground, BACKGROUNDS } from "../sim/background";
+import { plotOnEvent, takeClue, settleVerdict, plotStage, clueCount, clueReady,
+         backers, verdictOptions, canSearchArchive, suspectLevel } from "../sim/plot";
 import { askAmount, giveHome, refuseHome } from "../sim/home";
 import { rivalLead, stepRivals } from "../sim/rival";
 import { hasHomework, doHomework } from "../sim/homework";
@@ -86,6 +88,8 @@ interface Run {
   clashDays: number;
   /** เรื่องที่เกิดขึ้นตอนเราไม่อยู่ และความทรงจำที่ตัวละครเก็บไว้ */
   offscreen: number; memories: number;
+  /** เรื่องหลักของเทอม — เดินถึงองก์ไหน เก็บเบาะแสได้กี่ชิ้น มีคนยืนด้วยกี่คน จบยังไง */
+  plotStage: number; clues: number; backerCount: number; verdict: string; suspect: number;
   /** บังเอิญเจอคนกี่ครั้ง · รู้จักกี่คนตอนจบ · กว่าจะรู้จักคนแรกใช้เวลากี่วัน
    *  สามตัวนี้คือตัวนับของระบบเจอกันแบบบังเอิญ ถ้าเป็นศูนย์แปลว่าระบบตายแล้วไม่มีใครรู้ */
   encounters: number; metCount: number; firstMetDay: number;
@@ -233,6 +237,13 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy,
         // กระดานติดหน้าห้องทันทีหลังรู้ผล — ผลข้างเคียงทั้งหมดของมันเกิดตรงนี้
         postBoard(s, ev.exam);
       }
+      // เรื่องหลักเดินตามปฏิทิน — ทางเดียวกับเกมจริง
+      plotOnEvent(s, ev.id);
+      if (ev.id === "mp_hearing") {
+        // ที่ประชุมกรรมการ — เลือกทางที่หนักที่สุดที่เปิดอยู่ เพื่อให้ทางที่หายากถูกเดินจริง
+        const opts = verdictOptions(s).filter((v) => !v.need);
+        settleVerdict(s, opts[opts.length - 1].id);
+      }
       if (ev.pickClub && !s.club) joinClub(s, clubFor(s, strat));
       // วันงานใหญ่ของชมรม — ทั้งเทอมที่ไปซ้อมมาถูกคิดบัญชีตรงนี้
       const big = milestoneToday(s);
@@ -290,6 +301,9 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy,
       // ที่ที่ไปเจอกันมีคนอื่นอยู่ด้วย — คนที่นัดเราไว้เหมือนกันจะเห็นกับตา
       caughtOut += seenWith(s, appt.charId).filter((w) => w.hadPlan).length;
       visited(s, appt.charId);
+      // เขารู้เรื่องสมุดปกแดงชิ้นหนึ่ง และจะเล่าเมื่อไว้ใจเราพอ — ทางหลักของเรื่องทั้งเรื่อง
+      const ready = clueReady(s, appt.charId);
+      if (ready) takeClue(s, ready.id);
       // ไปเจอกันแล้วย่อมมีอะไรให้ตัดสินใจ — หยิบธงของคนนั้นมาสักอันเป็นตัวแทน
       // เทสต์นี้ไม่ได้เดินบท จึงไม่มีทางได้ธงมาเองเหมือนตอนเล่นจริง
       // ถ้าไม่จำลองตรงนี้ ระบบความเชื่อใจกับความทรงจำจะไม่เคยถูกวัดเลย
@@ -328,6 +342,8 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy,
       const club = clubToday(s);
       const locs = actionable(s);
       const clubLoc = club ? availableLocations(s).find((l) => l.club) : undefined;
+      const lib = availableLocations(s).find((l) => canSearchArchive(s, l.id));
+      if (lib && doesChores && rnd() < 0.35) { takeClue(s, "clue_page"); continue; }
 
       if (clubLoc) {
         // ชมรมดนตรีกับกีฬามีมินิเกม ตัวคูณช่วง 0.6–1.5 ตรงกับที่ main.ts คิด
@@ -395,6 +411,8 @@ function play(strat: Strategy, seed: number, skill: number, policy?: PushPolicy,
     slipped: Object.keys(s.flags).filter((f) => f.endsWith("_slipped")).length,
     offscreen: Object.values(s.lives).reduce((n, l) => n + l.fired, 0),
     encounters, firstMetDay,
+    plotStage: plotStage(s), clues: clueCount(s), backerCount: backers(s).length,
+    verdict: s.plot.verdict ?? "-", suspect: suspectLevel(s),
     metCount: Object.keys(s.affinity).filter((id) => hasMet(s, id)).length,
     background: s.background ?? "",
     memories: Object.values(s.memories).reduce((n, m) => n + m.length, 0),
@@ -610,6 +628,16 @@ if (metAvg < 1)
 if (metFull === allRuns.length)
   console.log("  ← ทุกรอบรู้จักครบทุกคน การเจอกันไม่ได้เป็นความบังเอิญอีกแล้ว");
 
+// แกนของทั้งเทอมต้องเดินจริง และต้องจบได้หลายแบบ ไม่ใช่ลงทางเดียวทุกรอบ
+const solved = allRuns.filter((r) => r.clues >= game.plot.cluesToSolve).length;
+const vset = new Set(allRuns.map((r) => r.verdict).filter((v) => v !== "-"));
+console.log(`เรื่องหลักเดินจริงไหม: ปะติดปะต่อได้ ${solved}/${allRuns.length} รอบ` +
+            ` · เบาะแสเฉลี่ย ${mean(allRuns.map((r) => r.clues)).toFixed(1)} ชิ้น` +
+            ` · คนที่ยืนข้างเราเฉลี่ย ${mean(allRuns.map((r) => r.backerCount)).toFixed(1)} คน` +
+            ` · ปลายทาง: ${[...vset].join(" ")}`);
+if (!solved) console.log("  ← ไม่มีรอบไหนสืบจนปะติดปะต่อได้ เบาะแสหายากเกินไป");
+if (solved === allRuns.length) console.log("  ← ทุกรอบสืบได้หมด ความเชื่อใจไม่ได้กั้นอะไรเลย");
+if (vset.size < 2) console.log("  ← ทุกรอบจบทางเดียวกัน ทางเลือกในที่ประชุมไม่ได้ถูกทดสอบ");
 console.log(`ภูมิหลังทำให้เล่นซ้ำแล้วไม่เหมือนเดิมไหม: คะแนนปลายทางห่างกัน ${r0(bgScoreSpread)}` +
             ` · เงินตอนจบห่างกัน ${r0(bgMoneySpread)}`);
 // วัดสองทางเพราะกลยุทธ์ที่เล่นเก่งจะดันคะแนนปลายทางไปชนเพดานเหมือนกันหมด

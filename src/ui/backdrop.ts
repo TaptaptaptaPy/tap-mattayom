@@ -501,6 +501,12 @@ const EVENT_PLACE: Record<string, string | { school: string; uni: string }> = {
   u_fest: "faccant",                                    // ลานหน้าคณะ
   u_close: "dorm",                                      // กระเป๋าวางอยู่ตรงประตูหอ
   assembly: "assembly",                                 // เข้าแถวหน้าเสาธง
+  // เรื่องหลักของเทอม — สมุดปกแดง (ดู src/sim/plot.ts)
+  mp_book: "assembly",                                  // ประกาศหน้าเสาธงวันจันทร์
+  mp_gone: "hallway",                                   // แถวรอหน้าห้องพักครูตอนเจ็ดโมงครึ่ง
+  mp_squeeze: "hallway",                                // ห้องพักครูอีกรอบ คราวนี้ไม่มีคนต่อแถว
+  mp_hearing: "classroom",                              // ห้องประชุมชั้นสอง โต๊ะยาวตัวเดียว
+  mp_archive: "library",                                // แฟ้มเก่าชั้นล่างสุดของห้องสมุด
 };
 
 /** ฉากหลังของบทเหตุการณ์หนึ่งบท — ภาพของตัวเองมาก่อน แล้วค่อยยืมภาพของสถานที่ */

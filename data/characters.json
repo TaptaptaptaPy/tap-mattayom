@@ -7,9 +7,18 @@
     "color": "#e4a0b7",
     "_routine": "ตารางชีวิต ไม่ใช่ตำแหน่งตายตัว — น้ำหนักรวมไม่ถึง 100 ส่วนที่เหลือคือวันที่เขาไม่อยู่ที่ไหนที่เราเดินไปถึง",
     "routine": {
-      "morning": { "classroom": 88 },
-      "noon": { "library": 42, "canteen": 20, "classroom": 12 },
-      "after": { "library": 46, "temple": 10 }
+      "morning": {
+        "classroom": 88
+      },
+      "noon": {
+        "library": 42,
+        "canteen": 20,
+        "classroom": 12
+      },
+      "after": {
+        "library": 46,
+        "temple": 10
+      }
     },
     "firstMeet": "meet_ploy",
     "hint": "หัวหน้าห้องที่ชอบหายไปนั่งอยู่ในห้องสมุด",
@@ -39,7 +48,8 @@
       "blurb": "เพื่อนสมัยประถมที่ย้ายกลับมา ติวให้พลอยทุกเย็นวันพุธ"
     },
     "chapter": "school",
-    "epilogue": "epi_ploy"
+    "epilogue": "epi_ploy",
+    "want": "อยากเป็นคนที่พูดความจริงได้โดยไม่ต้องเสียทุกอย่างที่สร้างมาสามปี"
   },
   {
     "id": "kanin",
@@ -48,10 +58,20 @@
     "tag": "หลังห้อง",
     "color": "#7fb2e8",
     "routine": {
-      "morning": { "classroom": 40 },
-      "noon": { "backfield": 44, "canteen": 20 },
-      "after": { "backfield": 36, "arcade": 22 },
-      "night": { "arcade": 40 }
+      "morning": {
+        "classroom": 40
+      },
+      "noon": {
+        "backfield": 44,
+        "canteen": 20
+      },
+      "after": {
+        "backfield": 36,
+        "arcade": 22
+      },
+      "night": {
+        "arcade": 40
+      }
     },
     "firstMeet": "meet_kanin",
     "hint": "คนที่ชอบหายไปอยู่หลังตึกตอนคาบว่าง",
@@ -80,7 +100,8 @@
       "blurb": "รุ่นพี่ที่กนินเคยทำงานด้วยตอนปิดเทอม ชวนไปทำอีกรอบ"
     },
     "chapter": "school",
-    "epilogue": "epi_kanin"
+    "epilogue": "epi_kanin",
+    "want": "อยากให้มีใครสักคนฟังเขาสักครั้ง ก่อนจะตัดสินว่าเขาเป็นคนยังไง"
   },
   {
     "id": "minta",
@@ -89,9 +110,16 @@
     "tag": "รุ่นพี่ชมรมดนตรี",
     "color": "#c8a6e8",
     "routine": {
-      "noon": { "canteen": 24, "library": 10 },
-      "after": { "musicroom": 52 },
-      "night": { "musicroom": 32 }
+      "noon": {
+        "canteen": 24,
+        "library": 10
+      },
+      "after": {
+        "musicroom": 52
+      },
+      "night": {
+        "musicroom": 32
+      }
     },
     "firstMeet": "meet_minta",
     "hint": "รุ่นพี่ที่ห้องดนตรีมีไฟติดอยู่ทุกเย็น",
@@ -120,7 +148,8 @@
       "blurb": "มือกีตาร์วงข้างนอกที่ชวนมินตราไปเล่นด้วยกันทุกเสาร์"
     },
     "chapter": "school",
-    "epilogue": "epi_minta"
+    "epilogue": "epi_minta",
+    "want": "อยากเล่นให้จบทั้งเพลงสักครั้ง ก่อนจะจบ ม.6 แล้วไม่ได้เล่นอีก"
   },
   {
     "id": "palm",
@@ -130,8 +159,15 @@
     "color": "#8fd6a6",
     "chapter": "school",
     "routine": {
-      "noon": { "canteen": 42, "library": 16 },
-      "after": { "library": 34, "temple": 16, "backfield": 8 }
+      "noon": {
+        "canteen": 42,
+        "library": 16
+      },
+      "after": {
+        "library": 34,
+        "temple": 16,
+        "backfield": 8
+      }
     },
     "firstMeet": "meet_palm",
     "hint": "รุ่นน้องที่นั่งกินข้าวโต๊ะริมสุดคนเดียวทุกวัน",
@@ -159,7 +195,8 @@
       "value": 7,
       "hint": "ถ้าน้ำใจถึง 7 ปาล์มจะเล่าว่าทำไมถึงย้ายโรงเรียน"
     },
-    "epilogue": "epi_palm"
+    "epilogue": "epi_palm",
+    "want": "อยากอยู่ในที่ที่ไม่ต้องย้ายอีก และไม่ต้องนั่งโต๊ะริมสุดคนเดียว"
   },
   {
     "id": "tar",
@@ -169,9 +206,18 @@
     "color": "#8fd6a6",
     "chapter": "uni",
     "routine": {
-      "noon": { "faccant": 44, "unilib": 8 },
-      "after": { "clubroom": 40, "faccant": 14 },
-      "night": { "bar": 36, "parttime": 8 }
+      "noon": {
+        "faccant": 44,
+        "unilib": 8
+      },
+      "after": {
+        "clubroom": 40,
+        "faccant": 14
+      },
+      "night": {
+        "bar": 36,
+        "parttime": 8
+      }
     },
     "firstMeet": "meet_tar",
     "hint": "รุ่นพี่ที่ห้องชุมนุมมีคนเรียกชื่อตลอดเวลา",
@@ -198,7 +244,8 @@
       "value": 10,
       "hint": "ถ้าความซ่าถึง 10 ต้าร์จะพาไปที่ที่รุ่นพี่เขาไปกัน"
     },
-    "epilogue": "epi_tar"
+    "epilogue": "epi_tar",
+    "want": "อยากรู้ว่าสองปีที่ผ่านมาเหลืออะไรให้เขาบ้าง"
   },
   {
     "id": "nun",
@@ -208,10 +255,21 @@
     "color": "#e8c98a",
     "chapter": "uni",
     "routine": {
-      "morning": { "lecture": 78 },
-      "noon": { "faccant": 44, "unilib": 16 },
-      "after": { "unilib": 38, "parttime": 16 },
-      "night": { "parttime": 24, "unilib": 14 }
+      "morning": {
+        "lecture": 78
+      },
+      "noon": {
+        "faccant": 44,
+        "unilib": 16
+      },
+      "after": {
+        "unilib": 38,
+        "parttime": 16
+      },
+      "night": {
+        "parttime": 24,
+        "unilib": 14
+      }
     },
     "firstMeet": "meet_nun",
     "hint": "คนที่นั่งแถวหลังสุดของห้องบรรยายทุกคาบ",
@@ -237,6 +295,7 @@
       "value": 9,
       "hint": "ถ้าน้ำใจถึง 9 นุ่นจะเล่าว่าที่บ้านเป็นยังไง"
     },
-    "epilogue": "epi_nun"
+    "epilogue": "epi_nun",
+    "want": "อยากอยู่ที่นี่ต่อได้โดยไม่ต้องโทรกลับไปขอที่บ้าน"
   }
 ]

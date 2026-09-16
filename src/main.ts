@@ -26,6 +26,8 @@ import { seenWith } from "./sim/seen";
 import { askAmount, giveHome, homeLevel, homeName, refuseHome } from "./sim/home";
 import { teacherLevel, teacherName } from "./sim/teacher";
 import { concede } from "./sim/rival";
+import { CLUES, takeClue, settleVerdict, plotOnEvent, plotAim, canSearchArchive,
+         type Verdict } from "./sim/plot";
 import { offerChat, offerSecondChat, recordThread, acceptInvite, planToday, plansToday, planClash,
          keepPlan, isPlanPeriod,
          nameOf } from "./sim/chat";
@@ -43,7 +45,7 @@ import { unlock as unlockAudio, sfx, setMuted, isMuted } from "./core/audio";
 import { Bgm } from "./core/bgm";
 import { openScene, storyNames } from "./story/bridge";
 import { playChat, viewThread, chatListPanel } from "./ui/chat";
-import { playScene, setMood, setSpeaker, showHint } from "./ui/scene";
+import { playScene, setFace, setMood, setSpeaker, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
 import { trait } from "./sim/traits";
@@ -295,7 +297,23 @@ function renderBoard() {
 // ───────────────────────── ของที่ต้องทำก่อน ─────────────────────────
 
 /** สามอย่างที่เกมยัดใส่มือ ไม่ใช่ของที่เลือกทำเอง — ต้องอยู่เหนือของที่เลือกได้เสมอ */
+/** การ์ดจุดมุ่งหมายของเทอม — ของที่เกมนี้ขาดมาตลอด
+ *  เดิมผู้เล่นเปิดมาเจอรายการสถานที่ แล้วไม่มีอะไรบอกเลยว่าทำไมต้องไป
+ *  การ์ดนี้ตอบคำถามเดียว: **ตอนนี้เรื่องอยู่ตรงไหน และเรากำลังรออะไรอยู่** */
+function renderAim(board: HTMLElement) {
+  const aim = plotAim(s);
+  if (!aim) return;
+  const el = document.createElement("div");
+  el.className = "aim";
+  el.innerHTML = `<div class="aimhead"><span class="ico">${icon("duty")}</span>
+      <b>${aim.title}</b></div>
+    <div class="aimbody">${aim.aim}</div>
+    ${aim.note ? `<div class="aimnote">${aim.note}</div>` : ""}`;
+  board.appendChild(el);
+}
+
 function renderDuties(board: HTMLElement) {
+  renderAim(board);
   // รับนัดไว้เมื่อคืนแล้วลืม = เสียความสัมพันธ์ฟรีๆ เตือนไว้ทั้งวันจนกว่าจะไป
   const plan = planToday(s);
   const clash = planClash(s);
@@ -593,6 +611,16 @@ function classroomActs(acts: HTMLElement) {
 }
 
 function placeActs(acts: HTMLElement, loc: LocationOption) {
+  // ทางเดียวของเรื่องหลักที่ไม่ต้องพึ่งความเชื่อใจของใครเลย แลกกับเวลาทั้งช่วง
+  if (canSearchArchive(s, loc.id)) {
+    const b = actBtn("ค้นแฟ้มเก่าของฝ่ายทะเบียน", [
+      { icon: "duty", text: "เรื่องสมุดปกแดง", tone: "gain" }, TIME_COST], "act plot");
+    b.onclick = () => {
+      placeOpen = null;
+      playInk("mp_archive", null, "ห้องสมุด ชั้นล่างสุด", "#cfc8e8", () => next(), "library");
+    };
+    acts.appendChild(b);
+  }
   if (loc.club) {
     const cl = clubOf(s);
     const b = actBtn(loc.club.label, [
@@ -756,6 +784,22 @@ function hooks() {
     // เพิ่งได้รู้ชื่อเขา — ป้ายชื่อเปลี่ยนตรงบรรทัดนั้นเลย ไม่ใช่รู้ไว้ก่อนตั้งแต่เปิดฉาก
     onIntroduce: (cid: string) => setSpeaker(nameOf(cid)),
     onFeel: (m: string) => setMood(m),
+    // ฉากเหตุการณ์มีคนจริงเดินเข้ามาพูดได้ — ที่ประชุมกรรมการ ฉากที่พลอยมาดัก งานกีฬาสี
+    // ส่ง "" กลับไปเป็นเสียงบรรยาย
+    onSpeak: (cid: string) => {
+      const c = chars.find((x) => x.id === cid);
+      // speak("") = กลับไปเป็นเจ้าของฉากคนเดิม ไม่ใช่ล้างป้ายชื่อทิ้ง
+      if (!c) { setFace(null); return; }
+      // คนที่ยังไม่เคยเจอกันเลยต้องยังเป็นเงาอยู่ ไม่ใช่โผล่หน้ามาพร้อมชื่อกลางฉากเหตุการณ์
+      const known = s.met[c.id] !== undefined;
+      setFace(c.id, known ? c.name : unknownLabel(c.id), c.color, !known);
+    },
+    // เรื่องหลักของเทอม — บทเป็นคนเล่า ตัวเลขเป็นของ TS เหมือนทุกระบบ
+    onClue: (id: string) => {
+      const c = CLUES.find((x) => x.id === id);
+      if (takeClue(s, id) && c) { sfx.recall(); flash(`รู้เพิ่ม: ${c.short}`); }
+    },
+    onVerdict: (v: string) => { settleVerdict(s, v as Verdict); sfx.ending(); },
   };
 }
 
@@ -867,6 +911,8 @@ function skipToNextDay() {
 function handleEvent(e: TermEvent): boolean {
   s.seenEvents[e.id] = true;
   remember(s, e.name);
+  // เรื่องหลักเดินไปตามปฏิทิน — อยู่ในทางเดินหลักเพื่อให้เทสต์เดินผ่านเองโดยไม่ต้องจำไปเรียก
+  plotOnEvent(s, e.id);
 
   if (e.exam) {
     void (async () => {
@@ -1136,6 +1182,11 @@ if (import.meta.env.DEV)
       showMinigame: (kind: MgKind, diff = 1) => { void openMinigame(kind, diff); },
       // ตัวนี้คืน Promise ตั้งใจ — เทสต์ที่เล่นจนจบต้องอ่านคะแนนที่มันคืนกลับมาได้
       runMinigame: (kind: MgKind, diff = 1) => openMinigame(kind, diff),
+      // ฉากเหตุการณ์ใบเดียว — ที่ประชุมกรรมการอยู่วันที่ 110 ถ้าต้องเล่นถึงจริงก็ดูไม่ไหว
+      showEvent: (ink: string, name = "เหตุการณ์") =>
+        playInk(ink, null, name, "#cfc8e8", () => { /* ดูเฉยๆ */ }),
+      // เปิดแชทของคนนี้ตรงๆ โดยไม่ต้องรอให้เขาทักมาเอง
+      showChat: (charId: string) => openPendingChat(charId),
       showBoard: (examId = "midterm") => P.boardPanel(postBoard(s, examId), () => P.closePanel()) };
 
 // ───────────────────────── เปิดเกม ─────────────────────────

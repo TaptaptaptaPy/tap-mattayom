@@ -829,3 +829,27 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .metcard .wbars{display:flex;gap:5px;margin-top:4px}
 .wbar{display:block;flex:1;height:4px;border-radius:2px;background:rgba(244,241,248,.12);overflow:hidden;max-width:64px}
 .wbar i{display:block;height:100%;border-radius:2px;transition:width .5s cubic-bezier(.2,.9,.3,1)}
+
+/* ───────── การ์ดจุดมุ่งหมายของเทอม ─────────
+   ของที่เกมนี้ขาดมาตลอด — เปิดมาเจอรายการสถานที่ แล้วไม่มีอะไรบอกว่าทำไมต้องไป
+   การ์ดนี้ตอบคำถามเดียว: ตอนนี้เรื่องอยู่ตรงไหน และเรากำลังรออะไรอยู่ */
+.aim{grid-column:1/-1;position:relative;overflow:hidden;
+  border:1px solid rgba(232,201,138,.4);border-radius:var(--r-lg);padding:12px 15px;
+  background:linear-gradient(160deg,rgba(232,201,138,.12),rgba(28,25,41,.9) 70%)}
+.aim::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--warn)}
+.aimhead{display:flex;align-items:center;gap:8px}
+.aimhead .ico{color:var(--warn);display:grid;place-items:center}
+.aimhead .ico .ico-svg{width:17px;height:17px}
+.aimhead b{font-family:var(--head);font-size:15px;color:var(--warn)}
+.aimbody{font-size:12.5px;color:var(--dim);line-height:1.65;margin-top:5px}
+.aimnote{font-size:11.5px;color:var(--ink);margin-top:7px;padding-top:7px;
+  border-top:1px solid rgba(232,201,138,.22)}
+.act.plot{border-color:rgba(232,201,138,.55);background:rgba(232,201,138,.08)}
+
+/* สิ่งที่ตัวละครคนนี้อยากได้เทอมนี้ — จุดมุ่งหมายของเขา ที่ผู้เล่นควรมองเห็น ไม่ใช่เดาเอง */
+.want{margin-top:8px;font-size:12px;color:var(--ink);line-height:1.65;
+  border-left:2px solid var(--who,var(--accent));padding-left:10px}
+.want em{display:block;font-style:normal;font-size:10.5px;color:var(--dim2);
+  letter-spacing:.3px;margin-bottom:2px}
+.hrow.aimrow{border-color:rgba(232,201,138,.4);background:rgba(232,201,138,.07)}
+.hrow.aimrow b{color:var(--warn)}
