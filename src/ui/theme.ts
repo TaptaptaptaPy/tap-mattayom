@@ -23,12 +23,17 @@ export function applyTheme(s: GameState) {
   root.dataset.school = isSchoolDay(s) ? "1" : "0";
 }
 
-/** แถบจุดสี่จุดบอกว่าตอนนี้อยู่ช่วงไหนของวัน */
+/** แถบสี่ช่วงของวัน
+ *
+ *  ของเดิมเป็นขีดสี่ขีดหนา 3px ไม่มีชื่อกำกับ ผู้เล่นต้องอ่านจากหัวข้อด้านบนแทน
+ *  ว่าตอนนี้เป็นช่วงไหน และไม่มีทางรู้ว่าเหลืออีกกี่ช่วงในวันนี้
+ *  ตอนนี้มีชื่อทุกช่วง ช่วงที่ผ่านไปแล้วจาง ช่วงปัจจุบันเด่นและเต้นเบาๆ
+ *  ซึ่งตอบคำถาม "วันนี้เหลือเวลาอีกเท่าไหร่" ได้ในแวบเดียว */
 export function periodStrip(s: GameState): string {
   return game.periods.map((p, i) => {
     // ใช้คำนำหน้า is- เพราะคลาสชื่อ next ชนกับคลาสของปุ่ม ".next" ที่มีอยู่แล้ว
     const state = i < s.periodIndex ? "is-past" : i === s.periodIndex ? "is-now" : "is-next";
-    return `<i class="pdot ${state}" title="${p.name}"></i>`;
+    return `<span class="pslot ${state}"><i class="pdot"></i><em>${p.name}</em></span>`;
   }).join("");
 }
 

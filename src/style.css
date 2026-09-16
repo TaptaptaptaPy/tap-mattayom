@@ -128,7 +128,12 @@ button{font-family:inherit;cursor:pointer}
 .toast.out{opacity:0;transform:translateX(-50%) translateY(-6px)}
 
 .hidden{display:none!important}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ปิดทั้ง transition และ animation — ของเดิมปิดแค่ transition
+   ทำให้ของที่ใช้ @keyframes (การ์ดที่ไล่ขึ้น ตัวเลขที่ลอย) ยังขยับอยู่
+   และทำให้เทสต์ภาพจับภาพระหว่างที่การ์ดยังไล่ขึ้นไม่เสร็จ ได้คนละภาพทุกรอบ */
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
 
 /* ═════════ ชั้นภาพใหม่: ภาพตัวละคร ไอคอน บรรยากาศตามช่วงเวลา ═════════ */
 
@@ -138,11 +143,18 @@ button{font-family:inherit;cursor:pointer}
 .chead .ico-svg{display:inline-block;vertical-align:-4px;width:17px;height:17px;margin-right:5px}
 
 /* แถบจุดบอกช่วงเวลาของวัน */
-#periodStrip{display:flex;gap:5px;margin-top:9px}
-.pdot{width:100%;height:3px;min-height:0;padding:0;border:0;border-radius:2px;
+#periodStrip{display:flex;gap:6px;margin-top:9px}
+.pslot{flex:1;display:block;min-width:0}
+.pdot{display:block;width:100%;height:3px;border-radius:2px;
   background:rgba(242,238,247,.13);transition:background .4s ease}
-.pdot.is-past{background:rgba(242,238,247,.32)}
-.pdot.is-now{background:var(--period-accent,#e4a0b7);box-shadow:0 0 8px var(--period-accent,#e4a0b7)}
+.pslot em{display:block;font-style:normal;font-size:10px;margin-top:4px;
+  color:rgba(242,238,247,.28);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .4s ease}
+.pslot.is-past .pdot{background:rgba(242,238,247,.32)}
+.pslot.is-past em{color:rgba(242,238,247,.42)}
+.pslot.is-now .pdot{background:var(--period-accent,#e4a0b7);
+  box-shadow:0 0 8px var(--period-accent,#e4a0b7)}
+.pslot.is-now em{color:var(--ink);font-weight:600}
 
 /* หลอดความคืบหน้าในชิปค่าสถานะ */
 .chip.stat{padding-bottom:5px}
@@ -490,3 +502,57 @@ button{font-family:inherit;cursor:pointer}
 .dline{font-size:13px;line-height:1.7;color:var(--dim);
   padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.05)}
 .dline:last-child{border-bottom:none;padding-bottom:0}
+
+/* ═════════════════ การเคลื่อนไหวของหน้าจอ ═════════════════
+   เดิมทุกอย่างโผล่มาทันที — กด แล้วกล่องอยู่ตรงนั้นเลย
+   ผลคือผู้เล่นไม่รู้ว่าอะไรเพิ่งเปลี่ยน และหน้าจออ่านเป็นเอกสาร ไม่ใช่เกม
+   ทุกการเคลื่อนไหวที่นี่มีหน้าที่บอกอย่างใดอย่างหนึ่งเสมอ:
+   ของใหม่มาจากไหน · อะไรเพิ่งเปลี่ยน · กดติดแล้วหรือยัง
+   (prefers-reduced-motion ปิดทั้งหมดให้อยู่แล้วที่บรรทัดบน) */
+
+/* แผงเลื่อนขึ้นมาจากขอบล่าง ไม่ใช่โผล่กลางจอ
+   ทิศทางบอกเองว่า "กดปิดแล้วมันจะกลับลงไปทางไหน" */
+@keyframes panelIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes dimIn{from{opacity:0}to{opacity:1}}
+#panel:not(.hidden){animation:dimIn .22s ease}
+#panel:not(.hidden) .pwrap{animation:panelIn .28s cubic-bezier(.2,.9,.3,1)}
+
+/* การ์ดสถานที่ไล่กันขึ้นมาทีละใบตอนขึ้นช่วงเวลาใหม่
+   ไล่กันแปลว่า "นี่คือชุดใหม่" ไม่ใช่ "ของเดิมที่ยังอยู่" */
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#board.is-fresh .loc{animation:cardIn .34s cubic-bezier(.2,.9,.3,1) backwards}
+#board.is-fresh .loc:nth-child(1){animation-delay:.02s}
+#board.is-fresh .loc:nth-child(2){animation-delay:.06s}
+#board.is-fresh .loc:nth-child(3){animation-delay:.10s}
+#board.is-fresh .loc:nth-child(4){animation-delay:.14s}
+#board.is-fresh .loc:nth-child(5){animation-delay:.18s}
+#board.is-fresh .loc:nth-child(6){animation-delay:.22s}
+#board.is-fresh .loc:nth-child(n+7){animation-delay:.26s}
+
+/* กดแล้วต้องรู้สึกว่ากดติด — ปุ่มทุกชนิดในเกมยุบลงเล็กน้อย */
+.loc,.act,.who,.tbtn,.thread,.dtab,.choice button{transition:transform .12s ease,
+  border-color .25s ease,background .25s ease,opacity .2s ease}
+.act:active,.who:active,.tbtn:active,.thread:active,.dtab:active{transform:scale(.97)}
+.loc:active{transform:scale(.99)}
+
+/* ค่าสถานะที่เพิ่งเปลี่ยนต้องเห็นว่าเปลี่ยน ไม่ใช่เปลี่ยนเงียบๆ */
+@keyframes chipBump{0%{transform:none}35%{transform:translateY(-3px) scale(1.06)}100%{transform:none}}
+.chip.is-changed{animation:chipBump .5s cubic-bezier(.2,.9,.3,1)}
+.chip.is-changed b{color:var(--accent)}
+
+/* ตัวเลขที่ลอยขึ้นจากชิปที่เปลี่ยน — บอกว่าได้หรือเสียไปเท่าไหร่ */
+.delta{position:absolute;left:50%;top:-2px;transform:translateX(-50%);
+  font-family:"Bai Jamjuree",sans-serif;font-size:11px;font-weight:600;
+  pointer-events:none;white-space:nowrap;animation:deltaUp 1.1s ease forwards}
+.delta.up{color:#8fd6a6}.delta.down{color:#d67878}
+@keyframes deltaUp{0%{opacity:0;transform:translate(-50%,2px)}
+  20%{opacity:1}100%{opacity:0;transform:translate(-50%,-16px)}}
+
+/* จุดบอกช่วงเวลาที่เดินหน้า — จุดปัจจุบันเต้นเบาๆ ให้รู้ว่าอยู่ตรงไหน */
+@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(228,160,183,.5)}
+  50%{box-shadow:0 0 0 5px rgba(228,160,183,0)}}
+#periodStrip .is-now .pdot{animation:dotPulse 2.4s ease-in-out infinite}
+
+/* ภาพฉากหลังค่อยๆ จางเข้ามาแทนที่จะกระพริบเปลี่ยน */
+#sceneBg img,.bd{animation:bgIn .5s ease}
+@keyframes bgIn{from{opacity:0}to{opacity:1}}

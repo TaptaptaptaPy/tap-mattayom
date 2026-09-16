@@ -18,6 +18,11 @@ export default defineConfig({
     baseURL: "http://localhost:5174",
     viewport: { width: 430, height: 900 },
     deviceScaleFactor: 1,
+    // ปิดการเคลื่อนไหวทั้งหมดตอนเทสต์ภาพ
+    // `animations: "disabled"` ของ toHaveScreenshot หยุด animation ตอนถ่ายก็จริง
+    // แต่ของที่ใช้ animation-delay + fill backwards จะถูกจับตอนยังไม่เริ่มขยับ
+    // ได้การ์ดที่ยังมองไม่เห็นบ้าง เห็นบ้าง คนละภาพทุกรอบ
+    reducedMotion: "reduce",
   },
   webServer: {
     command: "npm run dev",

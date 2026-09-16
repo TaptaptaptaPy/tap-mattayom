@@ -55,6 +55,34 @@ const $ = (id: string) => document.getElementById(id)!;
 
 // ───────────────────────── แถบบน ─────────────────────────
 
+/** ค่าที่โชว์อยู่บนแถบบนรอบที่แล้ว — ใช้หาว่าอะไรเพิ่งเปลี่ยน
+ *  เดิมตัวเลขเปลี่ยนเงียบๆ ผู้เล่นจึงไม่รู้ว่าสิ่งที่เพิ่งทำไปให้ผลอะไร */
+let lastChips: Record<string, number> = {};
+
+/** ชิปไหนที่ตัวเลขขยับ ให้เด้งและลอยส่วนต่างขึ้นมา
+ *  อ่านค่าจาก DOM ที่เพิ่งเขียนไป ไม่ใช่จาก state — เพราะบางชิปโชว์ชื่อระดับ ไม่ใช่ตัวเลขดิบ
+ *  และสิ่งที่ผู้เล่นควรเห็นคือ "เลขบนจอเปลี่ยน" ไม่ใช่ "ตัวแปรข้างในเปลี่ยน" */
+function markChanged() {
+  const now: Record<string, number> = {};
+  const chips = [...document.querySelectorAll<HTMLElement>("#stats .chip")];
+  const first = Object.keys(lastChips).length === 0;
+  for (const c of chips) {
+    const key = (c.textContent ?? "").trim().split(/\s+/)[0];
+    const v = Number(c.querySelector("b")?.textContent?.replace(/[^\d.-]/g, "") ?? NaN);
+    if (!key || Number.isNaN(v)) continue;
+    now[key] = v;
+    if (first || !(key in lastChips) || lastChips[key] === v) continue;
+    const diff = v - lastChips[key];
+    c.classList.add("is-changed");
+    const d = document.createElement("span");
+    d.className = "delta " + (diff > 0 ? "up" : "down");
+    d.textContent = (diff > 0 ? "+" : "") + Math.round(diff * 10) / 10;
+    c.appendChild(d);
+    setTimeout(() => { c.classList.remove("is-changed"); d.remove(); }, 1200);
+  }
+  lastChips = now;
+}
+
 function renderTop() {
   applyTheme(s);
   const club = clubOf(s);
@@ -110,6 +138,7 @@ function renderTop() {
   if (s.homework > 0) h += `<span class="chip hw" title="ไม่ส่งแล้วครูหักคะแนน">การบ้าน <b>${s.homework}</b></span>`;
   if (club) h += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
   $("stats").innerHTML = h;
+  markChanged();
 }
 
 /** การ์ดบอกวันใหม่ — ทำให้รู้สึกว่าวันหนึ่งจบลงจริง ไม่ใช่ตัวเลขขยับเฉยๆ */
@@ -131,9 +160,18 @@ function maybeDayCard() {
 
 // ───────────────────────── กระดานเลือกที่ไป ─────────────────────────
 
+/** ช่วงเวลาที่กระดานชุดปัจจุบันถูกสร้างขึ้นมา — ใช้บอกว่าเมื่อไหร่ควรไล่การ์ดขึ้นใหม่ */
+let boardStamp = "";
+
 function renderBoard() {
   const board = $("board");
   board.innerHTML = "";
+  // ไล่การ์ดขึ้นทีละใบเฉพาะตอนขึ้นช่วงเวลาใหม่ ไม่ใช่ทุกครั้งที่วาดซ้ำ
+  // ถ้าไล่ทุกครั้ง การกดปุ่มหนึ่งทีจะทำให้ทั้งกระดานกระพริบ ซึ่งกวนกว่าไม่มีเลย
+  const stamp = `${s.dayIndex}:${s.periodIndex}`;
+  const fresh = stamp !== boardStamp;
+  boardStamp = stamp;
+  board.classList.toggle("is-fresh", fresh);
   if (isTermOver(s)) {
     const e = s.ending ?? computeEnding(s);
     board.innerHTML = `<div class="end"><b>${e.tier}</b>
