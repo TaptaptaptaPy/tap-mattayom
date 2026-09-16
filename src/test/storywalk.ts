@@ -53,6 +53,17 @@ interface Stat { lines: number; choices: number; endings: number; hints: string[
 let bgId = "";
 /** "" = ไม่ได้เลือกภูมิหลัง (เซฟเก่า) ต้องเดินด้วย เพราะบทต้องรอดทั้งกรณีที่มีและไม่มี */
 const BG_IDS = ["", ...(backgrounds.list as { id: string }[]).map((b) => b.id)];
+/** ภูมิหลังนี้รู้จักใครมาก่อนบ้าง — ต้องตรงกับข้อมูลจริง ไม่งั้นกิ่ง "ยังไม่รู้จักกัน"
+ *  ของบททักทายจะไม่เคยถูกเดินเลย และบั๊กในนั้นจะไม่มีใครเห็น */
+const knowsOf = (id: string) =>
+  new Set(((backgrounds.list as { id: string; knows: { id: string }[] }[])
+    .find((b) => b.id === id)?.knows ?? []).map((k) => k.id));
+
+/** บททักทายครั้งแรกเรียก introduce() ไปแล้วหรือยังในเส้นทางนี้
+ *  ถ้าจบเส้นทางโดยไม่เคยเรียก = ผู้เล่นคุยกับเขาจบแล้วแต่ยังไม่รู้ชื่อ
+ *  ทั้งที่หน้าคนรู้จักขึ้นชื่อเขาไปแล้วเรียบร้อย — สองหน้าจอขัดกันเอง */
+let introduced = false;
+let unnamedEndings = 0;
 
 function build(src: string, calls: Record<string, number>, flags: Set<string>, hints: string[],
                sides: Set<string> = new Set()): Story {
@@ -90,9 +101,10 @@ function build(src: string, calls: Record<string, number>, flags: Set<string>, h
   story.BindExternalFunction("gainTrust", (c: string) => { note("gainTrust:" + c); return null; });
   // ภูมิหลังกับการเจอกันครั้งแรก — เดินทั้งฝั่งที่รู้จักกันมาก่อนและฝั่งที่ไม่เคยเจอ
   story.BindExternalFunction("background", () => bgId);
-  story.BindExternalFunction("knewBefore", () => (bgId === "" ? 0 : 1));
-  story.BindExternalFunction("metDays", () => (bgId === "" ? 0 : 30));
-  story.BindExternalFunction("introduce", (c: string) => { note("introduce:" + c); return null; });
+  story.BindExternalFunction("knewBefore", (c: string) => (knowsOf(bgId).has(c) ? 1 : 0));
+  story.BindExternalFunction("introduce", (c: string) => {
+    note("introduce:" + c); introduced = true; return null;
+  });
   return story;
 }
 
@@ -103,6 +115,7 @@ const isRandom = (src: string) => /\{\s*~/.test(src);
 function walkRandom(src: string, vars: Record<string, number | string>, stat: Stat, problems: string[]) {
   for (let run = 0; run < 40; run++) {
     const flags = new Set<string>();
+    introduced = false;
     const story = build(src, stat.calls, flags, stat.hints);
     for (const [k, v] of Object.entries(vars)) {
       try { story.variablesState[k] = v; } catch { /* ตัวแปรที่บทนี้ไม่ได้ประกาศ ข้ามไป */ }
@@ -110,7 +123,7 @@ function walkRandom(src: string, vars: Record<string, number | string>, stat: St
     let depth = 0;
     for (;;) {
       while (story.canContinue) { story.Continue(); stat.lines++; }
-      if (story.currentChoices.length === 0) { stat.endings++; break; }
+      if (story.currentChoices.length === 0) { stat.endings++; if (!introduced) unnamedEndings++; break; }
       if (depth++ > 12) { problems.push("เส้นทางยาวผิดปกติ อาจวนลูป"); break; }
       story.ChooseChoiceIndex(Math.floor(Math.random() * story.currentChoices.length));
       stat.choices++;
@@ -125,6 +138,7 @@ function walk(src: string, vars: Record<string, number | string>, stat: Stat, pr
   while (queue.length && guard++ < 600) {
     const path = queue.shift()!;
     const flags = new Set<string>();
+    introduced = false;
     const story = build(src, stat.calls, flags, stat.hints);
     for (const [k, v] of Object.entries(vars)) {
       try { story.variablesState[k] = v; } catch { /* ตัวแปรที่บทนี้ไม่ได้ประกาศ ข้ามไป */ }
@@ -133,7 +147,7 @@ function walk(src: string, vars: Record<string, number | string>, stat: Stat, pr
     let step = 0, depth = 0;
     for (;;) {
       while (story.canContinue) { story.Continue(); stat.lines++; }
-      if (story.currentChoices.length === 0) { stat.endings++; break; }
+      if (story.currentChoices.length === 0) { stat.endings++; if (!introduced) unnamedEndings++; break; }
       if (depth++ > 12) { problems.push("เส้นทางยาวผิดปกติ อาจวนลูป"); break; }
       if (step < path.length) {
         // เส้นทางที่จดไว้อาจใช้ไม่ได้ถ้าบทมีเงื่อนไขที่ให้ผลต่างกันในแต่ละรอบ — ข้ามไป ไม่ใช่ล้ม
@@ -159,6 +173,7 @@ for (const f of files) {
   const problems: string[] = [];
   const stat: Stat = { lines: 0, choices: 0, endings: 0, hints: [], calls: {} };
   const perProfile: string[] = [];
+  unnamedEndings = 0;
 
   for (const [pi, p] of PROFILES.entries()) {
     // ภูมิหลังสลับไปตามโปรไฟล์ เพื่อให้กิ่งของบททักทายครั้งแรกถูกเดินครบทุกอัน
@@ -181,7 +196,6 @@ for (const f of files) {
   const uniqueHints = [...new Set(stat.hints)];
 
   if (stat.endings === 0) problems.push("ไม่มีเส้นทางไหนจบเลย");
-  if (problems.length) bad++;
 
   const mode = isRandom(src) ? " (บทสุ่ม เดิน 40 รอบ)" : "";
   console.log(`${problems.length ? "  พัง  " : "  ok  "} ${f.padEnd(20)} ` +
@@ -194,6 +208,13 @@ for (const f of files) {
   if (invites) console.log(`         ชวนนัดพรุ่งนี้: ${invites} ครั้ง`);
   if (f.startsWith("chat_") && !invites)
     problems.push("บทแชทนี้ไม่มีเส้นทางไหนชวนนัดเลย ระบบนัดจะไม่ถูกทดสอบ");
+  // บททักทายครั้งแรกต้องบอกชื่อในทุกเส้นทาง ไม่งั้นผู้เล่นคุยจบแล้วยังไม่รู้ว่าคุยกับใคร
+  // ทั้งที่หน้าคนรู้จักขึ้นชื่อเขาไปแล้ว — สองหน้าจอขัดกันเอง
+  if (f.startsWith("meet_") && unnamedEndings)
+    problems.push(`มี ${unnamedEndings} เส้นทางที่คุยจบแล้วยังไม่เคยบอกชื่อ (ไม่ได้เรียก introduce)`);
+  // นับ *หลัง* push ครบทุกข้อ — ของเดิมนับไว้ก่อน ตัวตรวจสองข้อสุดท้ายจึงพิมพ์ออกมาเฉยๆ
+  // แล้วเทสต์ก็ผ่าน ทั้งที่รายงานบอกว่ามีปัญหา (บทไลน์ของพลอยพังอยู่แบบนั้นมาหลายรอบ commit)
+  if (problems.length) bad++;
   if (uniqueHints.length) console.log(`         คำใบ้ที่บทบอกเอง: ${uniqueHints.length} ข้อ`);
   for (const p of problems) console.log(`         ← ${p}`);
 }
@@ -283,6 +304,16 @@ const readAll = new Set([...readInk, ...readTs]);
 const orphans = [...setFlags].filter((f) => !readAll.has(f)).sort();
 const dangling = [...readAll].filter((f) => !setFlags.has(f) && /_/.test(f)).sort();
 
+// external ที่ประกาศไว้ใน _shared.ink แต่ไม่มีบทไหนเรียก = เครื่องมือที่ผู้เขียนบทไม่รู้ว่ามี
+// ซึ่งแปลว่าระบบฝั่ง TS ที่มันเปิดทางให้ (กระดานอันดับ · ความเชื่อใจของคนที่สาม ·
+// จำนวนคนที่เราเล่าเรื่องเดียวกันให้ฟัง) ไม่เคยโผล่ในบทสนทนาเลยสักครั้ง
+const declared = [...shared.matchAll(/^EXTERNAL\s+([a-zA-Z]+)/gm)].map((m) => m[1]);
+const calledInInk = declared.filter((n) => new RegExp(`\\b${n}\\(`).test(srcAll));
+const unusedExt = declared.filter((n) => !calledInInk.includes(n));
+console.log(`\nสะพานที่บทเรียกได้: ประกาศไว้ ${declared.length} · มีบทเรียกจริง ${calledInInk.length}`);
+if (unusedExt.length)
+  console.log(`  ← ประกาศไว้แต่ไม่มีบทไหนเรียก ${unusedExt.length} ตัว: ${unusedExt.join("  ")}`);
+
 // เสียงที่นิยามไว้แต่ไม่มีใครเรียก = เหตุการณ์ที่เกิดขึ้นแล้วเงียบสนิท
 // เป็นบั๊กชนิดที่ไม่มีวันมี error ให้เห็น และเล่นเองก็ไม่รู้ว่าพลาดอะไรไป
 const audio = readFileSync(join(tsDir, "core/audio.ts"), "utf8");
@@ -304,6 +335,7 @@ if (orphans.length) {
 if (dangling.length)
   console.log(`  ← ธงที่มีคนอ่านแต่ไม่มีใครตั้ง ${dangling.length} อัน: ${dangling.join("  ")}`);
 
-const flagBad = orphans.length > 0 || dangling.length > 0 || epiBad > 0 || silent.length > 0;
+const flagBad = orphans.length > 0 || dangling.length > 0 || epiBad > 0 || silent.length > 0
+              || unusedExt.length > 0;
 if (!flagBad) console.log("  ทุกทางเลือกมีปลายทางของมัน");
 process.exit(bad || flagBad ? 1 : 0);

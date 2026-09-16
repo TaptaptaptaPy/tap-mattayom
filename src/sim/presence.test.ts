@@ -149,8 +149,31 @@ describe("เดินสวนกันระหว่างทาง", () => {
     s.affinity["ploy"] = 30;
     const rnd = mulberry32(3);
     let n = 0;
-    for (let i = 0; i < 200; i++) if (bumpInto(s, rnd)) n++;
+    for (let i = 0; i < 200; i++) { s.doneToday = {}; if (bumpInto(s, rnd)) n++; }
     expect(n).toBeGreaterThan(5);
     expect(n).toBeLessThan(200);
+  });
+
+  /** ของเดิมทอยทุกช่วงเวลา = วันละสี่ครั้ง × 120 วัน ได้ความสนิทฟรีราว 46 แต้มต่อเทอม
+   *  ซึ่งพอๆ กับการไปนั่งคุยกับเขาจริงทั้งเทอม โดยไม่ต้องเสียเวลาสักช่วงเดียว */
+  it("เดินสวนกันได้วันละครั้ง ไม่ใช่ทุกช่วงเวลา", () => {
+    const s = newState(5);
+    s.met["ploy"] = 0;
+    s.affinity["ploy"] = 30;
+    const rnd = () => 0;                       // ทอยได้เสมอ
+    expect(bumpInto(s, rnd)).toBe("ploy");
+    for (let i = 0; i < 10; i++) expect(bumpInto(s, rnd)).toBeNull();
+    s.doneToday = {};                          // ขึ้นวันใหม่
+    expect(bumpInto(s, rnd)).toBe("ploy");
+  });
+
+  it("ความสนิทที่ได้จากการเดินสวนทั้งเทอม ต้องน้อยกว่าการไปหาเขาจริงไม่กี่ครั้ง", () => {
+    const s = newState(5);
+    s.met["ploy"] = 0;
+    s.affinity["ploy"] = 3;
+    const rnd = mulberry32(9);
+    for (let d = 0; d < 120; d++) { s.doneToday = {}; bumpInto(s, rnd); }
+    // ไปตามนัดครั้งหนึ่งได้ 3 แต้ม — ทั้งเทอมที่เดินสวนกันต้องไม่เกินราวสิบครั้งนั้น
+    expect(s.affinity["ploy"] - 3).toBeLessThan(game.chat.keptBonus * 10);
   });
 });

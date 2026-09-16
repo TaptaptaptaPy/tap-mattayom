@@ -114,7 +114,6 @@ export const habitCount = (s: GameState, charId: string, period: string, loc: st
 export function knownRegulars(s: GameState, locId: string, period: string): string[] {
   return chars
     .filter((c) => inChapter(c as { chapter?: string }, chapterOf(s)))
-    .filter((c) => affinityRank(s.affinity[c.id] ?? 0) >= P.hintAtRank || s.met[c.id] !== undefined)
     .filter((c) => habitCount(s, c.id, period, locId) >= P.knowAt)
     .map((c) => c.id);
 }
@@ -167,7 +166,11 @@ export const daysKnown = (s: GameState, charId: string) =>
  *  เกิดได้เฉพาะกับคนที่ *รู้จักกันแล้ว* เพราะการเดินสวนกับคนแปลกหน้าไม่ใช่เหตุการณ์
  *  และเฉพาะคนที่วันนี้ยังไม่ได้คุยกัน ไม่งั้นมันจะกลายเป็นช่องทางเก็บแต้มฟรี */
 export function bumpInto(s: GameState, rnd: () => number): string | null {
+  // วันละครั้งเท่านั้น — ของเดิมทอยทุกช่วงเวลา เก็บความสนิทฟรีได้ราว 46 แต้มต่อเทอม
+  // ซึ่งพอๆ กับการไปนั่งคุยกับเขาจริงทั้งเทอม โดยไม่ต้องเสียเวลาสักช่วงเดียว
+  if (s.doneToday["_bump"]) return null;
   if (rnd() > P.bumpChance) return null;
+  s.doneToday["_bump"] = 1;
   const pool = chars.filter((c) =>
     inChapter(c as { chapter?: string }, chapterOf(s)) &&
     s.met[c.id] !== undefined && !s.metToday[c.id] &&

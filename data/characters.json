@@ -8,8 +8,8 @@
     "_routine": "ตารางชีวิต ไม่ใช่ตำแหน่งตายตัว — น้ำหนักรวมไม่ถึง 100 ส่วนที่เหลือคือวันที่เขาไม่อยู่ที่ไหนที่เราเดินไปถึง",
     "routine": {
       "morning": { "classroom": 88 },
-      "noon": { "library": 48, "canteen": 22, "classroom": 14 },
-      "after": { "library": 52, "classroom": 16, "temple": 8 }
+      "noon": { "library": 42, "canteen": 20, "classroom": 12 },
+      "after": { "library": 46, "temple": 10 }
     },
     "firstMeet": "meet_ploy",
     "hint": "หัวหน้าห้องที่ชอบหายไปนั่งอยู่ในห้องสมุด",
@@ -48,10 +48,10 @@
     "tag": "หลังห้อง",
     "color": "#7fb2e8",
     "routine": {
-      "morning": { "classroom": 40, "backfield": 24 },
-      "noon": { "backfield": 48, "canteen": 22 },
-      "after": { "backfield": 40, "arcade": 26 },
-      "night": { "arcade": 44 }
+      "morning": { "classroom": 40 },
+      "noon": { "backfield": 44, "canteen": 20 },
+      "after": { "backfield": 36, "arcade": 22 },
+      "night": { "arcade": 40 }
     },
     "firstMeet": "meet_kanin",
     "hint": "คนที่ชอบหายไปอยู่หลังตึกตอนคาบว่าง",
@@ -89,9 +89,9 @@
     "tag": "รุ่นพี่ชมรมดนตรี",
     "color": "#c8a6e8",
     "routine": {
-      "noon": { "canteen": 24, "musicroom": 22 },
-      "after": { "musicroom": 56, "canteen": 10 },
-      "night": { "musicroom": 34 }
+      "noon": { "canteen": 24, "library": 10 },
+      "after": { "musicroom": 52 },
+      "night": { "musicroom": 32 }
     },
     "firstMeet": "meet_minta",
     "hint": "รุ่นพี่ที่ห้องดนตรีมีไฟติดอยู่ทุกเย็น",
@@ -130,8 +130,8 @@
     "color": "#8fd6a6",
     "chapter": "school",
     "routine": {
-      "noon": { "canteen": 44, "library": 18 },
-      "after": { "library": 38, "temple": 18, "backfield": 8 }
+      "noon": { "canteen": 42, "library": 16 },
+      "after": { "library": 34, "temple": 16, "backfield": 8 }
     },
     "firstMeet": "meet_palm",
     "hint": "รุ่นน้องที่นั่งกินข้าวโต๊ะริมสุดคนเดียวทุกวัน",
@@ -169,9 +169,9 @@
     "color": "#8fd6a6",
     "chapter": "uni",
     "routine": {
-      "noon": { "faccant": 46, "clubroom": 12 },
-      "after": { "clubroom": 44, "faccant": 16 },
-      "night": { "bar": 38, "parttime": 8 }
+      "noon": { "faccant": 44, "unilib": 8 },
+      "after": { "clubroom": 40, "faccant": 14 },
+      "night": { "bar": 36, "parttime": 8 }
     },
     "firstMeet": "meet_tar",
     "hint": "รุ่นพี่ที่ห้องชุมนุมมีคนเรียกชื่อตลอดเวลา",
@@ -209,9 +209,9 @@
     "chapter": "uni",
     "routine": {
       "morning": { "lecture": 78 },
-      "noon": { "faccant": 48, "unilib": 18 },
-      "after": { "unilib": 42, "parttime": 18 },
-      "night": { "parttime": 26, "unilib": 16 }
+      "noon": { "faccant": 44, "unilib": 16 },
+      "after": { "unilib": 38, "parttime": 16 },
+      "night": { "parttime": 24, "unilib": 14 }
     },
     "firstMeet": "meet_nun",
     "hint": "คนที่นั่งแถวหลังสุดของห้องบรรยายทุกคาบ",

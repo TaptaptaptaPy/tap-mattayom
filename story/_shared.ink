@@ -77,7 +77,5 @@ EXTERNAL letThemGo()
 EXTERNAL background()
 // คนนี้รู้จักเรามาก่อนวันแรกของเทอมไหม (1/0) — มาจากภูมิหลัง ไม่ใช่จากการเล่น
 EXTERNAL knewBefore(charId)
-// รู้จักกันมากี่วันแล้ว -1 = ยังไม่เคยเจอ
-EXTERNAL metDays(charId)
 // เพิ่งได้รู้ชื่อเขา — ป้ายชื่อบนกล่องบทเปลี่ยนจาก "ใครสักคน" เป็นชื่อจริงตรงบรรทัดนี้
 EXTERNAL introduce(charId)

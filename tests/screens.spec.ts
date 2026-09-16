@@ -277,3 +277,83 @@ test("ย้อนอ่านบทที่ผ่านไปแล้วไ�
   await expect.poll(async () => page.locator("#line").textContent(), { timeout: 8_000 })
     .not.toBe(before);
 });
+
+/** มินิเกมทุกตัวต้องเล่นจนจบได้จริง และคืนคะแนนในช่วง 0..1
+ *
+ *  เทสต์ข้างบนดูแค่ว่า "เปิดขึ้นมาแล้วมีของให้กด" ซึ่งไม่พอ —
+ *  เกมที่เปิดได้แต่จบไม่ลง จะทำให้ผู้เล่นค้างอยู่กลางเทอมโดยไม่มีทางออก
+ *  และคะแนนที่หลุดช่วง 0..1 จะไปคูณกับคะแนนสอบ/ผลงานชมรมแบบเงียบๆ
+ *  ที่นี่กดรัวทุกปุ่มจนกว่าจะเห็นหน้าสรุปผล แล้วอ่านคะแนนที่มันคืนกลับมาจริงๆ */
+for (const kind of MG) {
+  test(`มินิเกม ${kind} เล่นจนจบได้และคืนคะแนนในช่วง 0..1`, async ({ page }) => {
+    test.setTimeout(60_000);
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await start(page);
+    await toBoard(page);
+    const score = await page.evaluate(async (k) => {
+      const M = (window as any).__mattayom;
+      let got: number | null = null;
+      M.runMinigame(k, 1).then((r: { score: number }) => { got = r.score; });
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      const pick = (sel: string) => document.querySelector<HTMLButtonElement>("#minigame " + sel);
+      // เล่นให้เหมือนคนเล่นจริง: เกมจัดของต้องแตะ "ของ" แล้วตามด้วย "ถุง"
+      // กดแต่ของอย่างเดียวไม่มีอะไรเกิดขึ้น ซึ่งถูกแล้ว แต่ตัวกดอัตโนมัติต้องรู้เรื่องนี้
+      for (let i = 0; i < 900 && got === null; i++) {
+        const done = pick("#mgDone");
+        if (done) { done.click(); await wait(40); continue; }
+        const thing = pick(".thing:not(:disabled)");
+        if (thing) {
+          thing.click();
+          await wait(30);
+          pick(".bag")?.click();
+          await wait(40);
+          continue;
+        }
+        const b = pick(".qc:not(:disabled)") ?? pick(".laneBtn") ?? pick(".fpick:not(:disabled)")
+               ?? pick(".topt:not(:disabled)") ?? pick(".mgBtn:not(:disabled)");
+        if (b) b.click();
+        await wait(45);
+      }
+      return got;
+    }, kind);
+    expect(score, `มินิเกม ${kind} เล่นจนจบไม่ได้`).not.toBeNull();
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThanOrEqual(1);
+    // เล่นจบแล้วต้องคืนจอให้เกมหลัก ไม่ใช่ค้างทับอยู่
+    await expect(page.locator("#minigame")).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+}
+
+/** สลับไปแอปอื่นกลางมินิเกมแล้วกลับมา ต้องไม่เสียรอบนั้นฟรี
+ *
+ *  iPad คือเป้าหมายหลัก การสลับแอปกลางคันเป็นเรื่องปกติที่สุด
+ *  เบราว์เซอร์หยุด requestAnimationFrame ตอนแท็บไม่ได้อยู่หน้าจอ แต่ performance.now() ยังเดิน
+ *  ถ้าจับเวลาจากมันตรงๆ กลับมาอีกทีคำที่ต้องจำหายไปแล้วและเสียรอบนั้นไปโดยไม่ได้ทำอะไรผิด */
+test("ซ่อนจอกลางมินิเกมแล้วกลับมา นาฬิกาต้องไม่เดินตอนที่ไม่ได้มอง", async ({ page }) => {
+  await start(page);
+  await toBoard(page);
+  const elapsed = await page.evaluate(async () => {
+    const M = (window as any).__mattayom;
+    void M.runMinigame("quiz", 1);
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    await wait(200);
+    const bar = () => parseFloat(
+      (document.querySelector("#minigame .mgBar i") as HTMLElement).style.width) || 0;
+    const before = bar();
+    // แกล้งทำเป็นสลับแอปไปสองวินาที
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await wait(2000);
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await wait(200);
+    const after = bar();
+    return { before, after };
+  });
+  // แถบเวลาเหลือต้องลดลงไม่เกินที่ควรลดใน ~0.4 วินาที ไม่ใช่ลดไปสองวินาทีเต็ม
+  // (ข้อสอบระดับ 1 ให้ข้อละ 15 วินาที · 2 วินาทีที่หายไป = ราว 13% ของแถบ)
+  expect(elapsed.before - elapsed.after,
+         "เวลาเดินต่อตอนที่ผู้เล่นไม่ได้มองอยู่").toBeLessThan(8);
+});

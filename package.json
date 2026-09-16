@@ -14,7 +14,9 @@
     "balance": "tsx src/test/balance.ts",
     "visual": "playwright test",
     "visual:update": "playwright test --update-snapshots",
-    "unit": "vitest run"
+    "unit": "vitest run",
+    "audit": "tsx src/test/audit.ts",
+    "playthrough": "tsx src/test/playthrough.ts"
   },
   "dependencies": {
     "inkjs": "^2.4.0"

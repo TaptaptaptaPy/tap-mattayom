@@ -8,6 +8,33 @@ interface Question { subject: string; q: string; choices: string[]; answer: numb
 const QUESTIONS = (questions as Question[]).filter((q) => !q.skip);
 
 const host = () => document.getElementById("minigame")!;
+
+/** นาฬิกาที่หยุดเดินตอนผู้เล่นสลับไปแอปอื่นหรือล็อกจอ
+ *
+ *  iPad คือเป้าหมายหลักของเกมนี้ และการสลับแอปกลางคันเป็นเรื่องปกติที่สุด
+ *  เบราว์เซอร์หยุด requestAnimationFrame ตอนแท็บไม่ได้อยู่หน้าจอ แต่ `performance.now()`
+ *  ยังเดินต่อ — ถ้าจับเวลาจากมันตรงๆ กลับมาอีกทีคำที่ต้องจำหายไปแล้ว ข้อสอบหมดเวลาไปแล้ว
+ *  และเวลาจัดของหมดไปแล้ว โดยที่ผู้เล่นไม่ได้ทำอะไรผิดเลยสักอย่าง
+ *
+ *  มินิเกมเดียวเล่นได้ทีละเกม จึงเก็บนาฬิกาที่กำลังเดินอยู่ไว้ตัวเดียว
+ *  แล้วให้ `finish()` เป็นคนเก็บกวาด */
+let activeClock: { now: () => number; stop: () => void } | null = null;
+
+function startClock() {
+  let hiddenAt = 0, lost = 0;
+  const onVis = () => {
+    if (document.hidden) hiddenAt = performance.now();
+    else if (hiddenAt) { lost += performance.now() - hiddenAt; hiddenAt = 0; }
+  };
+  document.addEventListener("visibilitychange", onVis);
+  activeClock?.stop();
+  activeClock = {
+    // ตอนซ่อนอยู่ เวลาค้างที่ hiddenAt - lost · ตอนเห็นอยู่ เดินตามปกติ
+    now: () => performance.now() - lost - (hiddenAt ? performance.now() - hiddenAt : 0),
+    stop: () => document.removeEventListener("visibilitychange", onVis),
+  };
+  return activeClock;
+}
 const rand = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 const shuffled = <T,>(a: T[]): T[] => [...a].sort(() => Math.random() - 0.5);
 
@@ -15,6 +42,8 @@ const shuffled = <T,>(a: T[]): T[] => [...a].sort(() => Math.random() - 0.5);
  *  ทุกเกมคืนคะแนน 0..1 ให้ฝั่งเกมหลักเอาไปคูณกับผลลัพธ์ ไม่ใช่ตัวตัดสินทั้งหมด */
 interface Shell {
   body: HTMLElement;
+  /** เวลาที่เดินเฉพาะตอนที่ผู้เล่นมองอยู่ — ใช้แทน performance.now() ทุกที่ที่จับเวลา */
+  now: () => number;
   setBar: (v: number) => void;
   /** ข้อความสั้นที่ลอยขึ้นกลางจอ — บอกว่าเพิ่งทำได้ดีหรือพลาด ไม่ต้องอ่านตัวเลข */
   pop: (text: string, tone?: "good" | "bad" | "best") => void;
@@ -35,8 +64,10 @@ function shell(title: string, subtitle: string, hint = ""): Shell {
   const bar = el.querySelector(".mgBar i") as HTMLElement;
   const stk = el.querySelector(".mgStreak") as HTMLElement;
   const card = el.querySelector(".mg") as HTMLElement;
+  const clock = startClock();
   return {
     body: el.querySelector(".mgBody") as HTMLElement,
+    now: clock.now,
     setBar: (v) => { bar.style.width = `${Math.max(0, Math.min(1, v)) * 100}%`; },
     pop: (text, tone = "good") => {
       const d = document.createElement("div");
@@ -57,6 +88,8 @@ function shell(title: string, subtitle: string, hint = ""): Shell {
 
 function finish(title: string, lines: string[], score: number): Promise<void> {
   return new Promise((res) => {
+    activeClock?.stop();
+    activeClock = null;
     const el = host();
     const tone = score >= 0.8 ? "great" : score >= 0.55 ? "good" : score >= 0.3 ? "ok" : "bad";
     const pct = Math.round(score * 100);
@@ -97,12 +130,12 @@ function quiz(count: number, seconds: number): Promise<MgResult> {
         <div class="qtext">${q.q}</div>
         <div class="qchoices">${q.choices.map((c, n) =>
           `<button class="qc" data-n="${n}"><i>${"กขคง"[n] ?? n + 1}</i>${c}</button>`).join("")}</div>`;
-      started = performance.now();
+      started = s.now();
       s.body.querySelectorAll<HTMLButtonElement>(".qc").forEach((b) =>
         (b.onclick = () => answer(Number(b.dataset.n), b)));
       cancelAnimationFrame(raf);
       const tick = () => {
-        const left = 1 - (performance.now() - started) / (seconds * 1000);
+        const left = 1 - (s.now() - started) / (seconds * 1000);
         s.setBar(left);
         if (left <= 0) { answer(-1, null); return; }
         raf = requestAnimationFrame(tick);
@@ -114,7 +147,7 @@ function quiz(count: number, seconds: number): Promise<MgResult> {
       cancelAnimationFrame(raf);
       const q = pool[i];
       const ok = n === q.answer;
-      const fast = Math.max(0, 1 - (performance.now() - started) / (seconds * 1000));
+      const fast = Math.max(0, 1 - (s.now() - started) / (seconds * 1000));
       if (ok) {
         correct++;
         run++;
@@ -184,9 +217,9 @@ function focus(rounds: number): Promise<MgResult> {
       s.body.innerHTML = `<div class="focusInfo">ชุดที่ ${round + 1} จาก ${rounds} · จำลำดับนี้ไว้</div>
         <div class="focusSeq">${seq.map((w, i) =>
           `<span class="fw" style="animation-delay:${i * 70}ms"><i>${i + 1}</i>${w}</span>`).join("")}</div>`;
-      let t0 = performance.now();
+      const t0 = s.now();
       let raf = requestAnimationFrame(function tick() {
-        const left = 1 - (performance.now() - t0) / showMs;
+        const left = 1 - (s.now() - t0) / showMs;
         s.setBar(left);
         if (left <= 0) { ask(seq); return; }
         raf = requestAnimationFrame(tick);
@@ -322,7 +355,7 @@ function rhythm(noteCount: number): Promise<MgResult> {
     const comboEl = s.body.querySelector(".combo") as HTMLElement;
     const notes: { lane: number; time: number; el: HTMLElement; done: boolean }[] = [];
     const FALL = 1800;                              // เวลาที่โน้ตใช้ตกจากบนถึงเส้น
-    const start = performance.now() + 900;
+    const start = s.now() + 900;
     for (let i = 0; i < noteCount; i++) {
       const lane = Math.floor(Math.random() * LANES);
       const time = start + i * (420 + Math.random() * 180);
@@ -340,7 +373,7 @@ function rhythm(noteCount: number): Promise<MgResult> {
     const travel = () => stage.clientHeight - 24;
 
     const step = () => {
-      const now = performance.now();
+      const now = s.now();
       for (const n of notes) {
         if (n.done) continue;
         const dt = n.time - now;
@@ -361,7 +394,7 @@ function rhythm(noteCount: number): Promise<MgResult> {
     };
 
     const press = (lane: number) => {
-      const now = performance.now();
+      const now = s.now();
       let bestNote: typeof notes[number] | null = null, bd = 260;
       for (const n of notes) {
         if (n.done || n.lane !== lane) continue;
@@ -421,49 +454,69 @@ function serve(seconds: number, need: number): Promise<MgResult> {
       "แตะของ แล้วแตะถุงที่ตรงกัน · หยิบผิดเสียเวลา");
     let done = 0, wrong = 0, picked: string | null = null, over = false;
     const sets = shuffled(SERVE_SETS);
-    const t0 = performance.now();
+    // กองของถูกสร้างครั้งเดียวแล้ววางอยู่กับที่ — ของเดิมสุ่มกองใหม่ทุกครั้งที่จัดเสร็จหนึ่งชิ้น
+    // ผลคือของกระโดดสลับตำแหน่งทุกครั้งที่กด ซึ่งวัดสายตาแทนที่จะวัดการจัดของ
+    const pile = shuffled(sets.flatMap((g) => g.items.map((i) => ({ i, g: g.name }))))
+      .slice(0, need)
+      .map((x, n) => ({ ...x, key: `${n}`, gone: false }));
+    const t0 = s.now();
 
-    const draw = () => {
-      const bag = sets.map((g) => `<button class="bag" data-bag="${g.name}">
-          <b>${g.name}</b><small>${g.items.length} อย่าง</small></button>`).join("");
-      const items = shuffled(sets.flatMap((g) => g.items.map((i) => ({ i, g: g.name }))))
-        .slice(0, 8)
-        .map((x) => `<button class="thing" data-thing="${x.i}" data-of="${x.g}">${x.i}</button>`).join("");
-      s.body.innerHTML = `<div class="serveInfo">จัดไปแล้ว ${done}/${need}${
-        wrong ? ` · หยิบผิด ${wrong} ครั้ง` : ""}</div>
-        <div class="things">${items}</div>
-        <div class="bags">${bag}</div>`;
-      s.body.querySelectorAll<HTMLButtonElement>(".thing").forEach((b) =>
-        (b.onclick = () => {
-          s.body.querySelectorAll(".thing").forEach((x) => x.classList.remove("is-on"));
-          b.classList.add("is-on");
-          picked = b.dataset.of!;
-          sfx.step();
-        }));
-      s.body.querySelectorAll<HTMLButtonElement>(".bag").forEach((b) =>
-        (b.onclick = () => {
-          if (!picked) { s.pop("เลือกของก่อน", "bad"); return; }
-          if (b.dataset.bag === picked) {
-            done++; s.pop("เข้าถุงแล้ว", "good"); sfx.gain();
-          } else {
-            wrong++; s.pop("ผิดถุง", "bad"); sfx.deny();
-          }
-          picked = null;
-          if (done >= need) { over = true; end(); return; }
-          draw();
-        }));
+    const bagsHTML = sets.map((g) => `<button class="bag" data-bag="${g.name}">
+        <b>${g.name}</b><small>${g.items.length} อย่าง</small></button>`).join("");
+    s.body.innerHTML = `<div class="serveInfo"></div>
+      <div class="things">${pile.map((x) =>
+        `<button class="thing" data-key="${x.key}" data-of="${x.g}">${x.i}</button>`).join("")}</div>
+      <div class="bags">${bagsHTML}</div>`;
+    const info = s.body.querySelector(".serveInfo") as HTMLElement;
+
+    const status = () => {
+      info.textContent = `จัดไปแล้ว ${done}/${need}` + (wrong ? ` · หยิบผิด ${wrong} ครั้ง` : "");
     };
+    status();
+
+    s.body.querySelectorAll<HTMLButtonElement>(".thing").forEach((b) =>
+      (b.onclick = () => {
+        if (b.disabled) return;
+        s.body.querySelectorAll(".thing").forEach((x) => x.classList.remove("is-on"));
+        b.classList.add("is-on");
+        picked = b.dataset.key!;
+        sfx.step();
+      }));
+    s.body.querySelectorAll<HTMLButtonElement>(".bag").forEach((b) =>
+      (b.onclick = () => {
+        if (over) return;
+        const item = pile.find((x) => x.key === picked && !x.gone);
+        if (!item) { s.pop("เลือกของก่อน", "bad"); return; }
+        const el = s.body.querySelector<HTMLButtonElement>(`.thing[data-key="${item.key}"]`)!;
+        if (b.dataset.bag === item.g) {
+          item.gone = true;
+          el.disabled = true;
+          el.classList.remove("is-on");
+          el.classList.add("is-done");
+          done++;
+          s.pop("เข้าถุงแล้ว", "good");
+          sfx.gain();
+        } else {
+          wrong++;
+          el.classList.remove("is-on");
+          s.pop("ผิดถุง", "bad");
+          sfx.deny();
+        }
+        picked = null;
+        status();
+        if (done >= need) { over = true; void end(); }
+      }));
 
     const tick = () => {
       if (over) return;
-      const left = 1 - (performance.now() - t0) / (seconds * 1000);
+      const left = 1 - (s.now() - t0) / (seconds * 1000);
       s.setBar(left);
-      if (left <= 0) { over = true; end(); return; }
+      if (left <= 0) { over = true; void end(); return; }
       requestAnimationFrame(tick);
     };
 
     const end = async () => {
-      const timeUsed = (performance.now() - t0) / (seconds * 1000);
+      const timeUsed = (s.now() - t0) / (seconds * 1000);
       const base = Math.min(1, done / need);
       const speed = done >= need ? Math.max(0, 1 - timeUsed) * 0.25 : 0;
       const score = Math.max(0, Math.min(1, base + speed - wrong * 0.06));
@@ -474,7 +527,6 @@ function serve(seconds: number, need: number): Promise<MgResult> {
       resolve({ score, label: "จัดของ", detail: `${done}/${need} ชิ้น` });
     };
 
-    draw();
     requestAnimationFrame(tick);
   });
 }
@@ -583,11 +635,11 @@ function dodge(rounds: number): Promise<MgResult> {
       canMove = false;
       watching = Math.random() < 0.45;
       render();
-      timer = performance.now() + 700 + Math.random() * 900;
+      timer = s.now() + 700 + Math.random() * 900;
       const tick = () => {
-        if (performance.now() > timer) {
+        if (s.now() > timer) {
           watching = !watching;
-          timer = performance.now() + 900 + Math.random() * 1100;
+          timer = s.now() + 900 + Math.random() * 1100;
           render();
         }
         canMove = true;
@@ -615,7 +667,8 @@ export function openMinigame(kind: MgKind, difficulty = 1): Promise<MgResult> {
   if (kind === "relay") return relay(4);
   if (kind === "rhythm") return rhythm(difficulty >= 2 ? 18 : 12);
   if (kind === "focus") return focus(difficulty >= 2 ? 4 : 3);
-  if (kind === "serve") return serve(difficulty >= 2 ? 26 : 20, difficulty >= 2 ? 10 : 7);
+  // กองของมีทั้งหมด 12 ชิ้น จำนวนที่ขอต้องไม่เกินนั้น ไม่งั้นจัดครบไม่ได้ตลอดกาล
+  if (kind === "serve") return serve(difficulty >= 2 ? 28 : 22, difficulty >= 2 ? 10 : 7);
   if (kind === "talk") return talk(difficulty >= 2 ? 6 : 4);
   return dodge(6);
 }

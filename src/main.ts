@@ -253,7 +253,7 @@ function renderBoard() {
   const locs = availableLocations(s);
   if (placeOpen) {
     const loc = locs.find((l) => l.id === placeOpen);
-    if (loc) { renderPlace(board, loc); return; }
+    if (loc) { renderPlace(board, loc, fresh); return; }
     placeOpen = null;          // ที่นั้นปิดไปแล้ว (ขึ้นช่วงเวลาใหม่) — กลับมาที่กระดาน
   }
   renderDuties(board);
@@ -433,7 +433,7 @@ function renderPlaceList(board: HTMLElement, locs: LocationOption[]) {
 
 // ───────────────────────── อยู่ในที่นั้นแล้ว ─────────────────────────
 
-function renderPlace(board: HTMLElement, loc: LocationOption) {
+function renderPlace(board: HTMLElement, loc: LocationOption, fresh: boolean) {
   const wrap = document.createElement("div");
   wrap.className = "place";
   const period = game.periods[s.periodIndex].name;
@@ -449,7 +449,8 @@ function renderPlace(board: HTMLElement, loc: LocationOption) {
   const found = document.createElement("div");
   found.className = "found";
   if (loc.present.length) {
-    sfx.meet();
+    // ดังตอนเพิ่งเปิดประตูเข้าไปเท่านั้น ไม่ใช่ทุกครั้งที่หน้าจอวาดใหม่
+    if (fresh) sfx.meet();
     for (const p of loc.present) {
       const first = !hasMet(s, p.id);
       const waiting = planToday(s)?.charId === p.id && isPlanPeriod(s);
@@ -484,13 +485,14 @@ function renderPlace(board: HTMLElement, loc: LocationOption) {
  *
  *  ยังไม่รู้จักชื่อ แต่ *รู้ชั้นปี* เพราะโรงเรียนไทยติดป้ายชั้นปีไว้บนเสื้อกับที่สีเนกไท
  *  ซึ่งเป็นสิ่งแรกที่คนมองเห็นจริงๆ — ไม่ใช่ข้อมูลที่เกมแจก แต่เป็นของที่ตาเห็น */
+const YEAR_ORDER = ["ม.4", "ม.5", "ม.6", "ปี 1", "ปี 2", "ปี 3", "ปี 4"];
 function unknownLabel(charId: string): string {
   const c = chars.find((x) => x.id === charId);
-  const me = isUni(s) ? "ปี 1" : "ม.5";
   if (!c) return "ใครสักคน";
+  const me = isUni(s) ? "ปี 1" : "ม.5";
   if (c.year === me) return isUni(s) ? "เพื่อนร่วมคณะที่ยังไม่เคยคุยกัน" : "คนในห้องที่ยังไม่เคยคุยกัน";
-  const senior = (c.year > me);
-  return senior ? "รุ่นพี่คนหนึ่ง" : "รุ่นน้องคนหนึ่ง";
+  // เทียบด้วยลำดับที่เขียนไว้ ไม่ใช่เทียบสตริง — "ม.10" > "ม.5" เป็นเท็จถ้าเทียบตัวอักษร
+  return YEAR_ORDER.indexOf(c.year) > YEAR_ORDER.indexOf(me) ? "รุ่นพี่คนหนึ่ง" : "รุ่นน้องคนหนึ่ง";
 }
 
 /** คาบเรียน — เข้าแถว เข้าเรียน หรือโดด */
@@ -832,7 +834,7 @@ function handleEvent(e: TermEvent): boolean {
   if (big) {
     void (async () => {
       const kind: MgKind = big.id === "music" ? "rhythm" : big.id === "sport" ? "relay"
-                         : big.id === "academic" ? "quiz" : "dodge";
+                         : big.id === "academic" ? "quiz" : "serve";
       const res = await openMinigame(kind, 2);
       const r = runMilestone(s, res.score)!;
       sfx.exam();
@@ -863,6 +865,9 @@ function handleEvent(e: TermEvent): boolean {
 // ───────────────────────── ลูปหลัก ─────────────────────────
 
 function next() {
+  // ขยับช่วงเวลาแล้วต้องออกมายืนที่กระดานเสมอ ไม่ใช่ค้างอยู่ในห้องเดิม
+  // ไม่งั้นการ "เลือกว่าจะไปไหน" ซึ่งเป็นการตัดสินใจหลักของเกม จะถูกข้ามไปเงียบๆ
+  placeOpen = null;
   const missedBefore = s.homeworkMissed;
   advance(s);
   const missed = s.homeworkMissed - missedBefore;
@@ -974,6 +979,7 @@ function openMenu() {
 /** เทอมใหม่เริ่มที่คำถามว่า "เราเป็นใครมาก่อน" ไม่ใช่ที่วันจันทร์แรก
  *  ภูมิหลังเปลี่ยนค่าตั้งต้น คนที่รู้จักเราอยู่แล้ว และกฎบางข้อของโลก — ดู src/sim/background.ts */
 function startNewTerm() {
+  renderTop();
   P.backgroundPanel((id) => {
     s = newState();
     applyBackground(s, id);
@@ -1043,6 +1049,8 @@ if (import.meta.env.DEV)
       // มินิเกมทั้งเจ็ดตัวเปิดดูตรงๆ ได้ — ไม่งั้นต้องเล่นถึงวันสอบ/วันงานจริงกว่าจะเห็นสักตัว
       // ห้ามคืน Promise ออกไป — ฝั่งเทสต์ page.evaluate() จะรอจนกว่าจะเล่นจบ ซึ่งไม่มีวันเกิด
       showMinigame: (kind: MgKind, diff = 1) => { void openMinigame(kind, diff); },
+      // ตัวนี้คืน Promise ตั้งใจ — เทสต์ที่เล่นจนจบต้องอ่านคะแนนที่มันคืนกลับมาได้
+      runMinigame: (kind: MgKind, diff = 1) => openMinigame(kind, diff),
       showBoard: (examId = "midterm") => P.boardPanel(postBoard(s, examId), () => P.closePanel()) };
 
 // ───────────────────────── เปิดเกม ─────────────────────────
