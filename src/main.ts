@@ -43,7 +43,7 @@ import { playChat, viewThread, chatListPanel } from "./ui/chat";
 import { playScene, showHint } from "./ui/scene";
 import { applyTheme, periodStrip } from "./ui/theme";
 import { icon } from "./ui/icons";
-import { backdrop, hasEventArt } from "./ui/backdrop";
+import { backdrop, eventBackdrop } from "./ui/backdrop";
 import { portraitHTML } from "./ui/portrait";
 import * as P from "./ui/panels";
 import { clearSlot, migrateOld, readSlot, slotMeta, writeSlot, SLOTS, type SlotId } from "./core/save";
@@ -59,16 +59,20 @@ const $ = (id: string) => document.getElementById(id)!;
  *  เดิมตัวเลขเปลี่ยนเงียบๆ ผู้เล่นจึงไม่รู้ว่าสิ่งที่เพิ่งทำไปให้ผลอะไร */
 let lastChips: Record<string, number> = {};
 
-/** ชิปไหนที่ตัวเลขขยับ ให้เด้งและลอยส่วนต่างขึ้นมา
- *  อ่านค่าจาก DOM ที่เพิ่งเขียนไป ไม่ใช่จาก state — เพราะบางชิปโชว์ชื่อระดับ ไม่ใช่ตัวเลขดิบ
- *  และสิ่งที่ผู้เล่นควรเห็นคือ "เลขบนจอเปลี่ยน" ไม่ใช่ "ตัวแปรข้างในเปลี่ยน" */
+/** ชิปไหนที่ค่าขยับ ให้เด้งและลอยส่วนต่างขึ้นมา
+ *
+ *  อ่านจาก `data-k` / `data-v` ที่ชิปประกาศไว้เอง ไม่ใช่จากข้อความบนจอ
+ *  ของเดิมแกะตัวเลขจากข้อความใน `<b>` ซึ่งชิปค่าสถานะโชว์เป็น *ชื่อระดับ* ("พอไหว")
+ *  `Number("")` คืน 0 ไม่ใช่ NaN ค่าสถานะทั้งห้าตัวจึงอ่านได้ 0 เท่ากันตลอดทั้งเกม
+ *  แล้วเงื่อนไข "ค่าเดิมเท่าค่าใหม่" ก็เป็นจริงทุกครั้ง — **ค่าที่สำคัญที่สุดห้าตัว
+ *  ไม่เคยกระพริบเลยสักครั้งเดียว** ทั้งที่ทั้งระบบถูกสร้างมาเพื่อบอกว่าอะไรเพิ่งเปลี่ยน */
 function markChanged() {
   const now: Record<string, number> = {};
   const chips = [...document.querySelectorAll<HTMLElement>("#stats .chip")];
   const first = Object.keys(lastChips).length === 0;
   for (const c of chips) {
-    const key = (c.textContent ?? "").trim().split(/\s+/)[0];
-    const v = Number(c.querySelector("b")?.textContent?.replace(/[^\d.-]/g, "") ?? NaN);
+    const key = c.dataset.k ?? "";
+    const v = Number(c.dataset.v ?? NaN);
     if (!key || Number.isNaN(v)) continue;
     now[key] = v;
     if (first || !(key in lastChips) || lastChips[key] === v) continue;
@@ -105,37 +109,48 @@ function renderTop() {
   let h = game.stats.map((st) => {
     const v = s.stats[st.id as StatId];
     const r = statRank(v);
-    // หลอดบอกว่าใกล้ระดับถัดไปแค่ไหน — เดิมเห็นแค่ชื่อระดับ ไม่รู้ว่าอีกไกลไหม
-    const from = ladder[r], to = ladder[Math.min(r + 1, ladder.length - 1)];
-    const pct = to > from ? Math.min(100, ((v - from) / (to - from)) * 100) : 100;
-    return `<span class="chip stat" title="${st.desc}">${st.name}
+    const top = ladder[ladder.length - 1];
+    // หลอดบอก "มาไกลแค่ไหนจากศูนย์ถึงตำนาน" ไม่ใช่ "ใกล้ระดับถัดไปแค่ไหน"
+    // เพราะชิปห้าใบนี้อยู่ติดกันเพื่อให้*เทียบกันเอง* — ถ้าแต่ละใบวัดจากฐานคนละอัน
+    // ค่าสถานะที่เพิ่งขึ้นระดับใหม่จะดูแย่กว่าค่าที่ค้างอยู่ท้ายระดับเดิม ซึ่งกลับหัว
+    // ส่วน "อีกเท่าไหร่ถึงระดับถัดไป" ย้ายไปอยู่ใน title ซึ่งมีที่ให้เขียนเป็นคำ
+    const pct = Math.min(100, (v / top) * 100);
+    const next = ladder[Math.min(r + 1, ladder.length - 1)];
+    const more = r >= ladder.length - 1 ? "สูงสุดแล้ว"
+      : `อีก ${Math.ceil(next - v)} ถึง "${game.statRankNames[r + 1]}"`;
+    return `<span class="chip stat" data-k="${st.id}" data-v="${v}"
+      title="${st.desc} · ${more}">${st.name}
       <b>${game.statRankNames[r]}</b><i style="width:${pct}%"></i></span>`;
   }).join("");
-  h += `<span class="chip energy${low ? " low" : ""}" title="แรงที่เหลือวันนี้">แรง
+  h += `<span class="chip energy${low ? " low" : ""}" data-k="energy" data-v="${Math.round(s.energy)}"
+      title="แรงที่เหลือวันนี้">แรง
       <b>${Math.round(s.energy)}</b><i style="width:${energyPct}%"></i></span>`;
   // ครูมองเรายังไง — ค่านี้ขยับจากความรับผิดชอบ ไม่ใช่จากการไปหา ผู้เล่นต้องเห็นมันขยับ
-  h += `<span class="chip${teacherLevel(s) === 0 ? " low" : ""}" title="ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ">ครู
+  h += `<span class="chip${teacherLevel(s) === 0 ? " low" : ""}" data-k="teacher" data-v="${Math.round(s.teacher)}"
+      title="ครูประจำชั้นมองเรายังไง — ขยับจากการส่งงาน ตัดผม ไปสอบซ่อม และการโดนจับ">ครู
       <b>${teacherName(s)}</b><i style="width:${s.teacher}%"></i></span>`;
   // เรื่องที่บ้านต้องมองเห็นเหมือนกัน มันกินแรงทุกคืนโดยที่ไม่มีอะไรบอก
   if (homeLevel(s) > 0)
-    h += `<span class="chip debt low" title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง">บ้าน
+    h += `<span class="chip debt low" data-k="home" data-v="${homeLevel(s)}"
+      title="เรื่องที่บ้านกินแรงที่ควรได้คืนตอนนอน และกดค่าขนมลง">บ้าน
       <b>${homeName(s)}</b></span>`;
   // หนี้การนอนต้องมองเห็น ไม่งั้นการฝืนจะเป็นการเซ็นเช็คที่ไม่มีใครเห็นยอด
   if (s.sleepDebt > 0)
     h += `<span class="chip debt${s.sleepDebt >= game.push.dozeAt ? " low" : ""}"
+      data-k="sleepDebt" data-v="${Math.round(s.sleepDebt)}"
       title="ฝืนมาแล้วกี่ครั้ง — ไปหักแรงที่ควรได้คืนตอนเช้า">นอน
       <b>${debtName(s)}</b><i style="width:${Math.min(100, (s.sleepDebt / game.push.maxDebt) * 100)}%"></i></span>`;
-  h += `<span class="chip" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
-  h += `<span class="chip" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
+  h += `<span class="chip" data-k="money" data-v="${Math.round(s.money)}" title="เงินในกระเป๋า">เงิน <b>${Math.round(s.money)}</b></span>`;
+  h += `<span class="chip" data-k="behaviour" data-v="${Math.round(s.behaviour)}" title="${behaviourLabel(s.behaviour)}">ความประพฤติ <b>${Math.round(s.behaviour)}</b></span>`;
   // ความประพฤติเป็นของฝ่ายปกครอง ชื่อเสียงเป็นของทั้งโรงเรียน คนละอย่างกัน
-  h += `<span class="chip" title="${standingLabel(s.standing)}">ชื่อเสียง <b>${Math.round(s.standing)}</b></span>`;
+  h += `<span class="chip" data-k="standing" data-v="${Math.round(s.standing)}" title="${standingLabel(s.standing)}">ชื่อเสียง <b>${Math.round(s.standing)}</b></span>`;
   if (isUni(s)) {
     h += `<span class="chip" title="ค่าหอค่ากินรายสัปดาห์ ${rentPerWeek} บาท">ค่าหอ <b>${rentPerWeek}</b>/สัปดาห์</span>`;
-    if (s.debt > 0) h += `<span class="chip hw" title="ยืมเขามาเพราะจ่ายค่าหอไม่ไหว">หนี้ <b>${Math.round(s.debt)}</b></span>`;
+    if (s.debt > 0) h += `<span class="chip hw" data-k="debt" data-v="${Math.round(s.debt)}" title="ยืมเขามาเพราะจ่ายค่าหอไม่ไหว">หนี้ <b>${Math.round(s.debt)}</b></span>`;
   }
   if (needsHaircut(s))
-    h += `<span class="chip hw" title="${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว">ทรงผม <b>${Math.round(s.grooming)}</b></span>`;
-  if (s.homework > 0) h += `<span class="chip hw" title="ไม่ส่งแล้วครูหักคะแนน">การบ้าน <b>${s.homework}</b></span>`;
+    h += `<span class="chip hw" data-k="grooming" data-v="${Math.round(s.grooming)}" title="${groomingLabel(s.grooming)} — เสี่ยงโดนเรียกหน้าแถว">ทรงผม <b>${Math.round(s.grooming)}</b></span>`;
+  if (s.homework > 0) h += `<span class="chip hw" data-k="homework" data-v="${s.homework}" title="ไม่ส่งแล้วครูหักคะแนน">การบ้าน <b>${s.homework}</b></span>`;
   if (club) h += `<span class="chip club" title="${club.blurb}">${club.icon} <b>${club.name}</b></span>`;
   $("stats").innerHTML = h;
   markChanged();
@@ -573,7 +588,9 @@ function talkTo(charId: string, where?: string) {
 function playInk(name: string, charId: string | null, speaker: string, color: string,
                  onEnd: () => void, bgOverride?: string) {
   const story = openScene(name, s, charId, hooks());
-  const bg = bgOverride ?? (hasEventArt(name) ? name : name === "assembly" ? "assembly" : undefined);
+  // เหตุการณ์ที่ยังไม่มีภาพของตัวเอง ยืมภาพของที่ที่มันเกิดขึ้น (ดู `EVENT_PLACE`)
+  // ของเดิมใส่ภาพให้เฉพาะบทที่ชื่อตรงกับชื่อฉาก ที่เหลือเล่นบนจอดำเปล่า
+  const bg = bgOverride ?? eventBackdrop(name, isUni(s) ? "uni" : "school");
   playScene(story, speaker, color, charId, onEnd, bg, periodId(s));
 }
 

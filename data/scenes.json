@@ -6,7 +6,8 @@
   "_timed": "ชุด Pandita ให้ภาพจริงมาสี่ช่วงเวลา ใช้ภาพคนละใบไปเลย ดีกว่าไล่สีเอา",
   "timed": {
     "classroom": "classroom",
-    "canteen": "canteen"
+    "canteen": "canteen",
+    "hallway": "hallway"
   },
   "_plain": "ชุด School ให้ภาพเดียวต่อที่ แสงในภาพถูกวาดมาแล้ว จึงไล่สีทับตอนรันแทน",
   "plain": [

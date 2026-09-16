@@ -481,6 +481,40 @@ function svgBackdrop(id: string): string {
 
 export const hasEventArt = (ink: string) => ink in EVENT_SCENES;
 
+/** เหตุการณ์ไหนเกิดขึ้นที่ไหน — สำหรับเหตุการณ์ที่ยังไม่มีภาพเป็นของตัวเอง
+ *
+ *  ของเดิม `playInk()` ใส่ฉากหลังให้เฉพาะ ink ที่บังเอิญมีชื่อตรงกับชื่อฉากเท่านั้น
+ *  ผลคือ **เหตุการณ์สิบจากสิบแปดอันเล่นบนจอดำเปล่า** รวมถึงฉากแรกสุดที่ผู้เล่นเห็นตอนเปิดเกม
+ *  และเหตุการณ์หลักทั้งสี่ของภาคมหาลัย · ไม่มี error ไม่มีอะไรฟ้อง มีแค่พื้นที่ว่างครึ่งจอ
+ *  ตราบใดที่ยังไม่มีภาพของตัวเอง ให้ยืมภาพของ *ที่ที่มันเกิดขึ้น* ไปก่อน
+ *
+ *  บางเหตุการณ์ใช้บทเดียวกันทั้งสองภาค (`ev_club` `ev_group`) ที่เกิดจึงคนละที่กัน
+ *  `src/ui/backdrop.test.ts` คุมว่าทุกเหตุการณ์ใน `data/events.json` มีภาพจริงครบทุกภาค */
+const EVENT_PLACE: Record<string, string | { school: string; uni: string }> = {
+  ev_opening: "classroom",                              // วันเปิดเทอม ห้อง 5/1
+  ev_club: { school: "hallway", uni: "clubroom" },      // ลานหน้าห้องกิจการนักเรียน
+  ev_group: { school: "classroom", uni: "lecture" },    // ครูอ่านรายชื่อจับคู่หน้าห้อง
+  ev_holiday: "home",                                   // โรงเรียนปิด ทั้งซอยเงียบ
+  ev_home_ask: "home",                                  // แม่โทรมาตอนสามทุ่ม
+  u_open: "lecture",                                    // หอประชุมใหญ่
+  u_hazing: "clubroom",                                 // ห้องเชียร์ปิดไฟ
+  u_fest: "faccant",                                    // ลานหน้าคณะ
+  u_close: "dorm",                                      // กระเป๋าวางอยู่ตรงประตูหอ
+  assembly: "assembly",                                 // เข้าแถวหน้าเสาธง
+};
+
+/** ฉากหลังของบทเหตุการณ์หนึ่งบท — ภาพของตัวเองมาก่อน แล้วค่อยยืมภาพของสถานที่ */
+export function eventBackdrop(ink: string, chapter: "school" | "uni"): string | undefined {
+  if (ink in EVENT_SCENES) return ink;
+  const p = EVENT_PLACE[ink];
+  if (!p) return undefined;
+  return typeof p === "string" ? p : p[chapter];
+}
+
+/** ฉากนี้มีภาพให้วาดจริงไหม (ภาพถ่ายหรือ SVG ก็ได้) — เทสต์ใช้ตรวจว่าไม่มีใครตกหล่น */
+export const hasBackdrop = (id: string) =>
+  id in SCENES || id in EVENT_SCENES || hasPhoto(id);
+
 /** ชื่อฉากทั้งหมดที่มีอยู่ — ใช้โดยเทสต์ภาพเพื่อวาดทุกฉากลงแผ่นเดียวแล้วเทียบ
  *  ถ้าเพิ่มฉากใหม่แล้วลืมอะไรไป จะเห็นบนแผ่นนั้นทันทีโดยไม่ต้องไล่เปิดทีละที่ */
 export const allBackdropIds = (): string[] =>

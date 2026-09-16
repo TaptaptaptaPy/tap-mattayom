@@ -147,3 +147,43 @@ test("สมุดบันทึกต้องอ่านได้ทั้�
   await page.locator('[data-tab="all"]').click();
   await expect(page).toHaveScreenshot("diary.png");
 });
+
+/** แถบบนต้องบอกได้สองอย่าง: ตอนนี้เท่าไหร่ และเมื่อกี้เปลี่ยนไปเท่าไหร่
+ *
+ *  ทั้งสองอย่างเคยตายเงียบพร้อมกัน — หลอดใต้ชิปไม่มีกฎ CSS ของตัวเอง (เห็นเฉพาะชิป "แรง")
+ *  และตัวจับความเปลี่ยนแปลงแกะตัวเลขจากข้อความ ซึ่งชิปค่าสถานะโชว์เป็นชื่อระดับ
+ *  `Number("")` คืน 0 ค่าสถานะห้าตัวจึงอ่านได้ 0 เท่ากันตลอด แล้วไม่เคยถูกนับว่าเปลี่ยนเลย
+ *  ภาพนิ่งจับข้อนี้ไม่ได้ เพราะทั้งคู่เป็นของที่ "ควรโผล่มา" ไม่ใช่ของที่ "หายไป" */
+test("แถบบน: หลอดค่าสถานะต้องมองเห็น และค่าที่เพิ่งเปลี่ยนต้องลอยตัวเลขขึ้นมา", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!(window as any).__mattayom);
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom;
+    M.s.seenEvents["opening"] = true;
+    document.getElementById("scene")!.classList.add("hidden");
+    M.s.stats.heart = 30; M.s.stats.mind = 70; M.s.stats.charm = 5;
+    M.render();
+  });
+
+  const widths = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>("#stats .chip.stat i")]
+      .map((i) => i.getBoundingClientRect().width));
+  console.log("ความกว้างหลอดค่าสถานะ: " + widths.map((w) => w.toFixed(1)).join(" · "));
+  expect(widths.length, "ไม่มีหลอดค่าสถานะเลย").toBe(5);
+  expect(Math.max(...widths), "หลอดกว้างศูนย์ทุกใบ — แปลว่าไม่มีกฎ CSS ให้มัน").toBeGreaterThan(4);
+  // ค่าไม่เท่ากันต้องได้หลอดไม่เท่ากัน ไม่งั้นหลอดก็ไม่ได้บอกอะไร
+  expect(new Set(widths.map((w) => Math.round(w))).size).toBeGreaterThan(2);
+
+  await page.evaluate(() => {
+    const M = (window as any).__mattayom;
+    M.s.stats.heart += 40;
+    M.s.money -= 60;
+    M.render();
+  });
+  const deltas = await page.evaluate(() =>
+    [...document.querySelectorAll("#stats .delta")].map((d) => d.textContent ?? ""));
+  console.log("ตัวเลขที่ลอยขึ้นมา: " + (deltas.join(" · ") || "ไม่มีเลย"));
+  expect(deltas.length, "ค่าเปลี่ยนแล้วแต่ไม่มีอะไรลอยขึ้นมาบอก").toBeGreaterThan(1);
+  expect(deltas.some((d) => d.startsWith("+")), "ไม่มีค่าที่เพิ่มขึ้นถูกรายงาน").toBe(true);
+  expect(deltas.some((d) => d.startsWith("-")), "ไม่มีค่าที่ลดลงถูกรายงาน").toBe(true);
+});

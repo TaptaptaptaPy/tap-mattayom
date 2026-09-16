@@ -55,7 +55,15 @@ button{font-family:inherit;cursor:pointer}
 .tbtn:active{background:rgba(242,238,247,.08);color:var(--ink)}
 
 .chip{position:relative;overflow:hidden}
-.chip.energy i{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);opacity:.7}
+/* หลอดใต้ชิป — ของเดิมมีกฎเฉพาะ `.chip.energy i` ทั้งที่ชิปค่าสถานะ ครู และหนี้การนอน
+   ก็ส่ง <i> ที่คำนวณเปอร์เซ็นต์มาแล้วออกมาเหมือนกัน · `<i>` เปล่าที่ไม่มีกฎคือ inline
+   สูงศูนย์และไม่มีสีพื้น มันจึงมองไม่เห็นมาตลอด ค่าสถานะห้าตัวเลยเหลือแต่ชื่อระดับเป็นคำ
+   ซึ่งยาวและเหมือนกันทั้งห้าใบตอนเริ่มเกม — อ่านออกมาเป็นกำแพงตัวหนังสือ */
+.chip i{position:absolute;left:0;bottom:0;height:2px;background:var(--dim);opacity:.5;
+  transition:width .45s cubic-bezier(.2,.9,.3,1)}
+.chip.stat i{background:var(--accent);opacity:.45}
+.chip.energy i{background:var(--accent);opacity:.7}
+.chip.debt i{background:#d69a9a;opacity:.6}
 .chip.energy.low{border-color:#8a5a5a;color:#e0a0a0}
 .chip.energy.low b{color:#e88}
 
@@ -362,6 +370,10 @@ button{font-family:inherit;cursor:pointer}
   -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.92) 62%,transparent 100%);
   mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.92) 62%,transparent 100%)}
 #sceneBg .bd{width:100%;height:auto;aspect-ratio:400/150}
+/* บนจอสูง (มือถือแนวตั้ง) เหนือภาพเป็นที่ว่างเกือบครึ่งจอทุกฉาก ซึ่งอ่านออกมาว่า "แห้ง"
+   ยืดภาพให้สูงขึ้นเป็นขั้นแทน — ห้ามใช้ vh ตรงๆ ด้วยเหตุผลข้างบน
+   ภาพถ่ายเป็น 16:9 อยู่แล้ว ครอบแนวนอนเข้ามาหน่อยไม่เสียอะไร */
+@media (min-height: 740px) { #sceneBg .bd{aspect-ratio:400/215} }
 /* ภาพฉากที่วาดจริงเป็น 16:9 ส่วนแถบในเกมเป็น 400/150 — ครอบให้เต็มแล้วตัดส่วนเกิน
    ห้ามบีบให้พอดี ไม่งั้นห้องเรียนจะแบนผิดสัดส่วน */
 #sceneBg img.bd{height:100%;object-fit:cover;object-position:center 62%}
